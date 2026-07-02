@@ -48,10 +48,12 @@ document/
 - Sélecteurs CSS LinkedIn centralisés et isolés (le DOM LinkedIn change régulièrement) — jamais dispersés dans le code.
 - Pas d'envoi de message ni d'invitation automatisée (lecture seule uniquement) à ce stade.
 - Volume cible faible : ~50 profils qualifiés/semaine en sortie, quelques centaines de profils scrapés/semaine maximum — ne pas optimiser pour un volume supérieur sans validation explicite du client.
-- Identifiants LinkedIn (`LINKEDIN_EMAIL`/`LINKEDIN_PASSWORD`) dans `.env.local` (non commité), jamais en dur dans le code ; session persistée localement.
+- Identifiants LinkedIn (`LINKEDIN_EMAIL`/`LINKEDIN_PASSWORD`) dans `.env.local` (non commité), jamais en dur dans le code ; connexion initiale manuelle dans la fenêtre Playwright, session persistée localement (pas de remplissage automatique du login pour l'instant).
+- **Plan de repli UI** : si Streamlit crée une friction technique bloquante (ex : incompatibilité avec un flux de login Playwright interactif/bloquant, ou limite d'ergonomie pour le pilotage des résultats), bascule vers PyQt6. L'isolation stricte frontend/backend (zéro import Streamlit dans `core/`/`adapters/`) est justement conçue pour permettre ce basculement sans réécrire le backend.
 
 ## Décisions d'architecture
 
 | Date | Décision | Alternatives rejetées |
 |---|---|---|
 | 02/07/2026 | Streamlit retenu pour l'UI, avec isolation stricte frontend/backend (zéro import Streamlit dans `core/`/`adapters/`) pour permettre une UI desktop en remplacement futur | CLI pur (moins ergonomique pour piloter/visualiser les résultats) ; PyQt6 desktop d'emblée (proposé par le template, pas nécessaire en Phase 1 POC) |
+| 02/07/2026 | PyQt6 retenu comme solution de repli explicite en cas de friction bloquante avec Streamlit (pas une simple option théorique) | Rester bloqué sur Streamlit envers et contre tout (rejeté : risque de perdre du temps sur un problème d'outillage plutôt que sur le cœur du POC) |
