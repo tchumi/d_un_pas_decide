@@ -1,20 +1,22 @@
-# CLAUDE.md — [PROJECT_NAME]
+# CLAUDE.md — ProspectionLinkedIn
 
 ## Objectif du projet
 
-[PROJECT_DESCRIPTION]
-Stack : Python ≥ 3.12, PyQt6, [AUTRES_DEPENDANCES_CLÉS — ex: SQLAlchemy, FastAPI, Alembic].
+POC d'automatisation de la prospection de coachs business sur LinkedIn (recherche,
+extraction, scoring/catégorisation de profils) pour D'un Pas Décidé.
+Stack : Python ≥ 3.12, Streamlit, Playwright, SQLite, pandas.
 
 ## Structure du repository
 
 ```
-[COLLER_ICI_L_ARBORESCENCE_source/_et_tests/_réelle]
 source/
-  main.py                    # point d'entrée desktop
-  frontend_qt/               # interface Qt (widgets, dialogs, controllers)
+  main.py                    # point d'entrée Streamlit (streamlit run)
+  frontend_streamlit/        # pages/composants Streamlit (présentation uniquement)
   backend/
-    core/                    # modèles métier, services purs
-    adapters/                # database, workspace, importers…
+    core/                    # scoring, catégorisation, modèles métier — zéro import Streamlit
+    adapters/
+      scraping/               # Playwright, sélecteurs CSS LinkedIn centralisés, session
+      storage/                # SQLite / export CSV
 tests/
   unit/    integration/    e2e/
 document/
@@ -23,11 +25,11 @@ document/
   claude_code/               # kit gouvernance : AGENTS.md, handoff.md, task_list.md…
 ```
 
-## État actuel ([DATE_JJ_MM_AAAA])
+## État actuel (02/07/2026)
 
-- Branche active : `[BRANCHE_ACTIVE]` (base `[BRANCHE_BASE]`)
-- Tests : [N] passants, [N] échecs, [N] skipped
-- Prochain ticket actif : [ID_TICKET_SUIVANT]
+- Branche active : `master` (base `master`)
+- Tests : 0 passants, 0 échecs, 0 skipped
+- Prochain ticket actif : POC-001
 
 ## Méthode de travail par ticket
 
@@ -44,11 +46,11 @@ Ne jamais démarrer un ticket sans ce protocole si le contexte courant contient 
 1. **Lire avant modifier** : lire le fichier cible + ses appelants avant toute modification.
 2. **Plan d'abord** : proposer un plan court avant toute modification non triviale. Après validation, sauvegarder le plan dans `document/prompts_plans/plan_[ID_TICKET].md` et faire un commit : `git commit -m "docs: [ID_TICKET] plan — description courte"`.
 3. **Pas de destructif** : pas de `git reset --hard`, pas de checkout destructif, pas de suppression de fichiers.
-4. **Pas de secrets** : ne jamais exposer `.env`, clés API, mots de passe, [EXTENSIONS_FICHIERS_SENSIBLES — ex: .db, .gnucash].
+4. **Pas de secrets** : ne jamais exposer `.env`, `.env.local`, clés API, mots de passe, identifiants LinkedIn (`LINKEDIN_EMAIL`/`LINKEDIN_PASSWORD`), fichiers `.db`/`.sqlite`, session Playwright (ex: `storage_state.json`).
 5. **Pas de migration schema sans plan validé et backup explicite**.
-6. **Lancer l'API uniquement via uvicorn** (ne jamais appeler `python source/backend/api/main.py` directement) :
+6. **Lancer l'UI uniquement via `streamlit run`** (ne jamais lancer les scripts de scraping/scoring en important Streamlit ailleurs) :
    ```powershell
-   python -m uvicorn source.backend.api.main:app --reload --host 127.0.0.1 --port 8000
+   streamlit run source/main.py
    ```
 
 ## Obligation de fin de session
@@ -71,10 +73,10 @@ Proposer le prompt du prochain ticket en remplissant les placeholders de `docume
 ## Commandes essentielles
 
 ```powershell
-uv sync --extra gui --extra test   # installation
-python source\main.py              # lancement desktop
-pytest tests/ -v                   # tous les tests
-pytest tests/unit/ -v              # tests unitaires seuls
+uv sync --extra test                        # installation
+streamlit run source\main.py                # lancement UI
+pytest tests/ -v                            # tous les tests
+pytest tests/unit/ -v                       # tests unitaires seuls
 ```
 
 ## Documentation de référence

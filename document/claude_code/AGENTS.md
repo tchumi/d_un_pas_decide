@@ -1,11 +1,11 @@
-# AGENTS.md — Règles de travail IA pour [PROJECT_NAME]
+# AGENTS.md — Règles de travail IA pour ProspectionLinkedIn
 
 ## 1. Cadre de travail
 
-- [Documentation] Objectif du repo : [PROJECT_DESCRIPTION]
+- [Documentation] Objectif du repo : POC d'automatisation de la prospection de coachs business sur LinkedIn (recherche, extraction, scoring/catégorisation de profils) pour D'un Pas Décidé.
 - [Code] Le code applicatif est dans `source/` ; les tests dans `tests/` ; la documentation dans `document/`.
-- [Code] Le point d'entrée desktop est `source/main.py`.
-- [Règle] Vérifier la branche active au démarrage : `git branch --show-current`. Si la branche n'est pas `[BRANCHE_BASE]`, le signaler et attendre validation.
+- [Code] Le point d'entrée UI (Streamlit) est `source/main.py`.
+- [Règle] Vérifier la branche active au démarrage : `git branch --show-current`. Si la branche n'est pas `master`, le signaler et attendre validation.
 - [Documentation] Le backlog produit est dans `document/Backlog.md`. À lire avant tout développement pour ne pas réimplémenter l'existant ni ignorer les contraintes en cours.
 - [Inférence] Toute reprise par agent doit considérer la documentation existante comme potentiellement partielle et vérifier dans le code avant d'agir.
 
@@ -29,11 +29,12 @@
 
 ## 4. Conventions de code
 
-- [Code] Architecture visée : séparation `frontend_qt/`, `backend/core/`, `backend/adapters/`.
+- [Code] Architecture visée : séparation `frontend_streamlit/`, `backend/core/`, `backend/adapters/`.
 - [Règle] Respecter les imports `source.` existants.
 - [Règle] Garder les commentaires de code en anglais.
 - [Règle] Éviter les chemins hardcodés ; passer par le gestionnaire de workspace ou les helpers existants.
-- [Règle] PyQt6 uniquement dans `frontend_qt/` — zéro import PyQt6 dans les modules `core/` ou `adapters/`.
+- [Règle] Streamlit uniquement dans `frontend_streamlit/` — zéro import Streamlit dans les modules `core/` ou `adapters/`, pour permettre le remplacement de l'UI (ex: desktop) sans toucher au backend.
+- [Règle] Sélecteurs CSS LinkedIn centralisés dans un module dédié de `backend/adapters/scraping/` (jamais dispersés dans le code) — le DOM LinkedIn change régulièrement.
 
 ## 5. Règles Git
 
@@ -48,19 +49,13 @@
 ### Installation
 
 ```powershell
-uv sync --extra gui --extra test
+uv sync --extra test
 ```
 
-### Lancement desktop
+### Lancement UI (Streamlit)
 
 ```powershell
-python source\main.py
-```
-
-### Lancement API (si applicable)
-
-```powershell
-python -m uvicorn source.backend.api.main:app --reload --host 127.0.0.1 --port 8000
+streamlit run source\main.py
 ```
 
 ### Tests
@@ -75,6 +70,6 @@ pytest tests/ --cov=source --cov-report=html
 ## 7. Variables d'environnement
 
 <!-- Lister ici les variables spécifiques au projet -->
-- [Code] `[VAR_ENV_1]` : [description]
-- [Code] `[VAR_ENV_2]` : [description]
+- [Code] `LINKEDIN_EMAIL` : identifiant du compte LinkedIn utilisé pour le scraping (défini dans `.env.local`, non commité).
+- [Code] `LINKEDIN_PASSWORD` : mot de passe du compte LinkedIn (défini dans `.env.local`, non commité, jamais en dur dans le code).
 - [Règle] Ne pas renseigner de valeur secrète dans la documentation ou dans Git.

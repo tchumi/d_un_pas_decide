@@ -1,4 +1,4 @@
-Tu travailles dans le repo [PROJECT_NAME] avec Claude Code dans VS Code.
+Tu travailles dans le repo ProspectionLinkedIn avec Claude Code dans VS Code.
 
 Je viens de faire un /clear pour réduire le contexte. Tu dois reprendre proprement à partir de la documentation projet, mais sans relire tout le repository.
 

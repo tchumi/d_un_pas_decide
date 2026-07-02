@@ -12,7 +12,7 @@
 
 | ID | Statut | Priorité | Module | Tâche | Critère d'acceptation |
 |---|---|---|---|---|---|
-| [PREFIX]-001 | TODO | P1 | [Module] | [Description courte] | [Critère mesurable] |
+| POC-001 | TODO | P1 | scraping | Script de recherche + extraction basique de profils LinkedIn (Playwright) | ≥ 20-25 profils extraits sur une requête donnée, export CSV nom/URL/localisation/titre, sélecteurs CSS isolés, aucun blocage de compte |
 
 <!-- 
 Conventions :
