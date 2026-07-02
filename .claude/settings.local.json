@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(*)",
+      "Bash(*)",
+      "Read(**)"
+    ],
+    "deny": [
+      "PowerShell(Remove-Item*)",
+      "PowerShell(rm *)",
+      "PowerShell(del *)",
+      "PowerShell(rd *)",
+      "PowerShell(*reset*--hard*)",
+      "Bash(rm *)",
+      "Bash(rmdir *)",
+      "Bash(git reset --hard*)",
+      "Bash(git checkout --*)"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "chat.tools.terminal.autoApprove": {
+    "/^git\\s+(status|diff|log|show)\\b/i": true,
+    "/^pytest\\b/i": true,
+    "/^(python|py)\\s+-m\\s+pytest\\b/i": true,
+
+    "/^(rm|rmdir|del|erase)\\b/i": false,
+    "/^Remove-Item\\b/i": false,
+    "/^(curl|wget)\\b/i": false
+  },
+  "chat.agent.maxRequests": 100
+}

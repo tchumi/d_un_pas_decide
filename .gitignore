@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Environnement
+.env
+.env.*
+!.env.example
+
+# Base de données (fichiers runtime — ne pas versionner)
+*.db
+*.sqlite
+*.sqlite3
+
+# Fichiers sensibles
+*.gnucash
+*.log
+
+# IDE
+.idea/
+
+# Claude Code — mémoire utilisateur (locale, ne pas versionner)
+.claude/memory/*.md
+!.claude/memory/MEMORY.md
+
+# Inclure explicitement les settings Claude Code (globalement ignorés)
+!.claude/settings.local.json
