@@ -35,8 +35,7 @@ class LinkedInSearchSelectors:
 class LinkedInAuthSelectors:
     """Selectors/markers used to detect whether a manual login is needed."""
 
-    # URL fragments seen when the account is not authenticated.
-    LOGIN_URL_MARKERS = ("login", "authwall")
-
-    # URL fragment seen once logged in and on the main feed.
+    # URL fragment seen once logged in and on the main feed. Its absence is
+    # treated as "not logged in" - a logged-out session doesn't reliably
+    # expose a "login"/"authwall" marker on the plain homepage URL.
     FEED_URL_MARKER = "feed"

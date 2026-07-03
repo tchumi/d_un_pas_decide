@@ -36,11 +36,14 @@ def open_browser_session(profile_dir: Path, headless: bool = False):
 
 
 def is_logged_in(page: Page) -> bool:
-    """Check whether the current page indicates an authenticated session."""
-    url = page.url
-    if LinkedInAuthSelectors.FEED_URL_MARKER in url:
-        return True
-    return not any(marker in url for marker in LinkedInAuthSelectors.LOGIN_URL_MARKERS)
+    """Check whether the current page indicates an authenticated session.
+
+    A logged-in session redirects https://www.linkedin.com/ to /feed/. A
+    logged-out session stays on the plain homepage (no "login"/"authwall"
+    marker in the URL in that case), so absence of those markers cannot be
+    used as a positive signal - only the feed redirect can.
+    """
+    return LinkedInAuthSelectors.FEED_URL_MARKER in page.url
 
 
 def ensure_logged_in(page: Page, context: BrowserContext) -> None:
