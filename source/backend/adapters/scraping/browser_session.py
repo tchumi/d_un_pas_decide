@@ -8,10 +8,12 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from playwright.sync_api import BrowserContext, Page, sync_playwright
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from source.backend.adapters.scraping.selectors import LinkedInAuthSelectors
 
 LINKEDIN_HOME_URL = "https://www.linkedin.com/"
+LOGIN_CONFIRMATION_ATTEMPTS = 3
 
 
 @contextmanager
@@ -50,12 +52,33 @@ def ensure_logged_in(page: Page, context: BrowserContext) -> None:
     """Navigate to LinkedIn and block on manual login if not authenticated.
 
     The script never fills the login form itself: the user logs in by hand
-    in the visible browser window, then confirms in the console.
+    in the visible browser window, then confirms in the console. Pressing
+    Enter does not guarantee the post-login redirect to /feed/ has already
+    settled, so we explicitly wait for it instead of navigating away
+    immediately - doing otherwise races LinkedIn's own redirect and can
+    bounce the next navigation back to the login page.
     """
     page.goto(LINKEDIN_HOME_URL, timeout=60000)
 
-    if not is_logged_in(page):
+    for _ in range(LOGIN_CONFIRMATION_ATTEMPTS):
+        if is_logged_in(page):
+            return
+
         input(
             "\n>>> Connecte-toi manuellement dans la fenetre Chrome qui "
             "s'est ouverte, puis reviens ici et appuie sur Entree...\n"
+        )
+        try:
+            page.wait_for_url(
+                f"**/{LinkedInAuthSelectors.FEED_URL_MARKER}/**", timeout=15000
+            )
+        except PlaywrightTimeoutError:
+            continue
+
+    if not is_logged_in(page):
+        raise RuntimeError(
+            "Connexion LinkedIn non confirmee (l'URL n'a jamais atteint "
+            "/feed/) apres plusieurs tentatives. Verifie qu'aucune etape "
+            "de verification supplementaire (2FA, checkpoint de securite) "
+            "n'est restee en attente dans la fenetre Chrome."
         )
