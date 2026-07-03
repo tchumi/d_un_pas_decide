@@ -24,10 +24,9 @@ SEARCH_QUERY = (
     'AND (France) NOT ("life coach" OR "sportif")'
 )
 
-# Kept low on purpose for the first test/debug phase (user decision,
-# 03/07/2026): raise to 20-25 only once a run has been validated without
-# triggering any LinkedIn account restriction.
-MAX_PROFILES = 5
+# Raised to 25 (user decision, 03/07/2026) after a first 5-profile run
+# confirmed clean extraction with no LinkedIn account restriction.
+MAX_PROFILES = 25
 
 PROFILE_DIR = Path("./browser_profile")
 OUTPUT_CSV = Path("./profils_extraits.csv")
