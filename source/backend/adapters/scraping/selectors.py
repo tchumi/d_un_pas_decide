@@ -7,29 +7,39 @@ hunted down across the codebase.
 
 
 class LinkedInSearchSelectors:
-    """Selectors for the LinkedIn "people" search results page."""
+    """Selectors for the LinkedIn "people" search results page.
 
-    # One search result card in the results list.
-    RESULT_CARD = "li.reusable-search__result-container"
+    LinkedIn's CSS class names are hashed/atomic (e.g. "_3ff84621") and
+    regenerated on every deploy - unusable as stable selectors. These
+    selectors rely instead on structural ARIA roles and data-testid
+    attributes, verified against a live DOM dump on 03/07/2026.
+    """
 
-    # Profile display name, relative to a RESULT_CARD.
-    # Fragile: LinkedIn reuses aria-hidden spans for other purposes too,
-    # this targets the first one found in the card.
-    NAME = "span[aria-hidden='true']"
+    # One search result card. Scoped under the page's single ARIA list to
+    # avoid matching unrelated "listitem" roles elsewhere (right rail,
+    # filter pills, etc.).
+    RESULT_CARD = '[role="list"] [role="listitem"]'
 
-    # Headline / title shown under the name, relative to a RESULT_CARD.
-    TITLE = ".entity-result__primary-subtitle"
+    # Card-wrapping anchor, relative to a RESULT_CARD - first match gives
+    # the profile URL (it wraps the whole card content).
+    PROFILE_LINK = 'a[href*="/in/"]'
 
-    # Location shown under the title, relative to a RESULT_CARD.
-    LOCATION = ".entity-result__secondary-subtitle"
+    # Name link, relative to a RESULT_CARD: the first anchor nested inside
+    # a <p> pointing to a profile - distinguishes it from the outer
+    # card-wrapping anchor (not inside a <p>) and from "mutual connections"
+    # anchors appearing later in the card (pointing to other profiles).
+    NAME = 'p a[href*="/in/"]'
 
-    # Link to the profile page, relative to a RESULT_CARD.
-    PROFILE_LINK = "a.app-aware-link"
+    # Headline and location, relative to a RESULT_CARD: each is the sole
+    # <p> inside the 1st / 2nd <div> sibling following the name's <p>,
+    # within their shared info block. XPath needed for sibling traversal.
+    HEADLINE_XPATH = ".//p[.//a[contains(@href,'/in/')]][1]/following-sibling::div[1]//p"
+    LOCATION_XPATH = ".//p[.//a[contains(@href,'/in/')]][1]/following-sibling::div[2]//p"
 
-    # Pagination "next page" button.
-    # Fragile: aria-label text depends on the LinkedIn account's display
+    # Pagination "next page" button. Uses a stable data-testid instead of
+    # the old aria-label text, which depended on the account's display
     # language (e.g. "Suivant" in French, "Next" in English).
-    NEXT_BUTTON = "button[aria-label='Suivant']"
+    NEXT_BUTTON = '[data-testid="pagination-controls-next-button-visible"]'
 
 
 class LinkedInAuthSelectors:

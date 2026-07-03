@@ -39,24 +39,48 @@ def pause_humaine(min_s: float = 1.5, max_s: float = 4.0) -> None:
     time.sleep(random.uniform(min_s, max_s))
 
 
+def _extract_optional_text(locator: Locator) -> str:
+    """Return the locator's inner text, or "" if absent/unreadable.
+
+    Used for fields (headline, location) that some profiles legitimately
+    omit - their absence should not reject the whole card.
+    """
+    if locator.count() == 0:
+        return ""
+    try:
+        return locator.first.inner_text(timeout=3000).strip()
+    except Exception:
+        return ""
+
+
 def extract_profile_from_card(card: Locator) -> dict[str, str] | None:
     """Extract one profile's fields from a single result card.
 
     Returns None if the card doesn't match the expected structure (LinkedIn
-    DOM changed, or a non-profile card slipped into the results).
+    DOM changed, or a non-profile card slipped into the results). Name and
+    URL are required; headline/location degrade to "" if missing, since not
+    every profile shows them.
     """
     try:
-        name = card.locator(LinkedInSearchSelectors.NAME).first.inner_text(timeout=3000)
-        title = card.locator(LinkedInSearchSelectors.TITLE).first.inner_text(timeout=3000)
-        location = card.locator(LinkedInSearchSelectors.LOCATION).first.inner_text(timeout=3000)
+        name = card.locator(LinkedInSearchSelectors.NAME).first.inner_text(timeout=3000).strip()
         raw_url = card.locator(LinkedInSearchSelectors.PROFILE_LINK).first.get_attribute("href")
     except Exception:
         return None
 
+    if not name or not raw_url:
+        return None
+
+    headline = _extract_optional_text(
+        card.locator(f"xpath={LinkedInSearchSelectors.HEADLINE_XPATH}")
+    )
+    location = _extract_optional_text(
+        card.locator(f"xpath={LinkedInSearchSelectors.LOCATION_XPATH}")
+    )
+
     return {
-        "nom": name.strip(),
-        "titre": title.strip(),
-        "localisation": location.strip(),
+        "nom": name,
+        "titre": headline,
+        "localisation": location,
         "url": clean_profile_url(raw_url),
     }
 
