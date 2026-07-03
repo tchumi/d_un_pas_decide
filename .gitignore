@@ -21,6 +21,10 @@ build/
 *.gnucash
 *.log
 
+# Session Playwright persistée (cookies de session LinkedIn) — ne jamais versionner
+browser_profile/
+profils_extraits.csv
+
 # IDE
 .idea/
 
