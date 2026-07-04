@@ -26,11 +26,11 @@ déclencher de blocage ou restriction du compte. L'email est explicitement hors 
 de ce ticket (voir décisions).
 
 **Critères d'acceptation** :
-- [ ] Script fonctionnel qui extrait au moins 20-25 profils cohérents sur une requête booléenne donnée
-- [ ] Aucun blocage/restriction du compte LinkedIn constaté pendant les tests
-- [ ] Sélecteurs CSS LinkedIn documentés et isolés dans un module dédié (facilite la maintenance si le DOM change)
-- [ ] Export CSV propre avec les champs : nom, URL, localisation, titre/résumé (sans email)
-- [ ] Session LinkedIn persistée localement ; identifiants (`LINKEDIN_EMAIL`/`LINKEDIN_PASSWORD`) dans `.env.local`, jamais en dur dans le code
+- [x] Script fonctionnel qui extrait au moins 20-25 profils cohérents sur une requête booléenne donnée (25 profils, 04/07/2026)
+- [x] Aucun blocage/restriction du compte LinkedIn constaté pendant les tests
+- [x] Sélecteurs CSS LinkedIn documentés et isolés dans un module dédié (facilite la maintenance si le DOM change)
+- [x] Export CSV propre avec les champs : nom, URL, localisation, titre/résumé (sans email)
+- [x] Session LinkedIn persistée localement ; identifiants (`LINKEDIN_EMAIL`/`LINKEDIN_PASSWORD`) dans `.env.local`, jamais en dur dans le code
 
 **Périmètre** :
 - `source/backend/adapters/scraping/` — recherche + extraction Playwright, sélecteurs CSS centralisés
@@ -45,3 +45,20 @@ de ce ticket (voir décisions).
 - 03/07/2026 — Run à 5 profils validé : 5 profils cohérents extraits (noms, URLs, localisations, titres de coachs conformes à la requête), aucun blocage ni restriction de compte constaté. `MAX_PROFILES` remonté à 25 dans `run_poc001.py`. Test final à 25 profils prévu par l'utilisateur le 04/07/2026 au matin, avec enregistrement du run comme démo pour Henri-Pierre Michaud et Christophe Hoffsteter (client D'un Pas Décidé).
 - 03/07/2026 — Requête booléenne de test confirmée : celle de `document/spec/spec_onboarding_prospection_linkedin.md` (`("coach business" OR "coach professionnel" OR "coach entreprise") AND (France) NOT ("life coach" OR "sportif")`).
 - 03/07/2026 — Ajout de `browser_profile/` (dossier de session Playwright, cookies LinkedIn) et `profils_extraits.csv` au `.gitignore`, hors périmètre initialement listé pour ce ticket mais validé explicitement par l'utilisateur : aucun pattern existant ne couvrait le dossier de session, qui expose l'équivalent d'un accès au compte connecté s'il était commité par erreur.
+- 04/07/2026 — Run final à 25 profils validé par l'utilisateur (enregistré en démo pour Henri-Pierre Michaud et Christophe Hoffsteter) : 25 profils cohérents, aucun blocage constaté. **POC-001 clos (DONE).**
+
+---
+
+## POC-002 — Extraction de l'email depuis la page profil individuelle
+
+**Objectif** : Étendre le pipeline POC-001 pour récupérer l'email de chaque profil déjà
+extrait, en visitant sa page profil individuelle (l'email n'est pas disponible depuis
+les cartes de résultats de recherche). À cadrer en détail au démarrage du ticket.
+
+**Contraintes connues** (héritées de POC-001 et de la spec) :
+- Une requête HTTP supplémentaire par profil → risque de blocage de compte plus élevé qu'une simple recherche ; volume et pauses "humaines" à recalibrer en conséquence.
+- L'email n'est pas toujours visible publiquement sur la page profil (dépend des réglages de confidentialité du profil visité) — prévoir un champ vide plutôt qu'un échec bloquant.
+- Lecture seule, pas d'envoi de message/invitation (inchangé depuis POC-001).
+
+**Décisions** :
+- 02/07/2026 — Ticket créé en report de POC-001 (voir décisions POC-001 ci-dessus).

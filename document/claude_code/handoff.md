@@ -40,5 +40,6 @@ Format de chaque section :
 - `MAX_PROFILES` remonté à **25** dans `run_poc001.py` pour le test final du critère d'acceptation.
 - Points de vigilance restants : les sélecteurs XPath pour titre/localisation supposent une structure à 3 `<p>` fixe (nom, titre, localisation) dans le bloc info de la carte — un profil qui n'affiche pas l'un de ces champs peut décaler l'extraction des champs suivants (dégrade vers `""`, ne fait pas planter le run).
 - Lancement de l'app **non nécessaire** : aucun fichier `frontend_streamlit/` touché.
-- **En attente côté utilisateur** : test final à 25 profils prévu le 04/07/2026 au matin, avec enregistrement du run comme démo pour Henri-Pierre Michaud et Christophe Hoffsteter (client D'un Pas Décidé). Une fois ce run confirmé sans blocage, POC-001 pourra passer à DONE.
-- Prochain ticket recommandé (après clôture DONE de POC-001) : ticket séparé pour l'extraction d'email (nécessite de visiter chaque page profil individuelle, hors scope POC-001).
+- **Run final validé (04/07/2026, `MAX_PROFILES=25`)** : 25 profils cohérents extraits (noms, URLs, localisations, titres tous liés au coaching professionnel), export CSV vérifié par script (4 colonnes attendues, aucun nom/URL vide, aucune URL avec résidu de query string, aucune colonne email). Aucun blocage/restriction de compte constaté ; l'utilisateur a enregistré ce run (OBS) comme démo pour Henri-Pierre Michaud et Christophe Hoffsteter (client D'un Pas Décidé).
+- **POC-001 → DONE.** Tous les critères d'acceptation sont remplis.
+- Prochain ticket : **POC-002** — Extraction de l'email depuis la page profil individuelle (hors scope POC-001, décision du 02/07/2026 dans Backlog.md). Prompt préparé dans `document/prompts_plans/prompt_POC-002.md`.

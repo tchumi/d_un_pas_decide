@@ -12,7 +12,7 @@
 
 | ID | Statut | Priorité | Module | Tâche | Critère d'acceptation |
 |---|---|---|---|---|---|
-| POC-001 | IN_PROGRESS | P1 | scraping | Script de recherche + extraction basique de profils LinkedIn (Playwright) | ≥ 20-25 profils extraits sur une requête donnée, export CSV nom/URL/localisation/titre, sélecteurs CSS isolés, aucun blocage de compte |
+| POC-002 | TODO | P1 | scraping | Extraction de l'email depuis la page profil individuelle | À cadrer (voir prompt_POC-002.md) |
 
 <!-- 
 Conventions :
@@ -26,3 +26,4 @@ Conventions :
 
 | ID | Statut | Priorité | Module | Tâche | Critère d'acceptation |
 |---|---|---|---|---|---|
+| POC-001 | DONE | P1 | scraping | Script de recherche + extraction basique de profils LinkedIn (Playwright) | 25 profils cohérents extraits sur la requête donnée (04/07/2026), export CSV nom/URL/localisation/titre sans email, sélecteurs CSS isolés dans selectors.py, aucun blocage de compte constaté. Tests : 7 passed, 0 failed. |
