@@ -104,3 +104,40 @@ CSV de démo POC-001) :
   demandés initialement au client (2 reçus sur le total attendu) — bloquant pour cadrer
   le scoring/la catégorisation en détail. Statut `BLOCKED` dans `task_list.md` en
   attendant ce complément.
+
+---
+
+## POC-004 — Enrichissement web des profils (coordonnées alternatives)
+
+**Objectif** : Rechercher des informations complémentaires sur le web pour les profils
+déjà extraits (en priorité : un moyen de contact alternatif quand l'email LinkedIn n'est
+pas public), en réponse à la demande client du 04/07/2026 et au constat POC-002 (0 email
+public sur 30 profils testés). **Pas encore cadré** : ticket créé en stub ; cadrage
+complet à faire au démarrage réel du ticket via le protocole habituel
+(`prompt_générique.md`).
+
+**Garde-fous RGPD à intégrer dès le cadrage** (base légale envisagée : intérêt légitime,
+art. 6.1.f RGPD, prospection B2B) :
+- **Nécessité / minimisation** : ne collecter que des champs directement utiles à la
+  prospection (ex. site pro/coordonnées alternatives) — pas de collecte "au cas où" ;
+  chaque source ajoutée doit se justifier individuellement, pas juste "explorer le web".
+- **Transparence** : prévoir dès la conception un moyen d'informer le prospect dès le
+  premier contact (mention légale / template de message), même si l'implémentation
+  concrète peut être un ticket ultérieur.
+- **Droit d'opposition** : le modèle de données doit permettre de marquer un profil
+  comme "à ne plus traiter" facilement.
+- **Conservation limitée** : prévoir un champ `date_collecte` par profil pour permettre
+  une purge future — pas de base qui s'accumule indéfiniment sans réponse du prospect.
+- **Ne pas scraper directement les pages de résultats des moteurs de recherche**
+  (Google/Bing) — passer par une vraie API de recherche (ex. Bing Search API, SerpAPI)
+  pour ne pas reproduire le même risque ToS que celui déjà assumé sur LinkedIn.
+- Ce point règle le rapport avec la personne recherchée (RGPD) ; il ne change rien au
+  risque ToS/ blocage de compte LinkedIn, qui reste un sujet indépendant et déjà géré
+  dans POC-001/POC-002.
+
+**Décisions** :
+- 07/07/2026 — Ticket ouvert suite à la demande client du 04/07/2026 ("autre moyen de
+  contact direct") et au constat POC-002 (0/30 profils avec email public). Base légale
+  envisagée : intérêt légitime (prospection B2B) — à valider par un professionnel du
+  droit avant tout passage au-delà du POC, l'analyse ci-dessus n'étant qu'un cadrage
+  technique préparatoire, pas un avis juridique.
