@@ -24,6 +24,7 @@ build/
 # Session Playwright persistée (cookies de session LinkedIn) — ne jamais versionner
 browser_profile/
 profils_extraits.csv
+profils_extraits_email.csv
 
 # IDE
 .idea/

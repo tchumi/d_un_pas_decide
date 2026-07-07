@@ -6,13 +6,14 @@ from source.backend.adapters.storage.csv_export import (
 )
 
 
-def test_export_writes_expected_fields_and_no_email(tmp_path):
+def test_export_writes_expected_fields_including_email(tmp_path):
     profiles = [
         {
             "nom": "Marie Dupont",
             "url": "https://www.linkedin.com/in/marie-dupont",
             "localisation": "Paris, Île-de-France",
             "titre": "Coach business expérimentée",
+            "email": "marie.dupont@example.com",
         }
     ]
     output_path = tmp_path / "profils.csv"
@@ -24,9 +25,30 @@ def test_export_writes_expected_fields_and_no_email(tmp_path):
         rows = list(reader)
 
     assert reader.fieldnames == PROFILE_CSV_FIELDS
-    assert "email" not in reader.fieldnames
+    assert "email" in reader.fieldnames
     assert rows[0]["nom"] == "Marie Dupont"
     assert rows[0]["localisation"] == "Paris, Île-de-France"
+    assert rows[0]["email"] == "marie.dupont@example.com"
+
+
+def test_export_defaults_missing_email_to_empty_string(tmp_path):
+    profiles = [
+        {
+            "nom": "Jean Martin",
+            "url": "https://www.linkedin.com/in/jean-martin",
+            "localisation": "Lyon",
+            "titre": "Coach business",
+        }
+    ]
+    output_path = tmp_path / "profils.csv"
+
+    export_profiles_to_csv(profiles, output_path)
+
+    with open(output_path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    assert rows[0]["email"] == ""
 
 
 def test_export_handles_empty_profile_list(tmp_path):

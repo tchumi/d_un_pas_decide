@@ -42,6 +42,37 @@ class LinkedInSearchSelectors:
     NEXT_BUTTON = '[data-testid="pagination-controls-next-button-visible"]'
 
 
+class LinkedInProfileSelectors:
+    """Selectors for an individual LinkedIn profile page (contact info).
+
+    Verified against a live DOM dump on 07/07/2026 (see document/Backlog.md
+    POC-002): the "Coordonnees" link has no stable id/data-testid, and its
+    href is just the profile's own URL with a "#" fragment (LinkedIn opens
+    the overlay via JS, not real navigation) - the initial href-based guess
+    (.../overlay/contact-info/) never matched. Only its visible text is
+    usable, same language-dependency caveat as LinkedInSearchSelectors
+    .NEXT_BUTTON before its data-testid fix.
+    """
+
+    # XPath needed: no stable attribute on this link, only its visible text
+    # ("Coordonnees" / "Contact info" depending on the account's display
+    # language).
+    CONTACT_INFO_LINK_XPATH = (
+        "//a[normalize-space(text())='Coordonnées' "
+        "or normalize-space(text())='Contact info']"
+    )
+
+    # The contact-info overlay is a real <dialog> element with a stable
+    # data-testid, unlike the link that opens it.
+    CONTACT_INFO_DIALOG = 'dialog[data-testid="dialog"]'
+
+    # Email link inside the overlay: a mailto: href is a structural HTML
+    # semantic rather than a LinkedIn-specific class, so it should stay
+    # valid across DOM redesigns as long as LinkedIn keeps exposing email
+    # via mailto.
+    EMAIL_LINK = 'dialog[data-testid="dialog"] a[href^="mailto:"]'
+
+
 class LinkedInAuthSelectors:
     """Selectors/markers used to detect whether a manual login is needed."""
 
