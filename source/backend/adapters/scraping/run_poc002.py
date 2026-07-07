@@ -26,10 +26,9 @@ SEARCH_QUERY = (
     'AND (France) NOT ("life coach" OR "sportif")'
 )
 
-# 5 profiles (user decision, 07/07/2026): visiting each profile page adds one
-# request per profile on top of the search, raising the account-restriction
-# risk compared to POC-001 - start small before considering a higher volume.
-MAX_PROFILES = 5
+# Raised to 25 (user decision, 07/07/2026) after the first 5-profile run
+# confirmed the contact-info flow works with no LinkedIn account restriction.
+MAX_PROFILES = 25
 
 PROFILE_DIR = Path("./browser_profile")
 OUTPUT_CSV = Path("./profils_extraits_email.csv")
