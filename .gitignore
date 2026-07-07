@@ -26,6 +26,9 @@ browser_profile/
 profils_extraits.csv
 profils_extraits_email.csv
 
+# Correspondance client (PDF), non destinée à être versionnée
+document/compte_rendu/
+
 # IDE
 .idea/
 
