@@ -13,6 +13,7 @@
 | ID | Statut | Priorité | Module | Tâche | Critère d'acceptation |
 |---|---|---|---|---|---|
 | POC-002 | TODO | P1 | scraping | Extraction de l'email depuis la page profil individuelle | À cadrer (voir prompt_POC-002.md) |
+| POC-003 | BLOCKED | P2 | scoring | Scoring et catégorisation des profils (Phase 2) | À cadrer — bloqué en attente des 5-10 bons/2-3 mauvais profils exemples du client (2 reçus sur le total attendu) |
 
 <!-- 
 Conventions :

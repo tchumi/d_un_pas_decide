@@ -62,3 +62,30 @@ les cartes de résultats de recherche). À cadrer en détail au démarrage du ti
 
 **Décisions** :
 - 02/07/2026 — Ticket créé en report de POC-001 (voir décisions POC-001 ci-dessus).
+- 04/07/2026 — Retour client (Christophe Hoffsteter) sur le CSV de démo POC-001 : demande explicite de récupérer l'email ("pas possible de récupérer une adresse courriel ?"), confirme la priorité de ce ticket. Demande aussi un "autre moyen de contact direct" si l'email n'est pas disponible — pas encore cadré, à voir une fois l'extraction email en place (peut rester vide si aucun canal alternatif fiable).
+- 04/07/2026 — Le même retour client demande d'inviter automatiquement chaque profil extrait dans le réseau LinkedIn du compte utilisé. **Refusé pour cette phase** : contredit directement la spec ("pas d'envoi de messages ni d'invitations automatisées dans cette phase") et le périmètre hors-scope déjà listé ci-dessus pour ce ticket. Risque de restriction du compte LinkedIn si automatisé. Cohérent avec le phasage : la Phase 3 prévoit un contact semi-automatisé mais avec envoi resté supervisé par le client, pas une automatisation complète. Réponse à formuler côté business, aucun développement prévu sur ce point.
+
+---
+
+## POC-003 — Scoring et catégorisation des profils (Phase 2)
+
+**Objectif** : Catégoriser chaque profil extrait dans une des 3 classes cibles (coach
+business débutant, expérimenté, outdoor/nature — indifférencié par défaut) et lui
+attribuer un score de pertinence. **Pas encore cadré** : ticket créé en stub pour ne pas
+perdre les exemples de calibration reçus du client ; cadrage complet à faire au
+démarrage réel du ticket (une fois POC-002 terminé), via le protocole habituel
+(`prompt_générique.md`).
+
+**Exemples de calibration reçus du client** (Christophe Hoffsteter, 04/07/2026, sur le
+CSV de démo POC-001) :
+- Anne-Laure F., "Coach en développement personnel, professionnel et scolaire certifiée
+  par Coaching Ways France Level 2 ICF (RNCP niveau 6)" → catégorie indifférenciée
+  acceptable mais moins intéressante (mélange avec développement personnel/scolaire).
+- Cécile Pollin, "HR Senior Manager - Responsable RH Senior - Transformation" → à
+  exclure, pas un coach du tout (faux positif de la recherche booléenne).
+
+**Décisions** :
+- 04/07/2026 — Toujours en attente des 5-10 exemples de "bons" profils et 2-3 "mauvais"
+  demandés initialement au client (2 reçus sur le total attendu) — bloquant pour cadrer
+  le scoring/la catégorisation en détail. Statut `BLOCKED` dans `task_list.md` en
+  attendant ce complément.
