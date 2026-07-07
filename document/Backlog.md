@@ -141,3 +141,40 @@ art. 6.1.f RGPD, prospection B2B) :
   envisagée : intérêt légitime (prospection B2B) — à valider par un professionnel du
   droit avant tout passage au-delà du POC, l'analyse ci-dessus n'étant qu'un cadrage
   technique préparatoire, pas un avis juridique.
+
+---
+
+## POC-005 — Test de faisabilité d'envoi de message automatisé (validation interne uniquement)
+
+**Objectif** : Valider techniquement la faisabilité d'envoyer un message LinkedIn via
+Playwright, en réponse à la question client du 04/07/2026 sur l'automatisation des
+invitations — **mais uniquement à titre de test de faisabilité, sur 2 destinataires
+internes et consentants** (Christophe Hoffsteter, Henri-Pierre Michaud), jamais sur un
+profil issu du pipeline de scraping/prospects. **Pas encore cadré** : ticket créé en
+stub ; cadrage complet à faire au démarrage réel du ticket.
+
+**Dérogation ponctuelle à la règle "lecture seule"** : la spec exclut explicitement
+l'envoi de messages/invitations automatisées "dans cette phase". Ce ticket introduit une
+exception étroite et documentée, réservée à la validation technique — ce n'est **pas**
+une réouverture du scope vers l'automatisation de la prospection réelle. Toute extension
+au-delà de ce test (sur de vrais prospects) reste hors scope tant qu'elle n'a pas été
+explicitement redécidée.
+
+**Garde-fous à intégrer dès le cadrage** :
+- **Liste blanche en dur dans le code** : les 2 URLs LinkedIn de destinataires
+  (Christophe, Henri-Pierre) sont les seules valeurs acceptées par la fonction d'envoi —
+  structurellement impossible de la brancher sur la liste des prospects scrapés.
+- **Volume strictement limité** : 2 messages au total, exécution manuelle et unique
+  (pas de boucle, pas de tâche planifiée).
+- **Message de test statique**, validé par l'utilisateur avant envoi (pas de contenu
+  généré automatiquement).
+- **Risque à documenter** : l'action d'envoi via automatisation est le type de
+  comportement ciblé par la détection anti-bot de LinkedIn, même à très faible volume —
+  risque non nul pour le compte utilisé (à confirmer si c'est le même compte que celui
+  du scraping ou un compte de test dédié).
+
+**Décisions** :
+- 07/07/2026 — Ticket ouvert en réponse à la demande client sur l'automatisation des
+  invitations (voir décisions POC-002 du 04/07/2026) — proposé comme validation de
+  faisabilité bornée plutôt qu'un refus sec, dans l'attente d'une décision produit sur la
+  Phase 3 (contact semi-automatisé supervisé).
