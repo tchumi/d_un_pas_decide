@@ -144,14 +144,17 @@ art. 6.1.f RGPD, prospection B2B) :
 
 ---
 
-## POC-005 — Test de faisabilité d'envoi de message automatisé (validation interne uniquement)
+## POC-005 — Test de faisabilité d'envoi d'une invitation LinkedIn avec note (validation interne uniquement)
 
-**Objectif** : Valider techniquement la faisabilité d'envoyer un message LinkedIn via
-Playwright, en réponse à la question client du 04/07/2026 sur l'automatisation des
-invitations — **mais uniquement à titre de test de faisabilité, sur 2 destinataires
-internes et consentants** (Christophe Hoffsteter, Henri-Pierre Michaud), jamais sur un
-profil issu du pipeline de scraping/prospects. **Pas encore cadré** : ticket créé en
-stub ; cadrage complet à faire au démarrage réel du ticket.
+**Objectif** : Valider techniquement la faisabilité d'envoyer une invitation LinkedIn
+avec note personnalisée via Playwright — c'est le mécanisme réel derrière la demande
+client du 04/07/2026 ("inviter automatiquement chaque profil extrait"), et non un simple
+message : Michel n'est très probablement **pas connecté en 1er degré** avec Christophe et
+Henri-Pierre sur le compte de test, donc l'envoi d'un message direct n'est pas possible
+sans passer d'abord par une invitation. **Uniquement à titre de test de faisabilité, sur
+2 destinataires internes et consentants** (Christophe Hoffsteter, Henri-Pierre Michaud),
+jamais sur un profil issu du pipeline de scraping/prospects. **Pas encore cadré** :
+ticket créé en stub ; cadrage complet à faire au démarrage réel du ticket.
 
 **Dérogation ponctuelle à la règle "lecture seule"** : la spec exclut explicitement
 l'envoi de messages/invitations automatisées "dans cette phase". Ce ticket introduit une
@@ -166,17 +169,26 @@ explicitement redécidée.
   prospects scrapés :
   - `linkedin.com/in/henri-pierre-michaud-19a0a6b0` (Henri-Pierre Michaud)
   - `linkedin.com/in/choffstetter` (Christophe Hoffsteter)
-- **Volume strictement limité** : 2 messages au total, exécution manuelle et unique
+- **Volume strictement limité** : 2 invitations au total, exécution manuelle et unique
   (pas de boucle, pas de tâche planifiée).
-- **Message de test statique**, validé par l'utilisateur avant envoi (pas de contenu
-  généré automatiquement).
-- **Risque à documenter** : l'action d'envoi via automatisation est le type de
-  comportement ciblé par la détection anti-bot de LinkedIn, même à très faible volume —
-  risque non nul pour le compte utilisé (à confirmer si c'est le même compte que celui
-  du scraping ou un compte de test dédié).
+- **Note d'invitation statique**, validée par l'utilisateur avant envoi (pas de contenu
+  généré automatiquement) — LinkedIn limite la note à ~300 caractères.
+- **Risque documenté, mais faible à ce volume** : l'envoi d'invitations automatisées est
+  précisément le comportement que LinkedIn surveille (taux d'envoi, taux d'acceptation),
+  mais 2 invitations vers des contacts réels et connus qui vont probablement accepter
+  reste indiscernable d'un usage humain normal — risque non nul mais faible, à confirmer
+  si c'est le même compte que celui du scraping ou un compte de test dédié.
+- Si Christophe/Henri-Pierre acceptent l'invitation, l'envoi d'un message direct devient
+  possible ensuite — mais ça dépend de leur action (non instantané, pas automatisable) et
+  reste hors scope de ce ticket : la note d'invitation suffit à valider la faisabilité du
+  "premier contact personnalisé" recherché par le client.
 
 **Décisions** :
 - 07/07/2026 — Ticket ouvert en réponse à la demande client sur l'automatisation des
   invitations (voir décisions POC-002 du 04/07/2026) — proposé comme validation de
   faisabilité bornée plutôt qu'un refus sec, dans l'attente d'une décision produit sur la
   Phase 3 (contact semi-automatisé supervisé).
+- 07/07/2026 — Reformulé de "envoi de message" à "envoi d'invitation avec note" : Michel
+  n'étant pas connecté en 1er degré avec les 2 destinataires sur le compte de test, un
+  message direct est impossible sans invitation préalable acceptée. L'invitation avec
+  note est de toute façon le mécanisme exact demandé par le client à l'origine.

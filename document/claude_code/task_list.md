@@ -14,7 +14,7 @@
 |---|---|---|---|---|---|
 | POC-003 | BLOCKED | P2 | scoring | Scoring et catégorisation des profils (Phase 2) | À cadrer — bloqué en attente des 5-10 bons/2-3 mauvais profils exemples du client (2 reçus sur le total attendu) |
 | POC-004 | TODO | P2 | enrichissement | Enrichissement web des profils (coordonnées alternatives) | À cadrer — voir garde-fous RGPD dans Backlog.md, base légale à valider par un professionnel du droit |
-| POC-005 | TODO | P2 | scraping | Test de faisabilité d'envoi de message automatisé (2 destinataires internes uniquement) | À cadrer — voir garde-fous dans Backlog.md, liste blanche en dur, jamais sur des prospects réels |
+| POC-005 | TODO | P2 | scraping | Test de faisabilité d'envoi d'une invitation LinkedIn avec note (2 destinataires internes uniquement) | À cadrer — voir garde-fous dans Backlog.md, liste blanche en dur, jamais sur des prospects réels |
 
 <!-- 
 Conventions :
