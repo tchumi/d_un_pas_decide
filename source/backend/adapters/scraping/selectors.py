@@ -73,6 +73,69 @@ class LinkedInProfileSelectors:
     EMAIL_LINK = 'dialog[data-testid="dialog"] a[href^="mailto:"]'
 
 
+class LinkedInInviteSelectors:
+    """Selectors for the "invite with note" flow (POC-005).
+
+    Verified against a live DOM dump on 08/07/2026 (see document/Backlog.md
+    POC-005): the overflow "..." button in the profile header has a stable
+    aria-label ("Plus"), unlike its icon. The "Se connecter" menu item and
+    the "Ajouter une note"/"Envoyer" buttons have no stable id/data-testid
+    (same caveat as LinkedInProfileSelectors), so they're matched by visible
+    text - except the note textarea, which does have a stable semantic id.
+    """
+
+    # Overflow menu button next to "Message" in the profile header. Distinct
+    # from unrelated overflow buttons elsewhere on the page (e.g. feed post
+    # menus, which use a different, longer aria-label). Matches 3 elements
+    # in practice (confirmed live, 08/07/2026) - likely duplicate markup for
+    # responsive breakpoints, only one of which is actually visible/
+    # actionable at a time. No ":visible" filter here: Playwright's
+    # actionability check on a locator pre-filtered with ":visible" still
+    # timed out live even though the button was visible on screen (see
+    # document/Backlog.md POC-005) - each match is tried individually
+    # instead (see internal_invite_test.py).
+    OVERFLOW_MENU_BUTTON = 'button[aria-label="Plus"]'
+
+    # "Se connecter" item in the overflow dropdown: a <p>, not the <span>
+    # used by unrelated "connect" buttons elsewhere on the page (e.g. the
+    # "People you may know" carousel) - this disambiguates it structurally.
+    # normalize-space(.) (whole subtree text) rather than normalize-space
+    # (text()) (direct text children only), in case of incidental nested
+    # markup - see ADD_NOTE_BUTTON_XPATH below for why this matters.
+    CONNECT_MENU_ITEM_XPATH = (
+        "//p[normalize-space(.)='Se connecter' or normalize-space(.)='Connect']"
+    )
+
+    # "Ajouter une note" button, in the "Ajouter une note a votre
+    # invitation ?" prompt revealed after clicking "Se connecter". This
+    # prompt is visually distinct from the rest of the flow (rounded card,
+    # separate close button) and, confirmed live (08/07/2026, see
+    # document/Backlog.md POC-005), never appears in page.content() or in
+    # any XPath query despite being visibly rendered on screen - consistent
+    # with a shadow-DOM-based component: native XPath (document.evaluate)
+    # cannot pierce shadow roots, but Playwright's own CSS selector engine
+    # does. An exact-text match (:text-is()) still found nothing live
+    # though - the button's exact text content likely includes an extra
+    # hidden a11y node beyond the visible label - so this uses a substring
+    # match (:has-text()) instead, confirmed live to find exactly 1 match.
+    ADD_NOTE_BUTTON = 'button:has-text("Ajouter une note"), button:has-text("Add a note")'
+
+    # Invitation note textarea: stable, semantic id (not hashed). Plain CSS
+    # (unlike ADD_NOTE_BUTTON above), so not affected by the shadow-DOM
+    # caveat either way.
+    NOTE_TEXTAREA = "#custom-message"
+
+    # Final send button, once the note has been typed - same component and
+    # shadow-DOM/substring-match caveats as ADD_NOTE_BUTTON. Excludes
+    # "Envoyer sans note" (the alternate, skip-the-note button on the
+    # previous screen of the same prompt, which also contains "Envoyer" as
+    # a substring) with :not(), which this flow never clicks.
+    SEND_INVITATION_BUTTON = (
+        'button:has-text("Envoyer"):not(:has-text("sans note")), '
+        'button:has-text("Send"):not(:has-text("without a note"))'
+    )
+
+
 class LinkedInAuthSelectors:
     """Selectors/markers used to detect whether a manual login is needed."""
 

@@ -192,3 +192,75 @@ explicitement redécidée.
   n'étant pas connecté en 1er degré avec les 2 destinataires sur le compte de test, un
   message direct est impossible sans invitation préalable acceptée. L'invitation avec
   note est de toute façon le mécanisme exact demandé par le client à l'origine.
+- 08/07/2026 — État de connexion réel constaté sur le compte de test : Christophe
+  Hoffstetter est en 2e degré (pas de bouton "Se connecter" direct sur son profil, option
+  disponible uniquement sous le menu "..."), Henri-Pierre Michaud est en revanche **déjà
+  connecté en 1er degré** — l'hypothèse initiale du ticket (aucun des deux connecté)
+  était donc partiellement fausse. Pour lui, l'invitation n'a pas de sens (LinkedIn
+  n'autorise pas d'inviter quelqu'un déjà dans son réseau) : traité comme un 3e statut
+  explicite `already_connected` (ni succès, ni échec technique) plutôt que forcé ou
+  ignoré silencieusement.
+- 08/07/2026 — **Périmètre étendu de 2 à 3 URLs en liste blanche**, décision utilisateur :
+  ajout de `linkedin.com/in/wanda-kleck-76ba342b8` (Wanda Kleck, fille de l'utilisateur,
+  compte LinkedIn tout juste créé, pas encore connectée) — toujours interne/consentant,
+  mais hors du périmètre initial (2 contacts professionnels internes). Volume révisé en
+  conséquence : 3 tentatives d'invitation au total (dont 1 sans effet réel pour
+  Henri-Pierre), toujours en exécution manuelle unique.
+- 08/07/2026 — Notes d'invitation statiques validées par l'utilisateur : `"hello ici beau
+  temps et mer calme"` (Christophe), `"hello Wanda, on arrive..."` (Wanda). Aucune note
+  envoyée pour Henri-Pierre (statut `already_connected`, note sans objet).
+- 08/07/2026 — **Contrainte découverte en cours de test, à respecter pour tout futur
+  usage de ce mécanisme** : un compte LinkedIn gratuit est limité à **3 invitations
+  personnalisées (avec note) par mois**. Ce ticket, avec 2 notes réellement envoyées
+  (Christophe, Wanda), consomme déjà 2 des 3 disponibles pour le mois en cours sur le
+  compte de test — à surveiller si une extension future de ce mécanisme est envisagée
+  (ex. Phase 3 contact semi-automatisé), le quota redevient vite bloquant à un volume
+  réaliste de prospection.
+- 08/07/2026 — Sélecteurs identifiés via inspection DOM en direct (menu manuel du
+  navigateur + un dump HTML ponctuel), même méthode que POC-001/POC-002 : bouton "..."
+  du profil repéré par `aria-label="Plus"` (stable, contrairement à son icône SVG) ;
+  item "Se connecter" du menu déroulant matché par texte (`<p>`, distinct des liens
+  "Se connecter" du carrousel "Autres profils consultés" qui utilisent un `<span>`) ;
+  boutons "Ajouter une note"/"Envoyer" de la fenêtre de note construits avec les classes
+  standard du design system Artdeco de LinkedIn (`artdeco-button__text`, non hashées),
+  matchés par texte ; zone de texte de la note avec un id stable et sémantique
+  (`#custom-message`, non hashé) — plus fiable que les sélecteurs de la page de
+  recherche/profil déjà en place.
+- 08/07/2026 — **Correctif après mise en oeuvre réelle** : la fenêtre "Ajouter une note à
+  votre invitation ?" s'est révélée être un composant distinct du reste de la page (carte
+  arrondie, bouton "Ignorer" séparé), absent de tout dump HTML (`page.content()`) et de
+  toute requête XPath malgré un rendu visuel confirmé à l'écran — cohérent avec un
+  composant en Shadow DOM (XPath natif ne le traverse pas, contrairement au moteur de
+  sélection CSS de Playwright). Les boutons "Ajouter une note"/"Envoyer" de cette fenêtre
+  ont finalement été matchés par sous-chaîne (`:has-text()`) plutôt que par égalité
+  exacte de texte, cette dernière échouant silencieusement en direct (probablement un
+  noeud d'accessibilité caché dans le bouton). Un clic sur le menu déroulant "Se
+  connecter" a aussi dû être retardé de 800ms après ouverture du menu "..." : cliqué trop
+  vite après ouverture, il était accepté visuellement (encadré de focus) mais n'ouvrait
+  pas la fenêtre suivante — hypothèse d'une garde anti-rebond du composant de menu.
+- 08/07/2026 — **Run réel exécuté** : Henri-Pierre → statut `already_connected` confirmé
+  (pas d'option "Se connecter" disponible, cohérent avec son 1er degré). Christophe →
+  invitation avec note envoyée et **confirmée réellement reçue** par deux signaux
+  indépendants (liste "Envoyées" du compte de test + statut "En attente" sur son propre
+  profil, vérifiés par l'utilisateur). Wanda → le script a rapporté `sent`, mais
+  vérification faite sur son profil : le bouton "Se connecter" y est resté actif,
+  **l'invitation n'a en réalité jamais été reçue**. Décision utilisateur : pas de
+  nouvelle tentative (risque de quota/blocage), le ticket s'arrête sur ce résultat mixte.
+- 08/07/2026 — **Limite découverte, documentée dans le code** (`internal_invite_test.py`) :
+  le statut `sent` ne garantit pas que LinkedIn a traité l'invitation côté serveur — il
+  signifie seulement que le clic sur "Envoyer" n'a pas levé d'erreur côté script. Le cas
+  Wanda le prouve (statut `sent` rapporté, invitation jamais reçue en réalité, aucune
+  capture de diagnostic disponible puisque considérée comme un succès). Toute réutilisation
+  future de ce mécanisme devrait ajouter une vérification post-envoi (ex. présence d'un
+  toast de confirmation, ou re-vérification de l'état "En attente") avant de faire
+  confiance au statut `sent`.
+- 08/07/2026 — **Quota LinkedIn réellement consommé : 1 invitation personnalisée sur 3
+  ce mois-ci** (Christophe uniquement — Wanda n'ayant jamais été réellement envoyée), et
+  non 2 comme anticipé plus haut avant l'exécution réelle.
+- 08/07/2026 — **POC-005 clos** : faisabilité technique validée (mécanisme d'invitation
+  avec note fonctionnel via Playwright, liste blanche vérifiée par test unitaire dédié,
+  statut `already_connected` distinct d'un échec technique), avec deux réserves
+  documentées : (1) résultat mixte sur les 3 profils testés (1 envoi réel confirmé, 1 déjà
+  connecté sans objet, 1 échec réel malgré un statut `sent` erroné), et (2) la fiabilité du
+  statut `sent` lui-même, à améliorer avant toute réutilisation au-delà d'un test de
+  faisabilité. Aucun blocage/restriction du compte LinkedIn constaté.
