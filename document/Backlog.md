@@ -161,9 +161,11 @@ au-delà de ce test (sur de vrais prospects) reste hors scope tant qu'elle n'a p
 explicitement redécidée.
 
 **Garde-fous à intégrer dès le cadrage** :
-- **Liste blanche en dur dans le code** : les 2 URLs LinkedIn de destinataires
-  (Christophe, Henri-Pierre) sont les seules valeurs acceptées par la fonction d'envoi —
-  structurellement impossible de la brancher sur la liste des prospects scrapés.
+- **Liste blanche en dur dans le code** : seules ces 2 URLs LinkedIn sont acceptées par
+  la fonction d'envoi — structurellement impossible de la brancher sur la liste des
+  prospects scrapés :
+  - `linkedin.com/in/henri-pierre-michaud-19a0a6b0` (Henri-Pierre Michaud)
+  - `linkedin.com/in/choffstetter` (Christophe Hoffsteter)
 - **Volume strictement limité** : 2 messages au total, exécution manuelle et unique
   (pas de boucle, pas de tâche planifiée).
 - **Message de test statique**, validé par l'utilisateur avant envoi (pas de contenu
