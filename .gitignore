@@ -29,6 +29,9 @@ profils_extraits_email.csv
 # Captures d'ecran de diagnostic POC-005 (contenu de pages LinkedIn)
 debug_poc005/
 
+# Fichiers temporaires/jetables (scripts et dumps de diagnostic ponctuels)
+tests/temp/
+
 # Correspondance client (PDF), non destinée à être versionnée
 document/compte_rendu/
 
