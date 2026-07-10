@@ -116,11 +116,52 @@ public sur 30 profils testés). **Pas encore cadré** : ticket créé en stub ; 
 complet à faire au démarrage réel du ticket via le protocole habituel
 (`prompt_générique.md`).
 
+**Pipeline v1 (base, 100% déterministe, sans LLM)** :
+1. **Recherche** via une vraie API de recherche (Brave Search API — voir décisions ;
+   Bing Search API écarté, retiré par Microsoft le 11/08/2026), requête construite depuis
+   nom + titre + localisation, top 3-5 résultats.
+2. **Filtrage déterministe par liste noire de domaines** (linkedin.com, facebook.com,
+   pagesjaunes, annuaires, wikipedia...) pour ne garder que des candidats plausibles
+   (site perso/pro).
+3. **Visite de la page candidate restante** (requête HTTP simple, même logique que le
+   scraping existant) et **extraction par regex déterministe** (pas d'interprétation
+   LLM) :
+   - lien `mailto:` ou pattern d'email dans le texte → champ `email_web`
+   - URL racine du site → champ `site_web`
+4. Si rien de concluant : champs vides, comme le pattern déjà établi en POC-002 (champ
+   vide plutôt qu'échec bloquant).
+
+Le risque n'est plus l'hallucination (aucune génération/interprétation par un modèle)
+mais le mauvais candidat retenu (homonyme, page non pertinente) — contenu par le
+filtrage de domaines et par la relecture humaine avant tout contact, comme aujourd'hui.
+Nouveau point à documenter : visiter la page candidate = requête HTTP vers un site tiers
+(pas LinkedIn ni Google), usage standard à ce volume mais à noter dans le cadrage.
+
+**Paliers conditionnels (non planifiés, à activer seulement si le v1 s'avère
+insuffisant)** — inspirés de `document/spec/01_agentic_introduction_planner.ipynb` et
+`02_agentic_supervisor.ipynb` :
+- **Palier 1 — ajout d'un appel LLM de vérification/extraction** : si le taux de
+  candidats pertinents du v1 est trop faible pour être exploitable tel quel, et qu'il
+  faut filtrer/trancher automatiquement plutôt que de compter sur la relecture humaine.
+- **Palier 2 — agent unique avec outils** (`web_search`, éventuellement visite de page) :
+  si une seule recherche ne suffit pas (reformulation nécessaire, désambiguïsation).
+- **Palier 3 — REWOO (plan + exécution par dépendances)** : a priori non pertinent ici,
+  les profils sont traités indépendamment les uns des autres (pas de dépendances entre
+  eux à orchestrer).
+- **Palier 4 — architecture superviseur multi-agents** : pertinent uniquement en cas de
+  fusion avec le scoring/catégorisation (POC-003) dans un système unique — décision
+  architecturale à part entière, non engagée par ce ticket.
+- Ces paliers introduiraient une nouvelle dépendance (LLM + clé API, ex. OpenAI/
+  Anthropic dans `.env.local`) et un risque d'hallucination à gérer explicitement —
+  aucun n'est nécessaire tant que le v1 n'a pas démontré ses limites en conditions
+  réelles.
+
 **Garde-fous RGPD à intégrer dès le cadrage** (base légale envisagée : intérêt légitime,
 art. 6.1.f RGPD, prospection B2B) :
 - **Nécessité / minimisation** : ne collecter que des champs directement utiles à la
-  prospection (ex. site pro/coordonnées alternatives) — pas de collecte "au cas où" ;
-  chaque source ajoutée doit se justifier individuellement, pas juste "explorer le web".
+  prospection (`email_web`, `site_web`) — pas de collecte "au cas où" ; le pipeline v1
+  répond justement à une justification précise ("trouver le site/email que la personne
+  publie elle-même publiquement"), pas une exploration ouverte du web.
 - **Transparence** : prévoir dès la conception un moyen d'informer le prospect dès le
   premier contact (mention légale / template de message), même si l'implémentation
   concrète peut être un ticket ultérieur.
@@ -129,8 +170,8 @@ art. 6.1.f RGPD, prospection B2B) :
 - **Conservation limitée** : prévoir un champ `date_collecte` par profil pour permettre
   une purge future — pas de base qui s'accumule indéfiniment sans réponse du prospect.
 - **Ne pas scraper directement les pages de résultats des moteurs de recherche**
-  (Google/Bing) — passer par une vraie API de recherche (ex. Bing Search API, SerpAPI)
-  pour ne pas reproduire le même risque ToS que celui déjà assumé sur LinkedIn.
+  (Google/Bing) — passer par une vraie API de recherche pour ne pas reproduire le même
+  risque ToS que celui déjà assumé sur LinkedIn.
 - Ce point règle le rapport avec la personne recherchée (RGPD) ; il ne change rien au
   risque ToS/ blocage de compte LinkedIn, qui reste un sujet indépendant et déjà géré
   dans POC-001/POC-002.
@@ -141,6 +182,21 @@ art. 6.1.f RGPD, prospection B2B) :
   envisagée : intérêt légitime (prospection B2B) — à valider par un professionnel du
   droit avant tout passage au-delà du POC, l'analyse ci-dessus n'étant qu'un cadrage
   technique préparatoire, pas un avis juridique.
+- 10/07/2026 — Analyse d'une approche multi-agents (LangChain/LangGraph, inspirée de
+  `01_agentic_introduction_planner.ipynb` et `02_agentic_supervisor.ipynb`) jugée
+  disproportionnée pour ce ticket : ces patterns (REWOO, superviseur) répondent à des
+  tâches où une requête complexe unique nécessite d'enchaîner des étapes dépendantes ou
+  de croiser des agents spécialisés — notre besoin est une même petite tâche répétée
+  indépendamment par profil, plus proche d'une boucle que d'une orchestration.
+- 10/07/2026 — **Fournisseur de recherche retenu : Brave Search API** ($5/1000 requêtes,
+  5$ de crédit gratuit renouvelé chaque mois — couvre largement notre volume ~200/mois).
+  Bing Search API écarté (retiré par Microsoft le 11/08/2026) ; SerpAPI resterait une
+  alternative si Brave s'avérait insuffisant (gratuit jusqu'à 250 recherches/mois, puis
+  25$/mois pour 1000).
+- 10/07/2026 — Pipeline v1 défini comme 100% déterministe (recherche + filtrage de
+  domaines + regex d'extraction), sans LLM, pour éviter tout risque d'hallucination dès
+  la première version et rester strictement dans la justification RGPD de minimisation.
+  Les paliers avec LLM/agents restent conditionnels, non planifiés.
 
 ---
 

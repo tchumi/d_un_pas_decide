@@ -13,7 +13,7 @@
 | ID | Statut | Priorité | Module | Tâche | Critère d'acceptation |
 |---|---|---|---|---|---|
 | POC-003 | BLOCKED | P2 | scoring | Scoring et catégorisation des profils (Phase 2) | À cadrer — bloqué en attente des 5-10 bons/2-3 mauvais profils exemples du client (2 reçus sur le total attendu) |
-| POC-004 | TODO | P2 | enrichissement | Enrichissement web des profils (coordonnées alternatives) | À cadrer — voir garde-fous RGPD dans Backlog.md, base légale à valider par un professionnel du droit |
+| POC-004 | TODO | P2 | enrichissement | Enrichissement web des profils — pipeline v1 déterministe (Brave Search API, sans LLM), paliers LLM/agents conditionnels | À cadrer — voir pipeline v1 et garde-fous RGPD dans Backlog.md, base légale à valider par un professionnel du droit |
 
 <!-- 
 Conventions :
