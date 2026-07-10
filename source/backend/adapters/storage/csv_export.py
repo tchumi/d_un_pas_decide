@@ -9,7 +9,10 @@ from pathlib import Path
 
 # Email added in POC-002 (visited from the individual profile page); blank
 # when the profile doesn't display it publicly.
-PROFILE_CSV_FIELDS = ["nom", "url", "localisation", "titre", "email"]
+# email_web/site_web added in POC-004 (deterministic web enrichment pipeline,
+# no LLM): alternative contact found via Brave Search + regex extraction,
+# blank when nothing conclusive was found.
+PROFILE_CSV_FIELDS = ["nom", "url", "localisation", "titre", "email", "email_web", "site_web"]
 
 
 def export_profiles_to_csv(profiles: list[dict[str, str]], output_path: Path) -> None:

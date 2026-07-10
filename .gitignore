@@ -25,6 +25,7 @@ build/
 browser_profile/
 profils_extraits.csv
 profils_extraits_email.csv
+profils_extraits_enrichis.csv
 
 # Captures d'ecran de diagnostic POC-005 (contenu de pages LinkedIn)
 debug_poc005/

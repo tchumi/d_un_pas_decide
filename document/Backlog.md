@@ -197,6 +197,57 @@ art. 6.1.f RGPD, prospection B2B) :
   domaines + regex d'extraction), sans LLM, pour éviter tout risque d'hallucination dès
   la première version et rester strictement dans la justification RGPD de minimisation.
   Les paliers avec LLM/agents restent conditionnels, non planifiés.
+- 10/07/2026 — **Implémentation et run réels effectués** (module
+  `source/backend/adapters/enrichment/`). Deux bugs trouvés et corrigés en cours de test
+  réel (même méthode que POC-001/002 : diagnostic sur cas réel, pas de correction
+  silencieuse) :
+  1. L'API Brave Search rejette les requêtes de plus de 50 mots (HTTP 422) ; les titres
+     LinkedIn peuvent être une bio complète (69 mots observés sur un profil réel) →
+     `build_search_query` tronque désormais le titre en priorité (nom + localisation
+     conservés intégralement, décision utilisateur du 10/07/2026).
+  2. Le regex de validation d'email était trop permissif sur la partie finale (domaine),
+     laissant passer un caractère résiduel (`\`) issu d'un contenu HTML/JS avec guillemet
+     échappé (observé sur une page réelle) → TLD restreint à `[A-Za-z]{2,}`.
+- 10/07/2026 — **Liste noire de domaines étendue à 4 domaines supplémentaires**
+  (`noomii.com` — annuaire de coachs, `journaldunet.com` — héberge d'anciens profils
+  Viadeo, `spotify.com`, `amazon.co.uk` — plateformes grand public), suite aux faux
+  positifs confirmés sur le run réel de 25 profils ci-dessous.
+- 10/07/2026 — **Run réel validé sur 25 profils** (CSV issu de POC-002,
+  `MAX_PROFILES=25`) : 11/25 profils avec un candidat passant le filtre de domaines
+  (avant extension de la liste noire ci-dessus), dont après relecture humaine :
+  - **1 vrai positif confirmé** : Manuel BOSSU → `mycoachonline.fr` /
+    `manuel@mycoachonline.fr` (site et email personnels confirmés par l'utilisateur).
+  - **1 positif partiel** : Sylvie WEILER → `memepascap.fr` (site professionnel
+    pertinent, mais email `bonjour@memepascap.fr` non personnel — adresse partagée
+    d'un cabinet à plusieurs coachs, confirmé par l'utilisateur). Illustre une limite non
+    anticipée : un site pertinent peut malgré tout ne pas donner un contact personnel.
+  - **7 faux positifs confirmés**, désormais couverts par l'extension de liste noire
+    ci-dessus (4 domaines) ou déjà écartés individuellement par relecture humaine :
+    `intercariforef.org` (page de contact générique d'un organisme public, non
+    nominative) et `je-change-de-metier.com` (site édité par une agence tierce, pas par
+    le prospect lui-même).
+  - **2 candidats non vérifiés individuellement** (`villepratique.fr`,
+    `lafrenchcom.fr` — ce dernier avec un indice de non-pertinence, email `urgent@...`
+    typique d'une adresse générique d'agence).
+  - **14/25 sans aucun candidat retenu** après filtrage.
+  - **Taux de pertinence observé : 1/25 (4%) exploitable tel quel, 2/25 (8%) en comptant
+    le positif partiel.** Confirme concrètement le risque documenté ci-dessus (mauvais
+    candidat retenu bien plus fréquent que le bon) : le filtrage de domaines élimine les
+    catégories évidentes (réseaux sociaux, annuaires, plateformes) mais ne garantit
+    aucunement la pertinence métier (homonymes, sites d'agences tierces, pages
+    institutionnelles génériques, emails d'équipe non personnels) — la relecture humaine
+    reste indispensable avant tout contact, exactement comme prévu.
+  - **Élément à trancher pour la suite** (non décidé dans ce ticket) : ce taux de 4-8%
+    est-il suffisant pour justifier de maintenir le v1 tel quel (avec relecture humaine
+    systématique), ou justifie-t-il d'activer le Palier 1 (vérification/désambiguïsation
+    par LLM) pour améliorer la précision avant relecture humaine ? Décision à prendre
+    avec le client, pas unilatéralement par ce ticket.
+- 10/07/2026 — **Critères d'acceptation du ticket tous remplis** : requête construite
+  (nom + titre + localisation, tronquée si nécessaire), filtrage par liste noire,
+  extraction regex email/site sur la page candidate restante, champs vides si rien de
+  concluant, colonnes `email_web`/`site_web` ajoutées à l'export CSV, zéro appel LLM,
+  clé lue depuis `.env.local` (jamais en dur), aucun scraping direct des pages de
+  résultats de moteurs de recherche (uniquement l'API Brave).
 
 ---
 

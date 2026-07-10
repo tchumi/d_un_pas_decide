@@ -80,3 +80,30 @@ Format de chaque section :
 - **POC-005 → DONE**, avec les deux réserves documentées ci-dessus (résultat mixte 1 envoi réel/1 sans objet/1 échec réel malgré statut erroné ; fiabilité du statut `sent` à améliorer avant toute réutilisation au-delà d'un test de faisabilité).
 - Lancement de l'app **non nécessaire** : aucun fichier `frontend_streamlit/` touché.
 - Prochain ticket recommandé : **POC-004** — Enrichissement web des profils (coordonnées alternatives), toujours **TODO**, pas encore cadré en détail (garde-fous RGPD déjà posés dans `Backlog.md`, base légale à valider par un professionnel du droit avant tout développement au-delà du POC). POC-003 reste **BLOCKED** en attente des exemples de calibration du client. Prompt préparé dans `document/prompts_plans/prompt_POC-004.md`.
+
+## 5. POC-004 — Enrichissement web des profils, pipeline v1 déterministe (10/07/2026)
+
+- Plan validé par l'utilisateur (liste noire de base ajustable, run initial à 5 profils par prudence, requête `"Nom Prénom" + titre + localisation`). Décision technique complémentaire prise en cours de session : chargement de `BRAVE_SEARCH_API_KEY` depuis `.env.local` via `python-dotenv` (aucun mécanisme de lecture d'env var n'existait encore dans le code — `LINKEDIN_EMAIL`/`LINKEDIN_PASSWORD` sont des placeholders jamais lus, le login restant manuel).
+- Nouveau module `source/backend/adapters/enrichment/` :
+  - `email_site_extractor.py` — liste noire de domaines (logique pure), `filter_candidate_urls`, extraction regex `extract_email_from_html` (lien `mailto:` puis pattern texte) et `extract_site_root`.
+  - `web_search.py` — client Brave Search API : `build_search_query`, `get_brave_api_key` (lecture `.env.local`), `search_candidate_urls` (dégrade vers `[]` sur toute erreur réseau/parsing, jamais d'exception bloquante).
+  - `run_poc004.py` — script d'assemblage : lit le CSV POC-002, enrichit chaque profil (recherche → filtrage → visite HTTP simple de la page candidate restante → extraction), exporte vers `profils_extraits_enrichis.csv`. `MAX_PROFILES` remonté à **25** en cours de session (décision utilisateur, après un premier lot de 5 jugé trop petit pour juger du taux de pertinence).
+- `source/backend/adapters/storage/csv_export.py` étendu avec les colonnes `email_web`/`site_web` (`restval=""`, même pattern que `email` en POC-002).
+- `pyproject.toml` : ajout de `requests` (HTTP) et `python-dotenv` (lecture `.env.local`).
+- `.gitignore` : ajout de `profils_extraits_enrichis.csv` (contient des emails, même logique que les CSV précédents).
+- **Deux bugs trouvés et corrigés en conditions réelles** (même méthode que POC-001/002 : diagnostic sur cas réel, jamais de correction silencieuse) :
+  1. L'API Brave Search rejette les requêtes de plus de 50 mots (HTTP 422 `too_long`) ; un titre LinkedIn réel faisait 69 mots à lui seul. `build_search_query` tronque désormais le titre en priorité (nom + localisation conservés intégralement, décision utilisateur).
+  2. Le regex de validation d'email (`EMAIL_VALIDATION_PATTERN`) était trop permissif sur le TLD, laissant passer un caractère résiduel (`\`) issu d'un contenu HTML/JS avec guillemet échappé (observé sur une page réelle, email `avecsens@gmail.com\`). TLD restreint à `[A-Za-z]{2,}`.
+- **Liste noire étendue de 4 domaines** (`noomii.com`, `journaldunet.com`, `spotify.com`, `amazon.co.uk`) suite aux faux positifs confirmés sur le run réel (voir ci-dessous).
+- **Run réel validé (10/07/2026, `MAX_PROFILES=25`, CSV issu de POC-002)** : 11/25 profils avec un candidat passant le filtre de domaines. Après relecture humaine avec l'utilisateur :
+  - 1 vrai positif confirmé (Manuel BOSSU, site + email personnels).
+  - 1 positif partiel (Sylvie WEILER : site professionnel pertinent, mais email générique/partagé d'un cabinet à plusieurs coachs — limite non anticipée, documentée dans `Backlog.md`).
+  - 7 faux positifs confirmés (annuaires, plateformes grand public, site d'agence tierce, page institutionnelle générique non nominative).
+  - 2 candidats non vérifiés individuellement, 14/25 sans aucun candidat retenu.
+  - **Taux de pertinence observé : 1/25 (4%) exploitable tel quel, 2/25 (8%) en comptant le partiel** — donnée à trancher avec le client pour juger de l'utilité du Palier 1 (vérification LLM, non activé dans ce ticket). Détail complet dans `document/Backlog.md` (section POC-004, décisions du 10/07/2026).
+- Fichiers créés : `source/backend/adapters/enrichment/{__init__,email_site_extractor,web_search,run_poc004}.py`, `tests/unit/{test_email_site_extractor,test_web_search}.py`.
+- Fichiers modifiés : `source/backend/adapters/storage/csv_export.py`, `tests/unit/test_csv_export.py`, `pyproject.toml`, `.gitignore`, `document/Backlog.md`, `document/claude_code/task_list.md`.
+- Tests lancés : `pytest tests/unit/ -v` → 35 passed, 0 failed ; `pytest tests/ --collect-only -q` → 35 tests collectés.
+- **POC-004 → DONE**, avec la réserve documentée ci-dessus (taux de pertinence faible sur ce lot de 25, mécanisme technique et garde-fous RGPD validés — la relecture humaine a bien intercepté tous les faux positifs avant tout contact). `profils_extraits_email.csv` (entrée) et `profils_extraits_enrichis.csv` (sortie) non commités (gitignorés, contiennent des données personnelles).
+- Lancement de l'app **non nécessaire** : aucun fichier `frontend_streamlit/` touché.
+- Prochain ticket recommandé : **POC-003** — Scoring et catégorisation des profils (Phase 2), toujours **BLOCKED** en attente des exemples de calibration du client (2 reçus sur 5-10+2-3 attendus). Prompt déjà préparé dans `document/prompts_plans/prompt_POC-003.md` (depuis POC-002), toujours valide, aucune mise à jour nécessaire tant que le ticket reste bloqué. Aucun autre ticket prêt à démarrer dans l'immédiat ; la décision sur le Palier 1 (LLM) pour POC-004 reste à prendre avec le client avant de cadrer un éventuel ticket de suite.
