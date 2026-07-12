@@ -50,6 +50,7 @@
 
 ```powershell
 uv sync --extra test
+playwright install chromium
 ```
 
 ### Lancement UI (Streamlit)

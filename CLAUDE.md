@@ -74,6 +74,7 @@ Proposer le prompt du prochain ticket en remplissant les placeholders de `docume
 
 ```powershell
 uv sync --extra test                        # installation
+playwright install chromium                 # navigateur Playwright (une fois par machine)
 streamlit run source\main.py                # lancement UI
 pytest tests/ -v                            # tous les tests
 pytest tests/unit/ -v                       # tests unitaires seuls
