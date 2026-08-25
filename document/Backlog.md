@@ -74,6 +74,7 @@ les cartes de résultats de recherche).
 - 02/07/2026 — Ticket créé en report de POC-001 (voir décisions POC-001 ci-dessus).
 - 04/07/2026 — Retour client (Christophe Hoffsteter) sur le CSV de démo POC-001 : demande explicite de récupérer l'email ("pas possible de récupérer une adresse courriel ?"), confirme la priorité de ce ticket. Demande aussi un "autre moyen de contact direct" si l'email n'est pas disponible — **toujours pas cadré à la clôture de ce ticket** (voir résultat du run réel ci-dessous, qui rend la question d'autant plus pertinente) ; reporté à une décision business, aucun développement prévu tant que ça n'est pas cadré.
 - 04/07/2026 — Le même retour client demande d'inviter automatiquement chaque profil extrait dans le réseau LinkedIn du compte utilisé. **Refusé pour cette phase** : contredit directement la spec ("pas d'envoi de messages ni d'invitations automatisées dans cette phase") et le périmètre hors-scope déjà listé ci-dessus pour ce ticket. Risque de restriction du compte LinkedIn si automatisé. Cohérent avec le phasage : la Phase 3 prévoit un contact semi-automatisé mais avec envoi resté supervisé par le client, pas une automatisation complète. Réponse à formuler côté business, aucun développement prévu sur ce point.
+- 08/07/2026 — **Position acceptée par le client** (mail Christophe Hoffstetter du 08/07/2026, 12:54 : « Ok pour Email et invitations automatiques »), en réponse à l'argumentaire envoyé le 07/07 (risque de restriction de compte sur un rythme d'envoi non humain, contact supervisé renvoyé à la Phase 3, automatisation par email à étudier une fois le scoring validé). Ce point n'est donc plus une réponse à formuler : il est clos côté business. Reste hors scope de développement, inchangé.
 - 07/07/2026 — Volume de test limité à 5 profils (`MAX_PROFILES=5` dans `run_poc002.py`, script dédié distinct de `run_poc001.py`), par prudence : une requête supplémentaire par profil (visite de page individuelle) augmente le risque de blocage/restriction de compte par rapport à la simple recherche de POC-001.
 - 07/07/2026 — Sélecteurs de la page profil corrigés après diagnostic sur DOM réel (même méthode que POC-001) : le lien "Coordonnées" n'a ni id ni data-testid et son href pointe vers l'URL du profil suivie de `#` (pas de route overlay dédiée comme supposé initialement) — matché par son texte visible à la place (dépendance à la langue du compte, comme l'ancien bouton de pagination POC-001). La fenêtre qui s'ouvre est en revanche un vrai `<dialog data-testid="dialog">`, et l'email y est un lien `mailto:` standard — ces deux derniers points sont stables et vérifiés.
 - 07/07/2026 — **Run réel validé** sur le lot de 5 profils (recherche + visite individuelle) : la fenêtre "Coordonnées" s'ouvre correctement pour chacun des 5, aucun blocage/restriction de compte constaté, export CSV étendu avec la colonne `email`. **Aucun des 5 profils testés n'affichait son email publiquement** (champ vide pour les 5) — comportement LinkedIn attendu : par défaut, seul le propriétaire du profil voit son propre email dans "Coordonnées", les autres profils ne l'exposent que s'ils l'ont explicitement rendu visible, ce que peu de comptes font. Le mécanisme d'extraction lui-même a été vérifié structurellement valide (même structure de fenêtre/lien `mailto:` confirmée sur le propre profil de l'utilisateur), mais l'extraction positive d'un email tiers n'a pas été observée sur ce lot précis — [Inférence] probabilité faible mais non nulle qu'un profil avec email public déclenche un cas non testé. **POC-002 clos (DONE)**, avec cette réserve documentée.
@@ -99,11 +100,48 @@ CSV de démo POC-001) :
 - Cécile Pollin, "HR Senior Manager - Responsable RH Senior - Transformation" → à
   exclure, pas un coach du tout (faux positif de la recherche booléenne).
 
+**Complément de calibration reçu le 08/07/2026** (mail Christophe Hoffstetter, 12:54) :
+- **Le reste du CSV de démo est validé en bloc** : « tous les profils dans le CSV sont de
+  "bons" coach business ». Les 25 profils du lot POC-001 constituent donc de fait un lot
+  d'exemples positifs, moins Cécile Pollin (exclue) et Anne-Laure F. (acceptable mais
+  moins intéressante).
+- **Mots-clés de la catégorie outdoor** (aucun profil exemple disponible, mais
+  vocabulaire fourni) : *coach nature*, *coach qui marche*, *coach outdoor*, *coach
+  hors-les-murs*, *coaching en itinérance*.
+- **Distinction débutant / expérimenté impossible sur les données actuelles** : « les
+  exemples de ton fichier CSV ne permettent pas de faire la différence entre Business
+  Coach débutant et Business Coach expérimenté. Il manque la durée qui doit apparaître
+  dans leur CV / parcours mais je ne sais pas si tu as accès à celui-ci. » Le titre
+  LinkedIn seul (unique champ textuel extrait à ce stade) ne porte pas l'ancienneté.
+
 **Décisions** :
 - 04/07/2026 — Toujours en attente des 5-10 exemples de "bons" profils et 2-3 "mauvais"
   demandés initialement au client (2 reçus sur le total attendu) — bloquant pour cadrer
   le scoring/la catégorisation en détail. Statut `BLOCKED` dans `task_list.md` en
   attendant ce complément.
+- 08/07/2026 — **Blocage requalifié, pas levé intégralement** (report fait le 25/08/2026
+  à la relecture du mail du 08/07, resté non consigné jusque-là) : la calibration binaire
+  bon/mauvais est en réalité couverte (validation en bloc du CSV ci-dessus + 1 exclusion
+  explicite), et la catégorie outdoor dispose de son vocabulaire. Ce qui manque
+  réellement se réduit à **la granularité débutant / expérimenté**, elle-même
+  conditionnée par deux points ouverts : (1) extraire ou non la durée d'expérience depuis
+  la section parcours de la page profil — techniquement à portée puisque POC-002 visite
+  déjà chaque page individuelle, donc sans requête supplémentaire, mais hors périmètre de
+  l'extraction actuelle (titre + localisation) ; (2) une réponse d'Henri-Pierre Michaud,
+  sollicité nommément dans le même mail (« Henri-Pierre, tu arrives à être plus fin que
+  cela pour un scoring plus nuancé ? »), toujours sans réponse à ce jour.
+- 08/07/2026 — [Inférence] Un POC-003 en périmètre réduit est donc cadrable sans attendre
+  ces deux points : exclusion des non-coachs, détection de la catégorie outdoor par
+  mots-clés, score de pertinence — en laissant **débutant/expérimenté indifférencié**,
+  ce qui correspond exactement au repli annoncé par le client le 04/07 (« par défaut
+  Coach business indifférencié »). L'ajout de l'ancienneté resterait un incrément
+  ultérieur, une fois la source de la durée tranchée.
+- 13/07/2026 — **Priorité client explicite sur ce ticket** (mail Christophe Hoffstetter
+  du 13/07/2026, 09:12) : « ne pas s'acharner sur ce point [l'enrichissement web] et
+  mettre l'énergie sur la catégorisation/le scoring des profils, qui apporte plus de
+  valeur immédiate ». POC-003 devient le prochain ticket prioritaire (voir décisions
+  POC-004 du 13/07 pour l'arbitrage complet). Statut passé de `BLOCKED` à `TODO` dans
+  `task_list.md`.
 
 ---
 
@@ -248,6 +286,33 @@ art. 6.1.f RGPD, prospection B2B) :
   concluant, colonnes `email_web`/`site_web` ajoutées à l'export CSV, zéro appel LLM,
   clé lue depuis `.env.local` (jamais en dur), aucun scraping direct des pages de
   résultats de moteurs de recherche (uniquement l'API Brave).
+- 13/07/2026 — **Élément à trancher ci-dessus : tranché par le client.** Point d'étape
+  envoyé le 13/07 (08:34) présentant le résultat réel du run (1/25 exploitable, 1/25
+  partiel) et trois pistes soumises à arbitrage : (A) ajouter une étape de vérification
+  plus intelligente pour mieux trier les résultats — c'est le Palier 1 (LLM) ; (B) tester
+  un service spécialisé payant type Kaspr, conçu pour retrouver un contact à partir d'un
+  profil LinkedIn ; (C) ne pas s'acharner et réorienter l'effort vers la
+  catégorisation/le scoring.
+  **Réponse de Christophe Hoffstetter le 13/07 (09:12) : « ne pas s'acharner sur ce point
+  et mettre l'énergie sur la catégorisation/le scoring des profils, voire permet de ne
+  rechercher les coordonnées que pour les profils les plus "intéressants" ».** (Le mail
+  écrit littéralement « j'opte pour l'option B » tout en explicitant la piste C ; la
+  formulation explicite fait foi, elle est sans ambiguïté — à confirmer d'un mot si le
+  sujet est rouvert.)
+  Conséquences, à considérer comme actées :
+  - **Palier 1 (LLM) non activé** et service payant type Kaspr non testé — ni l'un ni
+    l'autre n'est planifié. La question posée le 10/07 est close.
+  - **L'enrichissement web cesse d'être une étape systématique du pipeline** : il devient
+    une étape **conditionnelle, appliquée après le scoring** aux seuls profils jugés
+    intéressants. Le code de POC-004 reste en place et fonctionnel, sa position dans la
+    chaîne change — à intégrer au cadrage de POC-003 plutôt qu'à retoucher maintenant.
+  - **Le client accepte un repli manuel** pour les coordonnées : « au vu des volumes, une
+    alternative manuelle à la recherche de coordonnées est envisageable voire utiliser
+    "manuellement" la messagerie interne LinkedIn ». Le taux de 4-8 % n'est donc plus un
+    problème à résoudre techniquement.
+  - La demande client du 04/07 sur un « autre moyen de contact direct » (voir POC-002)
+    est close par la même occasion : la réponse retenue est le traitement manuel à ce
+    volume, pas un canal automatisé supplémentaire.
 
 ---
 

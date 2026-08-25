@@ -12,7 +12,7 @@
 
 | ID | Statut | Priorité | Module | Tâche | Critère d'acceptation |
 |---|---|---|---|---|---|
-| POC-003 | BLOCKED | P2 | scoring | Scoring et catégorisation des profils (Phase 2) | À cadrer — bloqué en attente des 5-10 bons/2-3 mauvais profils exemples du client (2 reçus sur le total attendu) |
+| POC-003 | TODO | P1 | scoring | Scoring et catégorisation des profils (Phase 2) | À cadrer — **débloqué** (requalifié le 25/08/2026 après relecture des mails client des 08 et 13/07/2026, restés non consignés). Calibration bon/mauvais couverte (validation en bloc du CSV de démo + 1 exclusion explicite) et vocabulaire de la catégorie outdoor fourni ; priorité client explicite du 13/07 sur ce ticket. Périmètre cadrable : exclusion des non-coachs, catégorie outdoor par mots-clés, score de pertinence — **débutant/expérimenté laissé indifférencié** (nécessiterait d'extraire la durée d'expérience de la page profil, et une réponse d'Henri-Pierre Michaud sur un scoring plus nuancé, toujours en attente). Détail et sources dans `document/Backlog.md`. |
 
 <!-- 
 Conventions :
