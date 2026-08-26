@@ -1,11 +1,16 @@
 """POC-003 entry script: score and categorize already-extracted profiles.
 
-Reads the CSV produced by an earlier ticket, applies the deterministic rule
-engine of source/backend/core/profile_scoring.py, and exports the same rows
-with the categorie/score/justification/commentaire_client columns filled in.
+Reads the profiles from the store, applies the deterministic rule engine of
+source/backend/core/profile_scoring.py, writes the scoring columns back and
+exports the whole store to CSV.
 
-No new LinkedIn extraction, no browser, no network call, no LLM: the input is
-the existing CSV (see document/Backlog.md POC-003).
+No new LinkedIn extraction, no browser, no network call, no LLM.
+
+POC-006: the input is the store, no longer profils_extraits.csv. That is what
+makes the client's feedback survive a re-run - scorer_profils already refused
+to overwrite a commentaire_client, but reading the raw extraction CSV meant it
+never saw one (see document/Backlog.md POC-006). Seed or re-import an
+annotated CSV with run_poc006.
 
 Usage:
     python -m source.backend.adapters.storage.run_poc003
@@ -13,30 +18,45 @@ Usage:
 Run standalone (never via `streamlit run`, see CLAUDE.md rule 6).
 """
 
-import csv
+import sqlite3
 from pathlib import Path
 
 from source.backend.adapters.storage.csv_export import export_profiles_to_csv
+from source.backend.adapters.storage.profile_store import (
+    DEFAULT_DB_PATH,
+    lister_profils,
+    mettre_a_jour_scoring,
+    ouvrir_magasin,
+)
 from source.backend.core.profile_scoring import (
+    ReglesScoring,
     charger_regles,
     scorer_profils,
     selectionner_profils_interessants,
 )
 
-INPUT_CSV = Path("./profils_extraits.csv")
 OUTPUT_CSV = Path("./profils_extraits_scores.csv")
-
-
-def load_profiles(csv_path: Path) -> list[dict[str, str]]:
-    """Read profiles from a CSV file produced by an earlier ticket."""
-    with open(csv_path, newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
 
 
 def main() -> None:
     regles = charger_regles()
-    profils = load_profiles(INPUT_CSV)
-    print(f"{len(profils)} profils lus depuis {INPUT_CSV}")
+    conn = ouvrir_magasin(DEFAULT_DB_PATH)
+    try:
+        _scorer_et_exporter(conn, regles)
+    finally:
+        conn.close()
+
+
+def _scorer_et_exporter(conn: sqlite3.Connection, regles: ReglesScoring) -> None:
+    """Score every stored profile, write the scores back, export the view."""
+    profils = lister_profils(conn)
+    print(f"{len(profils)} profils lus depuis le magasin {DEFAULT_DB_PATH}")
+    if not profils:
+        print(
+            "Magasin vide : alimenter le magasin avec run_poc001 (extraction) "
+            "ou run_poc006 (import d'un CSV existant) avant de scorer."
+        )
+        return
 
     scores = scorer_profils(profils, regles)
     # Sorted by descending score so the ranking can be reviewed with the
@@ -44,6 +64,7 @@ def main() -> None:
     # rather than being silently dropped.
     scores.sort(key=lambda p: int(p["score"]), reverse=True)
 
+    mettre_a_jour_scoring(conn, scores)
     export_profiles_to_csv(scores, OUTPUT_CSV)
 
     exclus = [p for p in scores if p["categorie"] == regles.categorie_exclusion]

@@ -6,6 +6,8 @@ stay usable standalone, independently of the UI.
 
 import random
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
 from urllib.parse import quote
 
 from playwright.sync_api import Locator, Page
@@ -15,6 +17,31 @@ from source.backend.adapters.scraping.selectors import LinkedInSearchSelectors
 LINKEDIN_PEOPLE_SEARCH_URL = "https://www.linkedin.com/search/results/people/"
 
 PROFILE_FIELDS = ["nom", "url", "localisation", "titre"]
+
+# [Inference] A LinkedIn people search on a free account caps out around 10
+# result pages; the ceiling is also what guarantees the collection loop always
+# terminates, even if "next page" kept answering yes.
+MAX_PAGES = 10
+
+RAISON_QUOTA_ATTEINT = "quota_atteint"
+RAISON_GISEMENT_EPUISE = "gisement_epuise"
+RAISON_PLAFOND_PAGES = "plafond_pages"
+
+
+@dataclass(frozen=True)
+class ResultatRecherche:
+    """A collected batch plus why the collection stopped.
+
+    POC-006: a run that returns fewer profiles than asked must say so
+    explicitly, never hand back a silently incomplete batch.
+    """
+
+    profils: list[dict[str, str]]
+    raison_arret: str
+    pages_visitees: int
+
+    def __len__(self) -> int:
+        return len(self.profils)
 
 
 def build_search_url(boolean_query: str) -> str:
@@ -85,24 +112,101 @@ def extract_profile_from_card(card: Locator) -> dict[str, str] | None:
     }
 
 
-def extract_profiles_from_page(
-    page: Page, max_profiles: int, existing: list[dict[str, str]]
-) -> list[dict[str, str]]:
-    """Extract profiles from the currently loaded results page.
+def extract_profiles_from_page(page: Page) -> list[dict[str, str]]:
+    """Extract every readable profile card of the currently loaded results page.
 
-    Appends to existing until max_profiles is reached, then stops.
+    No quota applied here (POC-006): the caller decides which of those cards
+    are new, so a page whose first cards are all already known must still be
+    read in full.
     """
-    results = list(existing)
+    results: list[dict[str, str]] = []
     cards = page.locator(LinkedInSearchSelectors.RESULT_CARD)
 
     for i in range(cards.count()):
-        if len(results) >= max_profiles:
-            break
         profile = extract_profile_from_card(cards.nth(i))
         if profile is not None:
             results.append(profile)
 
     return results
+
+
+def filtrer_profils_inconnus(
+    profils: list[dict[str, str]], urls_exclues: set[str] | frozenset[str]
+) -> list[dict[str, str]]:
+    """Keep the profiles whose URL is neither already known nor a duplicate.
+
+    Pure function - the deduplication key is the URL normalised by
+    clean_profile_url, the same key the store uses. A card without a usable
+    URL is dropped: it could not be deduplicated on a later run.
+    """
+    retenus: list[dict[str, str]] = []
+    vues = set(urls_exclues)
+
+    for profil in profils:
+        url = clean_profile_url(profil.get("url"))
+        if not url or url in vues:
+            continue
+        vues.add(url)
+        retenus.append(profil)
+
+    return retenus
+
+
+def collecter_profils_inconnus(
+    extraire_page: Callable[[], list[dict[str, str]]],
+    page_suivante: Callable[[], bool],
+    max_profiles: int,
+    urls_connues: set[str] | frozenset[str] = frozenset(),
+    max_pages: int = MAX_PAGES,
+) -> ResultatRecherche:
+    """Paginate until max_profiles *unknown* profiles are collected.
+
+    Pure orchestration: the two callables are injected, so the whole stop
+    logic is testable without a browser. Two guards make an endless loop
+    impossible - "no next page" and the max_pages ceiling.
+    """
+    if max_profiles <= 0:
+        return ResultatRecherche([], RAISON_QUOTA_ATTEINT, 0)
+
+    retenus: list[dict[str, str]] = []
+    exclues = set(urls_connues)
+    pages_visitees = 0
+
+    while True:
+        pages_visitees += 1
+        for profil in filtrer_profils_inconnus(extraire_page(), exclues):
+            if len(retenus) >= max_profiles:
+                break
+            retenus.append(profil)
+            exclues.add(clean_profile_url(profil.get("url")))
+
+        if len(retenus) >= max_profiles:
+            return ResultatRecherche(retenus, RAISON_QUOTA_ATTEINT, pages_visitees)
+        if pages_visitees >= max_pages:
+            return ResultatRecherche(retenus, RAISON_PLAFOND_PAGES, pages_visitees)
+        if not page_suivante():
+            return ResultatRecherche(retenus, RAISON_GISEMENT_EPUISE, pages_visitees)
+
+
+def message_arret(resultat: ResultatRecherche, max_profiles: int) -> str:
+    """Human-readable explanation of why a collection stopped."""
+    if resultat.raison_arret == RAISON_QUOTA_ATTEINT:
+        return (
+            f"{len(resultat.profils)} nouveaux profils collectes "
+            f"({resultat.pages_visitees} page(s) parcourue(s))."
+        )
+    if resultat.raison_arret == RAISON_GISEMENT_EPUISE:
+        return (
+            f"Gisement epuise : {len(resultat.profils)} nouveaux profils sur "
+            f"{max_profiles} demandes apres {resultat.pages_visitees} page(s). "
+            f"Cette requete n'a plus de profil inconnu a fournir - varier la "
+            f"requete pour renouveler le gisement."
+        )
+    return (
+        f"Plafond de {resultat.pages_visitees} pages atteint : "
+        f"{len(resultat.profils)} nouveaux profils sur {max_profiles} demandes. "
+        f"Le reste du gisement est hors de portee de la recherche LinkedIn."
+    )
 
 
 def go_to_next_page(page: Page) -> bool:
@@ -117,20 +221,33 @@ def go_to_next_page(page: Page) -> bool:
     return True
 
 
-def search_and_extract(page: Page, boolean_query: str, max_profiles: int) -> list[dict[str, str]]:
-    """Run the full search + paginated extraction flow for a boolean query."""
+def search_and_extract(
+    page: Page,
+    boolean_query: str,
+    max_profiles: int,
+    urls_connues: set[str] | frozenset[str] = frozenset(),
+    max_pages: int = MAX_PAGES,
+) -> ResultatRecherche:
+    """Run the full search + paginated extraction flow for a boolean query.
+
+    Browser shell around collecter_profils_inconnus: it only wires the real
+    Playwright page to the pure collection loop. urls_connues defaults to an
+    empty set, so a caller with no store behaves as before POC-006.
+    """
     page.goto(build_search_url(boolean_query), timeout=60000)
     pause_humaine(2, 4)
 
-    results: list[dict[str, str]] = []
-    while len(results) < max_profiles:
-        results = extract_profiles_from_page(page, max_profiles, results)
+    def extraire_page() -> list[dict[str, str]]:
+        profils = extract_profiles_from_page(page)
         pause_humaine(1, 2.5)
+        return profils
 
-        if len(results) >= max_profiles:
-            break
+    def page_suivante() -> bool:
         if not go_to_next_page(page):
-            break
+            return False
         pause_humaine(3, 6)
+        return True
 
-    return results
+    return collecter_profils_inconnus(
+        extraire_page, page_suivante, max_profiles, urls_connues, max_pages
+    )

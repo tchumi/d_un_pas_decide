@@ -142,3 +142,49 @@ def test_export_creates_missing_parent_directory(tmp_path):
     export_profiles_to_csv([], output_path)
 
     assert output_path.exists()
+
+
+def test_export_writes_store_columns(tmp_path):
+    profiles = [
+        {
+            "nom": "Marie Dupont",
+            "url": "https://www.linkedin.com/in/marie-dupont",
+            "localisation": "Paris",
+            "titre": "Coach business",
+            "date_collecte": "2026-08-26",
+            "ne_plus_traiter": "0",
+        }
+    ]
+    output_path = tmp_path / "profils.csv"
+
+    export_profiles_to_csv(profiles, output_path)
+
+    with open(output_path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    # POC-006: the CSV is a view of the store, RGPD columns included so the
+    # client can express an objection directly in the file.
+    assert reader.fieldnames == PROFILE_CSV_FIELDS
+    assert rows[0]["date_collecte"] == "2026-08-26"
+    assert rows[0]["ne_plus_traiter"] == "0"
+
+
+def test_export_defaults_missing_store_columns_to_empty_string(tmp_path):
+    profiles = [
+        {
+            "nom": "Jean Martin",
+            "url": "https://www.linkedin.com/in/jean-martin",
+            "localisation": "Lyon",
+            "titre": "Coach business",
+        }
+    ]
+    output_path = tmp_path / "profils.csv"
+
+    export_profiles_to_csv(profiles, output_path)
+
+    with open(output_path, newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+
+    assert rows[0]["date_collecte"] == ""
+    assert rows[0]["ne_plus_traiter"] == ""

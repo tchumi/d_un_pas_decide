@@ -13,9 +13,13 @@ from pathlib import Path
 # no LLM): alternative contact found via Brave Search + regex extraction,
 # blank when nothing conclusive was found.
 # categorie/score/justification added in POC-003 (deterministic rule engine):
-# blank when the profile hasn't been scored yet. commentaire_client is always
-# exported blank on purpose - it is the column the client fills in to tell us
-# whether the criterion/score is relevant.
+# blank when the profile hasn't been scored yet. commentaire_client is the
+# column the client fills in to tell us whether the criterion/score is
+# relevant - blank on a fresh export, re-imported into the store afterwards.
+# date_collecte/ne_plus_traiter added in POC-006: they come from the profile
+# store (the CSV is now a view of it) and carry the two RGPD guardrails,
+# limited retention and right to object. Both are visible to the client
+# (user decision, 26/08/2026) so an objection can be expressed in the CSV.
 PROFILE_CSV_FIELDS = [
     "nom",
     "url",
@@ -28,6 +32,8 @@ PROFILE_CSV_FIELDS = [
     "score",
     "justification",
     "commentaire_client",
+    "date_collecte",
+    "ne_plus_traiter",
 ]
 
 

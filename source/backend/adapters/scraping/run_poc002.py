@@ -37,7 +37,9 @@ OUTPUT_CSV = Path("./profils_extraits_email.csv")
 def main() -> None:
     with open_browser_session(PROFILE_DIR) as (context, page):
         ensure_logged_in(page, context)
-        profiles = search_and_extract(page, SEARCH_QUERY, MAX_PROFILES)
+        # POC-006 changed the return type to a ResultatRecherche (batch +
+        # stop reason); this script keeps its own CSV and its own scope.
+        profiles = search_and_extract(page, SEARCH_QUERY, MAX_PROFILES).profils
         profiles = enrich_profiles_with_email(page, profiles)
 
     export_profiles_to_csv(profiles, OUTPUT_CSV)
