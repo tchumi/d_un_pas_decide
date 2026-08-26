@@ -115,6 +115,6 @@ modification de fichiers non liés au ticket.
 ## Première réponse attendue
 
 Ne modifie aucun fichier. Commence par : (1) vérifier la branche et l'état Git ; (2) lire les
-fichiers listés → résumer le ticket ; (3) produire le lot scoré et présenter la **comparaison
-des deux distributions** ; (4) proposer un plan court et attendre ma validation avant tout
+fichiers listés → résumer le ticket ; (3) présenter la **comparaison des deux
+distributions** à partir du lot déjà scoré ; (4) proposer un plan court et attendre ma validation avant tout
 ajustement de règle.
