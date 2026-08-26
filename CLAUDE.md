@@ -21,7 +21,7 @@ source/
     core/                    # scoring, catégorisation, modèles métier — zéro import Streamlit
     adapters/
       scraping/               # Playwright, sélecteurs CSS LinkedIn centralisés, session
-      storage/                # export CSV (SQLite prévu par POC-006)
+      storage/                # magasin SQLite persistant (POC-006) + export CSV
       enrichment/             # recherche web + extraction de coordonnées (POC-004)
 tests/
   unit/    integration/    e2e/
@@ -35,8 +35,8 @@ document/
 ## État actuel
 
 - Branche active : `master` (base `master`)
-- **Dernière session** : POC-003 — scoring et catégorisation (26/08/2026)
-- **Prochain ticket actif** : POC-006 — renouvellement du gisement de profils
+- **Dernière session** : POC-006 — renouvellement du gisement de profils (26/08/2026)
+- **Prochain ticket actif** : POC-007 — revalidation des règles de scoring sur le lot frais
 
 Ces deux lignes sont les **seules** informations volatiles de ce fichier : elles se mettent à
 jour en fin de session (voir « Obligation de fin de session »). Tout le reste — statuts,

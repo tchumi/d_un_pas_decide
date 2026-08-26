@@ -28,6 +28,9 @@ profils_extraits_email.csv
 profils_extraits_enrichis.csv
 profils_extraits_scores.csv
 
+# Sauvegardes locales des CSV de profils (memes donnees personnelles)
+*.csv.bak
+
 # Captures d'ecran de diagnostic POC-005 (contenu de pages LinkedIn)
 debug_poc005/
 

@@ -602,19 +602,27 @@ stub le 26/08/2026 ; cadrage détaillé à faire au démarrage réel via `prompt
 **Clé de déduplication** : l'URL de profil, déjà normalisée par `clean_profile_url`
 (suppression des query params et du fragment) — clé naturelle stable.
 
-**Critères d'acceptation (à confirmer au cadrage)** :
-- [ ] Deux exécutions successives de la même requête booléenne produisent deux lots
+**Critères d'acceptation (définitifs, tous vérifiés le 26/08/2026)** :
+- [x] Deux exécutions successives de la même requête booléenne produisent deux lots
       **disjoints** de profils (aucune URL commune), tant que le gisement de la requête
-      n'est pas épuisé.
-- [ ] Quand le gisement est épuisé, le comportement est explicite (lot plus petit que
+      n'est pas épuisé. → *Vérifié sur deux runs réels : 75 profils, 75 URLs distinctes.*
+- [x] Quand le gisement est épuisé, le comportement est explicite (lot plus petit que
       demandé, message clair) plutôt qu'une boucle infinie ou un lot silencieusement
-      incomplet.
-- [ ] Aucun profil déjà collecté n'est perdu par un nouveau run (fin de l'écrasement).
-- [ ] Un CSV dont la colonne `commentaire_client` a été remplie par le client est
+      incomplet. → *`ResultatRecherche.raison_arret` ∈ {`quota_atteint`,
+      `gisement_epuise`, `plafond_pages`} + `message_arret`, couverts par tests.*
+- [x] Aucun profil déjà collecté n'est perdu par un nouveau run (fin de l'écrasement).
+      → *Le CSV est réécrit depuis le magasin complet ; `enregistrer_profils` ne remplace
+      jamais un champ rempli par une valeur vide.*
+- [x] Un CSV dont la colonne `commentaire_client` a été remplie par le client est
       ré-importé, et un nouveau run de scoring conserve ces commentaires — vérifié sur
       l'**aller-retour réel** (export → annotation → ré-import → run), pas sur un
-      dictionnaire construit à la main.
-- [ ] Logique de déduplication et de ré-import testable **sans navigateur ni réseau**.
+      dictionnaire construit à la main. → *Vérifié en test unitaire **et** sur les
+      données réelles des 25 profils.*
+- [x] Logique de déduplication, de pagination et de ré-import testable **sans navigateur
+      ni réseau**. → *`filtrer_profils_inconnus` et `collecter_profils_inconnus` sont
+      pures (les deux accès au navigateur sont injectés) ; le magasin se teste sur une
+      base `tmp_path`.*
+- [x] Tests unitaires passants. → *102 passed, 0 failed, 0 skipped (67 avant le ticket).*
 
 **Garde-fous RGPD — ce ticket solde une dette déjà inscrite au Backlog** :
 La section POC-004 engage deux garde-fous qui sont **aujourd'hui structurellement
@@ -714,3 +722,120 @@ tête de liste :
   `enrichment/` (I/O API Brave), `run_poc003` dans `storage/` (I/O CSV, seule I/O du
   scoring). Le placement est donc cohérent, pas accidentel. Aucun déplacement : ce serait
   du bruit juste avant que POC-006 ne remanie ce flux de données.
+
+**Solution livrée (26/08/2026)** :
+- `source/backend/adapters/storage/profile_store.py` — magasin SQLite (`profils.db`, déjà
+  couvert par `.gitignore`), clé primaire = URL normalisée par `clean_profile_url`
+  (importée depuis `profile_search`, jamais redupliquée : une seconde règle de
+  normalisation aurait été le vrai défaut). Schéma en `PRAGMA user_version = 1`, créé et
+  jamais migré. `enregistrer_profils` complète champ par champ via
+  `COALESCE(NULLIF(...))` : une valeur entrante vide ne blanchit jamais une colonne
+  remplie, et `date_collecte` est figée à la première insertion.
+- `source/backend/adapters/scraping/profile_search.py` — `collecter_profils_inconnus` est
+  une boucle **pure** à deux callables injectés (`extraire_page`, `page_suivante`) : toute
+  la logique d'arrêt est testable sans navigateur. `search_and_extract` n'en est plus que
+  la coquille Playwright et renvoie un `ResultatRecherche(profils, raison_arret,
+  pages_visitees)`. Deux gardes rendent la boucle infinie impossible : absence de page
+  suivante **et** plafond `MAX_PAGES = 10`.
+- `source/backend/adapters/storage/run_poc006.py` — amorçage d'un magasin depuis un CSV
+  existant et ré-import d'un CSV annoté par le même chemin de code, avec rapport détaillé.
+- `run_poc001` exclut les URLs connues et réécrit le CSV depuis le magasin complet ;
+  `run_poc003` lit et réécrit le magasin au lieu de `profils_extraits.csv`.
+
+**Résultat des deux runs réels (26/08/2026)** :
+- Magasin amorcé à 25 profils (lot de juillet ré-importé, daté du 03/07/2026 et non du
+  jour — dater « aujourd'hui » un CSV antérieur aurait sous-estimé son ancienneté au
+  regard de la règle de conservation).
+- Run 1 : `25 profils deja connus` → **25 nouveaux collectés en 5 pages**.
+- Run 2 : `50 profils deja connus` → **25 nouveaux collectés en 8 pages**.
+- État final : **75 profils, 75 URLs distinctes**, 0 nom vide, 0 titre vide. Les trois
+  lots sont deux à deux disjoints — critère d'acceptation 1 vérifié sur données réelles.
+- Re-scoring des 25 profils de juillet depuis le magasin : **0 ligne de scoring modifiée**
+  par rapport à l'export POC-003 (24 conservés, 1 exclu, 21 intéressants) — le changement
+  de source de vérité n'a rien altéré.
+- **Mesure du gisement** : ~10 profils par page, page 8 atteinte sur un plafond estimé à
+  10 → [Inférence] il reste environ **un run d'avance** sur cette requête booléenne. C'est
+  le chiffre qui justifie POC-008.
+
+**Décisions complémentaires (26/08/2026, clôture)** :
+- **Règle de conflit sur `commentaire_client`** (validée par l'utilisateur) : magasin vide
+  + CSV rempli → écrit ; magasin rempli + CSV vide → **conservé** (un blanc n'efface
+  jamais un retour client) ; les deux remplis et différents → **le CSV client prime**, et
+  la substitution est **listée dans le rapport**, jamais appliquée silencieusement ; URL
+  absente du magasin → non créée, comptée en « ignorées ». Clé de réconciliation : l'URL,
+  même clé que la déduplication.
+- **`date_collecte` et `ne_plus_traiter` sont des colonnes exportées** (décision
+  utilisateur : visibles pour le client). Conséquence assumée : le ré-import lit aussi
+  `ne_plus_traiter`, ce qui permet au client d'exprimer une opposition directement dans le
+  CSV ; un `0` ou un blanc **ne lève jamais** un marquage existant.
+- **`run_poc003` lit désormais le magasin** et non plus `profils_extraits.csv` : c'est ce
+  qui rend le critère 4 atteignable. La protection de `scorer_profils` (POC-003) cesse
+  d'être du code mort.
+- **Le lot frais n'a volontairement pas été analysé dans ce ticket** : la revalidation des
+  règles de scoring est l'objet de POC-007.
+- **Renumérotation** : `document/prompts_plans/plan_POC-006.md` désigne la diversification
+  des requêtes comme « POC-007 ». À la clôture, la revalidation des règles de scoring a
+  pris ce numéro (elle est la raison d'être de l'enchaînement et le lot frais est
+  disponible), et la diversification est devenue **POC-008**. Signalé ici plutôt que
+  corrigé dans le plan, qui est un document daté.
+
+---
+
+## POC-007 — Revalidation des règles de scoring POC-003 sur le lot frais
+
+**Objectif** : Statuer sur le sur-apprentissage des 6 règles de `config/scoring_rules.json`,
+calibrées sur les 25 profils qui servaient aussi de jeu de référence, en les confrontant
+aux **50 profils frais** extraits le 26/08/2026 par POC-006.
+
+**Pourquoi maintenant** : [Documentation] C'est la réserve n°1 de POC-003, et la raison
+d'être explicite de l'enchaînement POC-003 → POC-006. Le jeu de contrôle qui manquait
+existe désormais : 50 profils jamais vus, `score = ''` dans le magasin.
+
+**Périmètre pressenti** :
+- Scorer le lot frais (`run_poc003` suffit : il score tout le magasin).
+- Comparer la distribution des scores et des catégories entre le lot de juillet (25) et le
+  lot d'août (50) : une distribution nettement plus basse sur le lot frais signerait le
+  sur-apprentissage.
+- Relire à la main un échantillon de profils mal classés et décider, règle par règle, ce
+  qui relève du réglage de poids et ce qui relève d'une règle manquante.
+- Ajuster `config/scoring_rules.json` si nécessaire — le fichier est éditable et
+  `charger_regles`/`sauvegarder_regles` sont testés.
+
+**Hors périmètre** : toute modification du magasin ou du scraping (POC-006 est clos) ;
+la diversification des requêtes (POC-008).
+
+**Point d'attention** : [Inférence] la catégorie `coach_outdoor` sera probablement encore
+absente du lot frais — la requête utilisée ne contient aucun mot-clé outdoor. Son absence
+ne devra donc pas être interprétée comme une validation de la règle, seulement comme une
+non-observation. C'est POC-008 qui la rendra observable.
+
+---
+
+## POC-008 — Diversification des requêtes (vocabulaire outdoor + filtre géographique réel)
+
+**Objectif** : Élargir le gisement au-delà de ce qu'une requête booléenne unique peut
+livrer, en variant les requêtes plutôt qu'en creusant la même.
+
+**Pourquoi** : [Code + run réel du 26/08/2026] La déduplication persistante de POC-006
+donne de l'avance, pas un gisement infini. Mesure faite : ~10 profils par page, **page 8
+atteinte sur un plafond estimé à 10 pages** → [Inférence] environ un run restant sur la
+requête actuelle. La cible client de 50 profils/semaine n'est pas tenable sans nouvelles
+requêtes.
+
+**Deux axes déjà documentés (voir aussi la section POC-006)** :
+- **Filtre géographique réel** : [Code] `build_search_url` place toute la requête — y
+  compris `AND (France)` — dans le seul paramètre `keywords`. Ce n'est donc pas un filtre
+  géographique mais une correspondance textuelle. Les facettes natives de LinkedIn
+  seraient plus précises *et* un axe de variation par ville/région.
+- **Vocabulaire outdoor** : les 5 mots-clés fournis par le client le 08/07/2026 (*coach
+  nature*, *coach qui marche*, *coach outdoor*, *coach hors-les-murs*, *coaching en
+  itinérance*) n'apparaissent dans aucune requête actuelle. Une requête dédiée rendrait
+  enfin observable la catégorie `coach_outdoor` de POC-003.
+
+**Contrainte forte, contrairement à POC-006** : ce ticket **exige des runs LinkedIn
+réels** — les sélecteurs des facettes de recherche doivent être vérifiés sur un DOM réel,
+comme l'ont été ceux de POC-001/002/005. Il n'est pas développable entièrement hors-ligne.
+
+**Piste opportuniste** : profiter d'un run réel pour vérifier le sélecteur de la barre de
+pagination numérotée et journaliser la taille exacte du gisement par requête (voir la
+piste « Mesurer le plafond réel au lieu de l'estimer » en section POC-006).
