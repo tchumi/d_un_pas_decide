@@ -12,7 +12,23 @@ from pathlib import Path
 # email_web/site_web added in POC-004 (deterministic web enrichment pipeline,
 # no LLM): alternative contact found via Brave Search + regex extraction,
 # blank when nothing conclusive was found.
-PROFILE_CSV_FIELDS = ["nom", "url", "localisation", "titre", "email", "email_web", "site_web"]
+# categorie/score/justification added in POC-003 (deterministic rule engine):
+# blank when the profile hasn't been scored yet. commentaire_client is always
+# exported blank on purpose - it is the column the client fills in to tell us
+# whether the criterion/score is relevant.
+PROFILE_CSV_FIELDS = [
+    "nom",
+    "url",
+    "localisation",
+    "titre",
+    "email",
+    "email_web",
+    "site_web",
+    "categorie",
+    "score",
+    "justification",
+    "commentaire_client",
+]
 
 
 def export_profiles_to_csv(profiles: list[dict[str, str]], output_path: Path) -> None:

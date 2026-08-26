@@ -87,10 +87,9 @@ les cartes de résultats de recherche).
 
 **Objectif** : Catégoriser chaque profil extrait dans une des 3 classes cibles (coach
 business débutant, expérimenté, outdoor/nature — indifférencié par défaut) et lui
-attribuer un score de pertinence. **Pas encore cadré** : ticket créé en stub pour ne pas
-perdre les exemples de calibration reçus du client ; cadrage complet à faire au
-démarrage réel du ticket (une fois POC-002 terminé), via le protocole habituel
-(`prompt_générique.md`).
+attribuer un score de pertinence. **Cadré et réalisé le 26/08/2026** en périmètre réduit
+(voir « Specs définitives » en fin de section) : la distinction débutant/expérimenté est
+restée hors scope, ces profils sortent en catégorie indifférenciée.
 
 **Exemples de calibration reçus du client** (Christophe Hoffsteter, 04/07/2026, sur le
 CSV de démo POC-001) :
@@ -142,6 +141,131 @@ CSV de démo POC-001) :
   valeur immédiate ». POC-003 devient le prochain ticket prioritaire (voir décisions
   POC-004 du 13/07 pour l'arbitrage complet). Statut passé de `BLOCKED` à `TODO` dans
   `task_list.md`.
+
+### Specs définitives (cadrage et réalisation du 26/08/2026)
+
+**Entrée** : `profils_extraits.csv` (25 profils, lot POC-001, gitignoré). **Aucune nouvelle
+extraction LinkedIn, aucun appel LLM, aucune nouvelle dépendance.** Le `titre` LinkedIn est
+le seul signal textuel exploitable.
+
+**Choix d'architecture** : moteur de règles 100 % déterministe. Justification : le client
+demande une colonne `justification` à côté du score (demande du 04/07/2026) ; un moteur de
+règles la produit par construction et elle est vérifiable, un LLM la génère sans qu'elle le
+soit. Cohérent avec POC-004 (pipeline v1 déterministe, paliers LLM non activés).
+
+**Règles de scoring**, échelle 0–100, encodées dans `config/scoring_rules.json` :
+
+| Règle | Type | Poids | Déclencheur |
+|---|---|---|---|
+| `exclusion_non_coach` | exclusion (absence) | → exclu, score 0 | aucune occurrence de `coach` |
+| `exclusion_hors_metier` | exclusion (présence) | → exclu, score 0 | `coach de vie`, `life coach` |
+| `base_coach` | bonus | +20 | marqueur `coach` présent |
+| `focus_business` | bonus | +40 | `coach business`, `business coach`, `coach d'entreprise`, `coach en entreprise`, `coach professionnel`, `coaching professionnel`, `executive coach`, `coach de dirigeant`, `coach d'équipe` |
+| `certification` | bonus | +15 | `icf`, `rncp`, `certifi`, `accredit`, `level 2`, `pcc`, `mcc` |
+| `cible_business` | bonus | +10 | `dirigeant`, `entrepreneur`, `manager`, `management`, `leadership`, `executive`, `business`, `entreprise`, `équipe`, `commercial` |
+| `hors_cible` | malus | −25 | `développement personnel`, `scolaire` (malus **sans** exclusion) |
+
+**Règle d'agrégation, déclarée explicitement dans le JSON** (bloc `agregation`, lu et
+validé par le moteur, pas un commentaire décoratif) : le score est la **somme algébrique**
+des poids des règles déclenchées — un bonus a un poids positif (additionné), un malus un
+poids négatif (soustrait) ; l'ordre est sans importance ; le total est borné dans
+`[score_min, score_max]`. Le drapeau `regle_appliquee_une_seule_fois` (à `true`) fait
+qu'une règle compte **au plus une fois**, quel que soit le nombre de mots-clés trouvés ; à
+`false`, son poids est compté une fois par mot-clé. Une règle d'exclusion court-circuite
+tout le calcul. Un `mode` autre que `"somme"` est **refusé au chargement** (`ValueError`)
+plutôt qu'ignoré silencieusement.
+
+**Catégories** : `exclu` / `coach_outdoor` (les 5 mots-clés fournis par le client le
+08/07/2026) / `coach_business_indifferencie` (défaut). La catégorie outdoor est
+**score-neutre** : le client n'a jamais indiqué qu'un profil outdoor valait plus ou moins.
+
+**Sortie** : `profils_extraits_scores.csv` (gitignoré), trié par score décroissant, avec
+4 nouvelles colonnes dans `csv_export.py` (`restval=""`, même pattern que `email` en
+POC-002) : `categorie`, `score`, `justification`, et **`commentaire_client`** — colonne
+exportée vide, destinée au retour du client sur la pertinence du critère/du score
+(demande utilisateur du 26/08/2026). Le scoring **n'écrase jamais** un `commentaire_client`
+déjà rempli si on rejoue le calcul sur un CSV annoté.
+
+**Profils exclus conservés dans le CSV** (`categorie=exclu`, `score=0`) plutôt que
+supprimés : l'exclusion reste auditable par le client.
+
+### Critères d'acceptation — vérifiés sur les 25 profils réels le 26/08/2026
+
+Run réel : **24 conservés, 1 exclu, médiane des conservés = 75**, 21 profils au-dessus du
+seuil « intéressant ».
+
+1. **Cécile Pollin exclue** — `exclu`, score 0, justification « aucun marqueur 'coach' dans
+   le titre ».
+2. **Anne-Laure F. conservée sous la médiane** — score **10** contre une médiane de **75**,
+   dernière du classement.
+3. **Les 23 autres profils conservés** — distribution : 85 ×9, 75 ×5, 70 ×5, 60 ×2, 45, 20.
+4. Colonnes `categorie` / `score` / `justification` renseignées pour les 25 profils.
+5. Tests unitaires : **67 passants**, sans navigateur ni appel réseau.
+
+Obtenu **sans aucune règle ad hoc nommant un profil** : les 6 règles sont génériques.
+
+### Relecture du classement avec l'utilisateur (26/08/2026) — validée
+
+Trois arbitrages signalés et **validés en l'état** :
+
+- **Gabriel Abadie, score 45** (« PNC 25 ans Air France | Coach certifié RNCP 7 | Projet :
+  formateur soft skills ») : aucune formule « coach professionnel/business » dans le titre,
+  donc pas de `focus_business`. Passe **sous le seuil de 60** → hors sélection POC-004. Coach
+  en reconversion, score bas jugé cohérent.
+- **Manuel BOSSU, score 20** (« Coach d'intégration professionnelle ») : coaching
+  d'insertion/langue, pas business. Score bas cohérent, mais à noter — c'est **le seul vrai
+  positif confirmé du run POC-004** (site + email personnels trouvés). Il sortirait donc de
+  la sélection conditionnelle.
+- **Jérémy Azoulay et Elsa Dogliotti, score 60** : pile au seuil, donc **dans** la
+  sélection. Un seuil à 65 les en sortirait.
+
+**Aucun profil outdoor dans le lot** : la catégorie et ses 5 mots-clés sont couverts par des
+tests unitaires mais **jamais observés sur données réelles**.
+
+### Décisions (26/08/2026)
+
+- **Seuil « profil intéressant » = 60**, valeur de départ assumée, stockée dans le JSON et
+  surchargeable par argument. **À exposer dans un menu configuration** en version production
+  (à prévoir, hors périmètre de ce ticket — `source/frontend_streamlit/` n'existe pas encore).
+- **Règles encodées en JSON éditable** (`config/scoring_rules.json`) avec `charger_regles()` /
+  `sauvegarder_regles()` côté `core/` : l'**édition et la sauvegarde des règles depuis le menu
+  configuration** sont à prévoir. L'aller-retour charger/sauvegarder est testé.
+- **`coach de vie` / `life coach` → exclusion** (et non malus), sur décision utilisateur.
+  Aucun profil du lot n'est concerné, le critère d'acceptation n'en dépend donc pas. Risque
+  documenté : un titre mixte (« business coach et life coach ») serait exclu à tort ; repasser
+  en malus = déplacer la règle dans le JSON.
+- **Pas de malus sur « coach professionnel en formation »** (Séverine GRAVOT, Jérémy Azoulay) :
+  le client a validé ces profils en bloc le 08/07/2026.
+- **Débutant / expérimenté toujours hors scope** : non décidable depuis le titre, nécessiterait
+  d'extraire la durée d'expérience de la page profil, et attend une réponse d'Henri-Pierre
+  Michaud. Repli en `coach_business_indifferencie`, conforme à l'annonce client du 04/07/2026.
+
+### Point d'architecture intégré (POC-004 conditionnel)
+
+Décision client du 13/07/2026 : l'enrichissement web cesse d'être une étape systématique et
+devient **conditionnelle, appliquée après le scoring** aux seuls profils intéressants. Le
+module expose `selectionner_profils_interessants(profils, seuil=None)`, qui est ce point de
+sélection. **POC-004 n'a pas été modifié dans ce ticket** ; le branchement effectif des deux
+étapes reste à faire dans un ticket ultérieur.
+
+### Risque assumé — à revalider
+
+Les règles sont calibrées sur les 25 profils qui servent **aussi** de jeu de référence : c'est
+du sur-mesure sur un échantillon minuscule, et ça ne se corrige pas par de la technique.
+Mitigation retenue : 6 règles seulement, aucune ne nommant un profil ou un cas particulier,
+toutes lisibles et éditables depuis le JSON. **La revalidation devra se faire sur un lot
+fraîchement extrait** — ce que POC-006 (renouvellement du gisement) rendra possible.
+
+### Questions ouvertes à poser au client à la reprise de contact
+
+Le CSV scoré sert de support à la reprise de contact (silence client depuis le 13/07/2026) :
+
+1. La nuance **débutant / expérimenté** — question adressée nommément à Henri-Pierre Michaud
+   le 08/07/2026, toujours sans réponse.
+2. L'arbitrage sur l'**extraction de la durée d'expérience** depuis la page profil (à portée
+   technique puisque POC-002 visite déjà chaque page, mais hors périmètre d'extraction actuel).
+3. **Validation du seuil à 60** et des trois arbitrages de classement relevés ci-dessus.
+
 
 ---
 

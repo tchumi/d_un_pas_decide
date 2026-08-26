@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "commentaire": "Regles de scoring POC-003. Editables a la main ou depuis le futur menu configuration (charger_regles/sauvegarder_regles). Les mots-cles sont normalises au chargement : casse, accents et ponctuation sont ignores, ecrivez-les naturellement.",
+  "score_min": 0,
+  "score_max": 100,
+  "seuil_profil_interessant": 60,
+  "agregation": {
+    "mode": "somme",
+    "regle_appliquee_une_seule_fois": true,
+    "commentaire": "Score = somme algebrique des poids des regles declenchees : un bonus a un poids positif (additionne), un malus un poids negatif (soustrait). Ordre sans importance. Avec regle_appliquee_une_seule_fois=true, une regle compte au plus une fois quel que soit le nombre de mots-cles trouves ; a false, son poids est compte une fois par mot-cle trouve. Le total est ensuite borne dans [score_min, score_max]. Une regle d'exclusion court-circuite tout le calcul : categorie = categorie_exclusion et score = score_min. Seul le mode 'somme' est implemente : toute autre valeur est refusee au chargement."
+  },
+  "categorie_exclusion": "exclu",
+  "categorie_par_defaut": "coach_business_indifferencie",
+  "regles": [
+    {
+      "id": "exclusion_non_coach",
+      "type": "exclusion_absence",
+      "poids": 0,
+      "mots_cles": ["coach"],
+      "libelle": "aucun marqueur 'coach' dans le titre"
+    },
+    {
+      "id": "exclusion_hors_metier",
+      "type": "exclusion_presence",
+      "poids": 0,
+      "mots_cles": ["coach de vie", "life coach"],
+      "libelle": "coaching hors cible business"
+    },
+    {
+      "id": "base_coach",
+      "type": "bonus",
+      "poids": 20,
+      "mots_cles": ["coach"],
+      "libelle": "profil de coach"
+    },
+    {
+      "id": "focus_business",
+      "type": "bonus",
+      "poids": 40,
+      "mots_cles": [
+        "coach business",
+        "business coach",
+        "coach d'entreprise",
+        "coach en entreprise",
+        "coach professionnel",
+        "coaching professionnel",
+        "executive coach",
+        "coach de dirigeant",
+        "coach d'equipe"
+      ],
+      "libelle": "coaching business/professionnel explicite"
+    },
+    {
+      "id": "certification",
+      "type": "bonus",
+      "poids": 15,
+      "mots_cles": ["icf", "rncp", "certifi", "accredit", "level 2", "pcc", "mcc"],
+      "libelle": "certification ou accreditation"
+    },
+    {
+      "id": "cible_business",
+      "type": "bonus",
+      "poids": 10,
+      "mots_cles": [
+        "dirigeant",
+        "entrepreneur",
+        "manager",
+        "management",
+        "leadership",
+        "executive",
+        "business",
+        "entreprise",
+        "equipe",
+        "commercial"
+      ],
+      "libelle": "public cible entreprise"
+    },
+    {
+      "id": "hors_cible",
+      "type": "malus",
+      "poids": -25,
+      "mots_cles": ["developpement personnel", "scolaire"],
+      "libelle": "orientation hors cible business (sans exclusion)"
+    }
+  ],
+  "categories": [
+    {
+      "id": "coach_outdoor",
+      "mots_cles": [
+        "coach nature",
+        "coach qui marche",
+        "coach outdoor",
+        "coach hors les murs",
+        "coaching en itinerance"
+      ],
+      "libelle": "coaching outdoor / nature (vocabulaire fourni par le client le 08/07/2026)"
+    }
+  ]
+}
