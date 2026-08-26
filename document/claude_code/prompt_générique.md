@@ -97,6 +97,7 @@ pytest tests/ --collect-only -q
 * `document/Backlog.md` — section [ID_TICKET] : ajouter ou compléter les specs ;
 * `document/claude_code/task_list.md` : [ID_TICKET] → DONE avec métriques ;
 * `document/claude_code/handoff.md` : nouvelle section (ce qui a été fait, fichiers modifiés, prochain ticket) ;
+* `CLAUDE.md` — section « État actuel » : dernière session (ID + date) et prochain ticket actif, **deux lignes, aucune métrique** (elles vivent dans `task_list.md`) ; compléter aussi « Structure du repository » si un dossier a été créé ;
 * sauvegarder le prompt du prochain ticket dans `document/prompts_plans/prompt_[NEXT_TICKET].md` ;
 * commit : `git commit -m "docs: [ID_TICKET] DONE — description courte"`.
 

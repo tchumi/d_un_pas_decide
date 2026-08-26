@@ -175,6 +175,9 @@ volume prudent pour le premier run.
   décisions prises, résultat des deux runs ;
 * `document/claude_code/task_list.md` : POC-006 → DONE avec métriques (nb tests) ;
 * `document/claude_code/handoff.md` : nouvelle section ;
+* `CLAUDE.md` — section « État actuel » : dernière session (ID + date) et prochain ticket
+  actif, **deux lignes, aucune métrique** (elles vivent dans `task_list.md`) ; compléter aussi
+  « Structure du repository » — ce ticket crée un magasin SQLite dans `adapters/storage/` ;
 * sauvegarder le prompt du prochain ticket dans `document/prompts_plans/prompt_[NEXT].md` ;
 * commit : `git commit -m "docs: POC-006 DONE — description courte"`.
 

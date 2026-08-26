@@ -8,28 +8,41 @@ Stack : Python ≥ 3.12, Streamlit, Playwright, SQLite, pandas.
 
 ## Structure du repository
 
+Structure **visée**. Les entrées marquées `(à créer)` n'existent pas encore : le POC est
+aujourd'hui piloté par des scripts `run_pocXXX.py` lancés en ligne de commande, sans UI.
+
 ```
+config/
+  scoring_rules.json         # règles de scoring POC-003, éditables (chargées par core/)
 source/
-  main.py                    # point d'entrée Streamlit (streamlit run)
-  frontend_streamlit/        # pages/composants Streamlit (présentation uniquement)
+  main.py                    # (à créer) point d'entrée Streamlit (streamlit run)
+  frontend_streamlit/        # (à créer) pages/composants Streamlit (présentation uniquement)
   backend/
     core/                    # scoring, catégorisation, modèles métier — zéro import Streamlit
     adapters/
       scraping/               # Playwright, sélecteurs CSS LinkedIn centralisés, session
-      storage/                # SQLite / export CSV
+      storage/                # export CSV (SQLite prévu par POC-006)
+      enrichment/             # recherche web + extraction de coordonnées (POC-004)
 tests/
   unit/    integration/    e2e/
 document/
   Backlog.md                 # référentiel de specs (ne pas y mettre les statuts)
   ARCHITECTURE.md
   claude_code/               # kit gouvernance : AGENTS.md, handoff.md, task_list.md…
+  prompts_plans/             # prompts et plans validés, un par ticket
 ```
 
-## État actuel (02/07/2026)
+## État actuel
 
 - Branche active : `master` (base `master`)
-- Tests : 0 passants, 0 échecs, 0 skipped
-- Prochain ticket actif : POC-001
+- **Dernière session** : POC-003 — scoring et catégorisation (26/08/2026)
+- **Prochain ticket actif** : POC-006 — renouvellement du gisement de profils
+
+Ces deux lignes sont les **seules** informations volatiles de ce fichier : elles se mettent à
+jour en fin de session (voir « Obligation de fin de session »). Tout le reste — statuts,
+métriques, nombre de tests — vit dans `document/claude_code/task_list.md`, qui en est la
+**source de vérité unique** ; ne pas le recopier ici, c'est ce qui avait fait dériver cette
+section.
 
 ## Méthode de travail par ticket
 
@@ -55,13 +68,14 @@ Ne jamais démarrer un ticket sans ce protocole si le contexte courant contient 
 
 ## Obligation de fin de session
 
-Mettre à jour **les trois fichiers** à la fin de chaque session :
+Mettre à jour **les quatre fichiers** à la fin de chaque session :
 
-1. `document/claude_code/task_list.md` — statut du ticket → DONE (ou DECIDED/BLOCKED)
+1. `document/claude_code/task_list.md` — statut du ticket → DONE (ou DECIDED/BLOCKED), **avec les métriques (nb tests)** : ce fichier en est la source de vérité unique.
 2. `document/claude_code/handoff.md` — ce qui a été fait, fichiers modifiés, prochain ticket
 3. **`document/Backlog.md`** — **obligatoire si** : nouveau ticket créé, périmètre modifié, critères d'acceptation changés, décision prise. Ne pas y mettre les statuts.
+4. **`CLAUDE.md`** — section « État actuel » : dernière session (ID + date) et prochain ticket actif. **Deux lignes, rien d'autre** : ne jamais y recopier de métrique ni de statut, sous peine de la dérive que cette règle corrige. Mettre aussi à jour la section « Structure du repository » si un dossier a été créé ou est passé de `(à créer)` à réel.
 
-La session n'est pas considérée comme terminée sans ces trois mises à jour.
+La session n'est pas considérée comme terminée sans ces quatre mises à jour.
 Commit final : `git commit -m "docs: [ID_TICKET] DONE — description courte"`.
 
 Indiquer explicitement si le lancement de l'application est nécessaire avant de passer au ticket suivant :
