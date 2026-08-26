@@ -36,17 +36,23 @@ impossible. POC-006 est donc le prérequis de la consolidation de POC-003.
 
 * `source/backend/adapters/storage/` — magasin persistant des profils déjà extraits
   (**SQLite**, annoncé dans la stack `CLAUDE.md` mais jamais introduit : `storage/` ne
-  contient à ce jour que l'export CSV et le script de scoring POC-003)
+  contient à ce jour que l'export CSV et `run_poc003.py`).
+  *Note : la présence de `run_poc003.py` — un script de scoring — dans `storage/` est
+  délibérée et non une erreur à corriger. Convention du repo : chaque `run_pocNNN.py` vit
+  auprès de l'adaptateur qui porte ses entrées/sorties (`run_poc001`/`run_poc002` dans
+  `scraping/`, `run_poc004` dans `enrichment/`, `run_poc003` dans `storage/` car son unique
+  I/O est le CSV). Ne pas le déplacer dans ce ticket.*
 * `source/backend/adapters/scraping/profile_search.py` — passer de « les N premières cartes »
   à « les N cartes **inconnues** », en paginant tant que le quota de nouveaux profils n'est
   pas atteint
 * `source/backend/adapters/storage/csv_export.py` — l'export cesse d'être la source de vérité
   pour devenir une **vue exportée** du magasin. **Attention** : ce fichier vient d'être étendu
   par POC-003 (colonnes `categorie`, `score`, `justification`, `commentaire_client`) — les
-  conserver, et notamment **ne jamais écraser un `commentaire_client` déjà rempli** par le
-  client
-* `tests/unit/` — logique de déduplication et de pagination testable **sans navigateur ni
-  réseau**
+  conserver toutes
+* **Ré-import du retour client** (voir le constat dédié ci-dessous) — le magasin doit pouvoir
+  relire un CSV annoté par le client et en conserver la colonne `commentaire_client`
+* `tests/unit/` — logique de déduplication, de pagination et de ré-import testable **sans
+  navigateur ni réseau**
 
 Hors périmètre :
 * pas de refactoring global, pas de changement d'architecture, pas de renommage de module ;
@@ -62,6 +68,34 @@ Hors périmètre :
 L'URL de profil, déjà normalisée par `clean_profile_url` (suppression des query params et du
 fragment) — clé naturelle stable. À vérifier dans le code avant de s'appuyer dessus.
 
+## Constat complémentaire — la préservation du retour client est aujourd'hui inatteignable
+
+Vérifié dans le code le 26/08/2026, à intégrer au cadrage :
+
+1. [Code] POC-003 a bien implémenté la préservation côté moteur : `scorer_profils`
+   (`core/profile_scoring.py`) ne remplace jamais un `commentaire_client` existant
+   (`setdefault`), et un test unitaire dédié le couvre
+   (`test_scorer_profils_ne_perd_pas_un_commentaire_client_existant`).
+2. [Code] Mais son unique appelant réel, `run_poc003.py`, lit `profils_extraits.csv` (le CSV
+   brut d'extraction, **sans** colonne `commentaire_client`) et écrit
+   `profils_extraits_scores.csv` en mode `"w"`. Le fichier que le client annote n'est donc
+   **jamais relu** : relancer le scoring écrase silencieusement ses commentaires.
+3. [Inférence] La protection est donc du code correct et testé, mais **mort en pratique** — le
+   test la valide sur un dictionnaire construit à la main, jamais sur un véritable
+   aller-retour. La colonne `commentaire_client` est décorative tant qu'aucun chemin de
+   ré-import n'existe.
+
+**Décision prise (26/08/2026) : le ré-import entre dans le périmètre de POC-006.** Le magasin
+persistant est précisément l'endroit où le retour client doit vivre, au même titre que
+`date_collecte` et le marquage « à ne plus traiter » — trois données qui, chacune, ne
+survivent pas à un CSV écrasé. Les traiter séparément reviendrait à construire deux fois le
+même mécanisme de persistance.
+
+À cadrer explicitement à l'étape 2 : par quelle clé un CSV annoté est réconcilié avec le
+magasin (a priori l'URL de profil, même clé que la déduplication), et ce qui se passe en cas
+de conflit (commentaire présent des deux côtés et différent — [Inférence] le retour client
+doit primer sur une valeur générée, mais ça doit être décidé, pas subi).
+
 ## Critères d'acceptation (à confirmer et affiner au cadrage)
 
 1. Deux exécutions successives de la même requête booléenne produisent deux lots **disjoints**
@@ -69,8 +103,14 @@ fragment) — clé naturelle stable. À vérifier dans le code avant de s'appuye
 2. Gisement épuisé → comportement **explicite** (lot plus petit que demandé + message clair),
    jamais une boucle infinie ni un lot silencieusement incomplet.
 3. Aucun profil déjà collecté n'est perdu par un nouveau run (fin de l'écrasement).
-4. Logique de déduplication et de pagination testable sans navigateur ni appel réseau.
-5. Tests unitaires passants (**67 passants** à l'issue de POC-003, 0 échec, 0 skipped).
+4. **Aller-retour du retour client vérifié de bout en bout** : un CSV dont la colonne
+   `commentaire_client` a été remplie est ré-importé, puis un nouveau run de scoring conserve
+   ces commentaires. Le test doit porter sur l'aller-retour réel (export → annotation →
+   ré-import → run), pas sur un dictionnaire construit à la main — c'est exactement ce qui
+   manquait à POC-003.
+5. Logique de déduplication, de pagination et de ré-import testable sans navigateur ni appel
+   réseau.
+6. Tests unitaires passants (**67 passants** à l'issue de POC-003, 0 échec, 0 skipped).
 
 ## Garde-fous RGPD — ce ticket solde une dette déjà inscrite au Backlog
 
@@ -118,8 +158,9 @@ Ne lis pas tout le repo.
 
 Note : les CSV de données (`profils_extraits.csv`, `profils_extraits_email.csv`,
 `profils_extraits_enrichis.csv`, `profils_extraits_scores.csv`) sont présents localement mais
-**gitignorés** (données personnelles) — ils ne sont pas dans l'historique Git. Tout fichier
-`.db`/`.sqlite` créé par ce ticket devra l'être aussi.
+**gitignorés** (données personnelles) — ils ne sont pas dans l'historique Git. Le `.gitignore`
+couvre **déjà** `*.db`, `*.sqlite` et `*.sqlite3` (lignes 16-18) : le magasin créé par ce
+ticket est donc protégé sans rien ajouter — vérifier, ne pas dupliquer l'entrée.
 
 ## Branche et sécurité Git
 

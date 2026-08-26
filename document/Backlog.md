@@ -610,7 +610,11 @@ stub le 26/08/2026 ; cadrage détaillé à faire au démarrage réel via `prompt
       demandé, message clair) plutôt qu'une boucle infinie ou un lot silencieusement
       incomplet.
 - [ ] Aucun profil déjà collecté n'est perdu par un nouveau run (fin de l'écrasement).
-- [ ] Logique de déduplication testable **sans navigateur ni réseau**.
+- [ ] Un CSV dont la colonne `commentaire_client` a été remplie par le client est
+      ré-importé, et un nouveau run de scoring conserve ces commentaires — vérifié sur
+      l'**aller-retour réel** (export → annotation → ré-import → run), pas sur un
+      dictionnaire construit à la main.
+- [ ] Logique de déduplication et de ré-import testable **sans navigateur ni réseau**.
 
 **Garde-fous RGPD — ce ticket solde une dette déjà inscrite au Backlog** :
 La section POC-004 engage deux garde-fous qui sont **aujourd'hui structurellement
@@ -667,3 +671,29 @@ tête de liste :
   (logique de persistance et de déduplication pure), sans session LinkedIn ni risque de
   restriction de compte. Seule la validation finale du renouvellement effectif du lot
   demandera un run réel.
+- 26/08/2026 — **Périmètre étendu au ré-import du retour client**, après vérification du
+  code à la relecture du prompt POC-006 :
+  - [Code] POC-003 a implémenté la préservation de `commentaire_client` côté moteur
+    (`scorer_profils` ne remplace jamais une valeur existante, test unitaire dédié).
+  - [Code] Mais son unique appelant, `run_poc003.py`, lit `profils_extraits.csv` (CSV brut
+    d'extraction, sans cette colonne) et écrit `profils_extraits_scores.csv` en mode `"w"` :
+    le fichier annoté par le client n'est **jamais relu**, relancer le scoring écrase ses
+    commentaires.
+  - [Inférence] La protection est donc du code correct et testé mais **inatteignable en
+    pratique** — le test la valide sur un dictionnaire construit à la main, jamais sur un
+    aller-retour réel. La colonne `commentaire_client` reste décorative tant qu'aucun
+    chemin de ré-import n'existe.
+  - Décision : le ré-import entre dans POC-006 plutôt que dans un ticket séparé. Le magasin
+    persistant est l'endroit où le retour client doit vivre, au même titre que
+    `date_collecte` et le marquage « à ne plus traiter » — trois données qui ne survivent
+    pas à un CSV écrasé ; les séparer reviendrait à construire deux fois le même mécanisme
+    de persistance. Reste à trancher au cadrage : clé de réconciliation (a priori l'URL,
+    même clé que la déduplication) et règle de conflit si un commentaire diffère des deux
+    côtés.
+- 26/08/2026 — **Emplacement de `run_poc003.py` conservé dans `adapters/storage/`**, après
+  remise en cause puis vérification de la convention réelle : chaque script d'assemblage
+  `run_pocNNN.py` vit auprès de l'adaptateur qui porte ses **entrées/sorties** —
+  `run_poc001`/`run_poc002` dans `scraping/` (I/O Playwright), `run_poc004` dans
+  `enrichment/` (I/O API Brave), `run_poc003` dans `storage/` (I/O CSV, seule I/O du
+  scoring). Le placement est donc cohérent, pas accidentel. Aucun déplacement : ce serait
+  du bruit juste avant que POC-006 ne remanie ce flux de données.
