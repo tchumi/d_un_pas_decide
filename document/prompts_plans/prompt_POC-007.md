@@ -19,12 +19,18 @@ l'enchaînement POC-003 → POC-006. Le jeu de contrôle qui manquait existe dé
 
 ## État de départ (vérifié le 26/08/2026, ne pas le refaire de zéro)
 
-1. [Code] Le magasin `profils.db` contient **75 profils** : 25 datés du 03/07/2026 (lot POC-001,
-   déjà scorés) et **50 datés du 26/08/2026, non scorés** (`score = ''`).
-2. [Code] `run_poc003` score **tout le magasin** et réécrit les colonnes de scoring en base,
-   puis exporte `profils_extraits_scores.csv`. Un seul lancement suffit à produire le lot à
-   analyser — inutile d'écrire un script.
-3. [Documentation] Distribution de référence, lot de juillet : 24 conservés, 1 exclu, médiane
+1. [Code] Le magasin `profils.db` contient **75 profils, tous scorés** : 25 datés du
+   03/07/2026 (lot POC-001, jeu de calibration des règles) et **50 datés du 26/08/2026, le
+   lot frais** jamais vu par les règles au moment de leur écriture.
+2. [Code] `run_poc003` a été lancé le 26/08/2026 à la clôture de POC-006 : le lot à analyser
+   **existe déjà**, dans le magasin et dans `profils_extraits_scores.csv` (75 lignes).
+   Le scoring est donc *calculé* — ce ticket porte sur son **analyse**, pas sur son
+   exécution. Ne pas confondre : un moteur qui note bien les données sur lesquelles il a
+   été réglé ne prouve rien.
+3. [Code] Premier signal déjà mesuré : **1 exclu sur 25 en juillet, 2 exclus sur 50 en
+   août** — taux d'exclusion quasi identique. Indicateur trop grossier pour conclure : il
+   ne dit rien de la dispersion des scores conservés, où le sur-apprentissage se voit.
+4. [Documentation] Distribution de référence, lot de juillet : 24 conservés, 1 exclu, médiane
    des conservés = 75, 21 profils au-dessus du seuil « intéressant » (60).
 
 ## Périmètre autorisé
@@ -43,7 +49,9 @@ Hors périmètre :
 
 ## Méthode attendue
 
-Étape 1 — Produire le lot scoré : `uv run python -m source.backend.adapters.storage.run_poc003`.
+Étape 1 — **Déjà faite** (26/08/2026) : le lot scoré existe. La relancer n'est utile que si
+`config/scoring_rules.json` est modifié en cours de ticket — `run_poc003` réécrit alors les
+colonnes de scoring en base et l'export.
 
 Étape 2 — **Comparer les deux distributions** (25 de juillet vs 50 d'août) : nombre de
 conservés/exclus, médiane, répartition par catégorie, nombre au-dessus du seuil. [Inférence]
