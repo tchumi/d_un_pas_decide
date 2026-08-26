@@ -646,6 +646,23 @@ tête de liste :
   reconnaître.
 - **Synonymes et certifications** : « coach de dirigeants », « coach exécutif », ICF,
   RNCP, « business coach » (anglais).
+- **Mesurer le plafond réel au lieu de l'estimer** (noté le 26/08/2026, à la suite d'une
+  question de l'utilisateur sur le fonctionnement de la pagination LinkedIn) :
+  [Documentation] LinkedIn affiche en bas de la page de résultats une barre de pagination
+  numérotée dont le **dernier numéro est le nombre de pages réellement atteignables** — à
+  ne pas confondre avec le compteur « Environ N résultats » du haut de page, qui compte
+  les correspondances de la requête et non ce qu'un compte gratuit peut feuilleter (source
+  de confusion courante : on lit quelques milliers de résultats, on pagine, et on bute sur
+  un mur sans explication). [Code] Le scraping n'exploite aujourd'hui que le bouton
+  « suivant » (`LinkedInSearchSelectors.NEXT_BUTTON`) : il *découvre* la fin du gisement
+  (`raison_arret = "gisement_epuise"`) au lieu de la prévoir. [Inférence] Le nom du
+  `data-testid` (`pagination-controls-next-button-visible`) suggère que les boutons
+  numérotés appartiennent au même bloc DOM, donc qu'un sélecteur du dernier numéro serait
+  à portée — **à vérifier sur un dump DOM réel** avant d'y compter, comme cela a été fait
+  le 03/07/2026 pour les autres sélecteurs. Journaliser ce nombre à chaque run donnerait
+  la **taille exacte du gisement par requête**, donc un dimensionnement chiffré de la
+  diversification au lieu de l'estimation ~100 résultats / 10 pages. Volontairement **non
+  fait dans POC-006**, qui n'en a pas besoin pour être complet.
 
 **Hors périmètre de ce ticket** (notés pour mémoire, non planifiés) :
 - Changer de porte d'entrée : profils « également consultés » (les pages profil sont déjà
