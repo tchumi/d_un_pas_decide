@@ -436,3 +436,110 @@ explicitement redécidée.
   connecté sans objet, 1 échec réel malgré un statut `sent` erroné), et (2) la fiabilité du
   statut `sent` lui-même, à améliorer avant toute réutilisation au-delà d'un test de
   faisabilité. Aucun blocage/restriction du compte LinkedIn constaté.
+
+---
+
+## POC-006 — Renouvellement du gisement de profils (mémoire des profils déjà vus)
+
+**Objectif** : Faire en sorte que deux exécutions successives du pipeline ramènent des
+profils **nouveaux** plutôt que le même lot, et rendre ainsi atteignable la cible client
+de **50 profils/semaine** (mail Christophe Hoffstetter du 04/07/2026). Ticket créé en
+stub le 26/08/2026 ; cadrage détaillé à faire au démarrage réel via `prompt_générique.md`.
+
+**Constat à l'origine du ticket** (26/08/2026, vérifié dans le code) :
+
+1. [Code] `search_and_extract` (`source/backend/adapters/scraping/profile_search.py`)
+   repart systématiquement de la page 1 de la même URL de recherche et retient les
+   `max_profiles` **premières** cartes dans l'ordre du DOM. La pagination
+   (`go_to_next_page`) ne sert qu'à compléter le lot jusqu'à `max_profiles`, jamais à
+   aller au-delà de ce qui a déjà été vu.
+2. [Code] `export_profiles_to_csv` (`source/backend/adapters/storage/csv_export.py`)
+   ouvre le fichier en mode `"w"` : chaque run **écrase** le précédent. Il n'existe
+   aucune persistance, aucune déduplication, aucune notion de « profil déjà traité »
+   dans le code.
+3. [Inférence] Les deux défauts se composent : non seulement un second run ramène la même
+   tête de liste, mais l'écrasement du CSV empêche de le constater. Le classement de
+   recherche LinkedIn étant personnalisé et instable, le recouvrement réel est *partiel
+   et imprévisible* — plus difficile à diagnostiquer qu'une duplication franche.
+4. [Documentation] La cible client est de 50 profils/semaine ; le pipeline actuel plafonne
+   à 25 profils toujours identiques. L'écart n'est pas un réglage de volume
+   (`MAX_PROFILES`) mais un défaut de conception.
+
+**Périmètre pressenti** :
+- `source/backend/adapters/storage/` — magasin persistant des profils déjà extraits
+  (SQLite, annoncé dans la stack `CLAUDE.md` mais jamais introduit : `storage/` ne
+  contient à ce jour que l'export CSV).
+- `source/backend/adapters/scraping/profile_search.py` — passer d'une boucle « les N
+  premières cartes » à « les N cartes **inconnues** », en paginant tant que le quota de
+  nouveaux profils n'est pas atteint.
+- `source/backend/adapters/storage/csv_export.py` — l'export cesse d'être la source de
+  vérité pour devenir une vue exportée du magasin.
+
+**Clé de déduplication** : l'URL de profil, déjà normalisée par `clean_profile_url`
+(suppression des query params et du fragment) — clé naturelle stable.
+
+**Critères d'acceptation (à confirmer au cadrage)** :
+- [ ] Deux exécutions successives de la même requête booléenne produisent deux lots
+      **disjoints** de profils (aucune URL commune), tant que le gisement de la requête
+      n'est pas épuisé.
+- [ ] Quand le gisement est épuisé, le comportement est explicite (lot plus petit que
+      demandé, message clair) plutôt qu'une boucle infinie ou un lot silencieusement
+      incomplet.
+- [ ] Aucun profil déjà collecté n'est perdu par un nouveau run (fin de l'écrasement).
+- [ ] Logique de déduplication testable **sans navigateur ni réseau**.
+
+**Garde-fous RGPD — ce ticket solde une dette déjà inscrite au Backlog** :
+La section POC-004 engage deux garde-fous qui sont **aujourd'hui structurellement
+intenables** avec un CSV écrasé à chaque run, et que le magasin persistant rend
+réalisables pour la première fois :
+- **Conservation limitée** : champ `date_collecte` par profil, pour permettre une purge
+  future — impossible tant qu'aucune date n'est conservée d'un run à l'autre.
+- **Droit d'opposition** : pouvoir marquer un profil « à ne plus traiter » — inefficace
+  si le marquage est effacé au run suivant. Ce marquage doit en outre **exclure le profil
+  des collectes futures**, sans quoi il serait réextrait indéfiniment.
+- **Minimisation** : le magasin ne stocke que les champs déjà justifiés par les tickets
+  précédents ; ce ticket n'introduit aucune nouvelle catégorie de donnée personnelle.
+
+**Piste complémentaire à cadrer avec (ou après) ce ticket — diversification des requêtes** :
+La déduplication seule se heurte au plafond de la recherche LinkedIn pour un compte
+gratuit ([Inférence] ~100 résultats / 10 pages par requête, plus le quota mensuel
+« commercial use limit »). Elle donne quelques runs d'avance, pas un gisement infini.
+Varier les requêtes attaque le problème par l'autre bout, chaque requête ayant sa propre
+tête de liste :
+- **Filtre géographique réel** : [Code] `build_search_url` place aujourd'hui toute la
+  requête — y compris `AND (France)` — dans le seul paramètre `keywords`. Ce n'est donc
+  **pas** un filtre géographique mais une correspondance textuelle. Passer par les
+  facettes géographiques natives de LinkedIn serait à la fois plus précis et un axe de
+  variation (par ville/région).
+- **Vocabulaire outdoor non couvert** : les 5 mots-clés fournis par le client le
+  08/07/2026 (*coach nature*, *coach qui marche*, *coach outdoor*, *coach hors-les-murs*,
+  *coaching en itinérance*, voir section POC-003) n'apparaissent dans **aucune** requête
+  actuelle — gisement inexploité, et précisément la catégorie que POC-003 apprend à
+  reconnaître.
+- **Synonymes et certifications** : « coach de dirigeants », « coach exécutif », ICF,
+  RNCP, « business coach » (anglais).
+
+**Hors périmètre de ce ticket** (notés pour mémoire, non planifiés) :
+- Changer de porte d'entrée : profils « également consultés » (les pages profil sont déjà
+  visitées par POC-002), commentateurs de publications du domaine, groupes LinkedIn de
+  coachs. Meilleur rendement en pertinence, mais davantage de scraping par profil et
+  d'exposition ToS — à traiter comme un ticket distinct s'il devient nécessaire.
+- Exploiter le recouvrement comme signal de scoring (un profil ressortant sur plusieurs
+  requêtes indépendantes est [Inférence] plus central dans le domaine) : quasi gratuit une
+  fois le magasin en place, mais relève de POC-003, pas de ce ticket.
+
+**Décisions** :
+- 26/08/2026 — Ticket ouvert après un doute exprimé par l'utilisateur sur la pertinence de
+  la méthode de recherche (« deux exécutions de la même requête booléenne ramènent
+  probablement le même CSV »), vérifié et confirmé dans le code (voir constat ci-dessus).
+- 26/08/2026 — **Ordre retenu : déduplication persistante d'abord, diversification des
+  requêtes ensuite.** Sans mémoire des profils déjà vus, varier les requêtes ne ferait que
+  produire des doublons non détectés — la piste de diversification n'a de valeur qu'une
+  fois le magasin en place.
+- 26/08/2026 — **À enchaîner après POC-003, pas en parallèle** : les deux tickets modifient
+  `source/backend/adapters/storage/csv_export.py` (POC-003 y ajoute les colonnes de
+  scoring, POC-006 en change le rôle). Travail concurrent = conflit assuré.
+- 26/08/2026 — [Inférence] Ticket développable et testable **entièrement hors-ligne**
+  (logique de persistance et de déduplication pure), sans session LinkedIn ni risque de
+  restriction de compte. Seule la validation finale du renouvellement effectif du lot
+  demandera un run réel.
