@@ -839,3 +839,71 @@ comme l'ont été ceux de POC-001/002/005. Il n'est pas développable entièreme
 **Piste opportuniste** : profiter d'un run réel pour vérifier le sélecteur de la barre de
 pagination numérotée et journaliser la taille exacte du gisement par requête (voir la
 piste « Mesurer le plafond réel au lieu de l'estimer » en section POC-006).
+
+---
+
+## POC-009 — Raccordement de POC-002 et POC-004 au magasin (sans refaire le scraping)
+
+**Objectif** : Faire vivre dans le magasin les résultats de l'extraction d'email (POC-002) et
+de l'enrichissement web (POC-004), comme POC-006 l'a fait pour les profils — **sans que
+`run_poc002` refasse la recherche déjà effectuée par `run_poc001`**.
+
+**Constat (vérifié dans le code et en base le 26/08/2026, à la clôture de POC-006)** :
+
+1. [Code] POC-006 a câblé `run_poc001` (extraction) et `run_poc003` (scoring) au magasin,
+   parce que c'est ce que son périmètre couvrait. `run_poc002` et `run_poc004` sont restés
+   sur le schéma CSV → CSV d'avant.
+2. [Code] `run_poc002` appelle `search_and_extract` **puis** `enrich_profiles_with_email` :
+   il refait donc intégralement la recherche de `run_poc001` avant de visiter les pages
+   profil. Coût inutile en quota LinkedIn et en exposition ToS, pour un résultat que le
+   magasin détient déjà.
+3. [Code] `run_poc004` lit `profils_extraits_email.csv` et écrit
+   `profils_extraits_enrichis.csv` : le magasin n'est jamais touché.
+4. [Code] **En base au 26/08/2026 : 0 `email`, 0 `email_web`, 0 `site_web` sur 75 profils.**
+   Les colonnes existent depuis POC-002/POC-004 mais rien ne les alimente.
+
+**Le piège à ne pas contourner naïvement** : on pourrait croire qu'un simple
+`run_poc006 profils_extraits_enrichis.csv` suffirait à rapatrier l'existant. **Il ne faut
+pas le faire tel quel.** Ce fichier contient 5 `email_web` et 11 `site_web`, dont — d'après
+la relecture humaine déjà consignée en section POC-004 — **1 seul vrai positif confirmé**
+(Manuel BOSSU → `mycoachonline.fr`), 1 positif partiel (Sylvie WEILER → `memepascap.fr`,
+adresse de cabinet non personnelle) et **7 faux positifs confirmés** (`intercariforef.org`,
+`spotify.com`, `noomii.com`, `amazon.co.uk`, `journaldunet.com`, `je-change-de-metier.com`,
+`lafrenchcom.fr` avec son `urgent@` typique d'une agence). Les importer en l'état
+inscrirait des faux positifs dans le magasin **comme s'ils étaient des faits établis**.
+
+**La vraie question à trancher au cadrage** : le magasin ne sait pas distinguer
+« pas encore enrichi » de « enrichi, rien trouvé » de « candidat trouvé, non validé par un
+humain » — une colonne vide veut dire les trois. C'est exactement la même classe de problème
+que celle réglée par POC-006 pour les profils : **sans marqueur, chaque run refait le
+travail**, et sans statut, un candidat incertain devient une donnée de contact.
+
+Pistes à cadrer (aucune n'est décidée) :
+- un marqueur « déjà visité pour email » et « déjà enrichi », datés, pour ne traiter que le
+  reliquat à chaque run — [Inférence] c'est ce qui remplace la recherche supprimée de
+  `run_poc002` : la liste des profils à visiter vient du magasin, pas d'un nouveau scraping ;
+- un **statut de validation** sur les coordonnées trouvées (candidat / validé / rejeté),
+  pour que la relecture humaine — indispensable au vu du taux de pertinence de 1/25 mesuré
+  le 10/07/2026 — soit conservée au lieu d'être refaite ;
+- `run_poc004` devient conditionnel après le scoring (décision client du 13/07/2026) :
+  sa liste d'entrée est `selectionner_profils_interessants()` appliqué au magasin.
+
+**Attention — évolution de schéma** : ce ticket ajoute très probablement des colonnes au
+magasin. Règle CLAUDE.md n°5 : **pas de migration sans plan validé et backup explicite** du
+fichier `profils.db`, qui est local, gitignoré et sans sauvegarde.
+
+**Point d'hygiène à traiter au passage** :
+[Code] Depuis POC-006, `profils_extraits.csv` ne contient plus l'extraction brute que son nom
+suggère, mais une vue complète du magasin (75 lignes, 13 colonnes). Et deux scripts exportent
+deux vues du même magasin dans deux fichiers différents (`run_poc001` →
+`profils_extraits.csv`, `run_poc003` → `profils_extraits_scores.csv`), qui portent le même
+contenu une fois le scoring passé. Un seul fichier d'export suffirait, avec un nom qui dise
+ce qu'il est. Renommer relevait de l'hygiène, pas du périmètre de POC-006.
+
+**Décisions** :
+- 26/08/2026 — Ticket ouvert à la demande de l'utilisateur, à la clôture de POC-006, après
+  constat que le magasin restait vide de toute coordonnée. Contrainte posée par l'utilisateur
+  dès l'ouverture : **`run_poc002` ne doit pas refaire le scraping de `run_poc001`**.
+- 26/08/2026 — Le rapatriement de `profils_extraits_enrichis.csv` par `run_poc006` est
+  **explicitement déconseillé en l'état** (faux positifs, voir ci-dessus). Si l'existant doit
+  être récupéré, ce doit être après relecture, ou accompagné d'un statut de validation.
