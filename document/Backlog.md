@@ -266,6 +266,25 @@ Le CSV scoré sert de support à la reprise de contact (silence client depuis le
    technique puisque POC-002 visite déjà chaque page, mais hors périmètre d'extraction actuel).
 3. **Validation du seuil à 60** et des trois arbitrages de classement relevés ci-dessus.
 
+**Quatre questions ajoutées le 27/08/2026 par POC-007** (anomalies A → D de la section
+POC-007, relevées sur le lot frais ; décision utilisateur de **ne rien modifier avant retour
+client**, ces points ne sont donc pas des bugs ouverts mais des arbitrages métier en attente) :
+
+4. **`coach de vie` / `life coach` doit-il rester une exclusion ?** La règle n'a jamais été
+   observée positivement (0/75), et un cas réel montre qu'elle est fragile dans les deux sens :
+   « Certified Life & Business Coach » n'est **pas** exclu (score 85) parce que l'esperluette
+   sépare les deux mots. Le client veut-il exclure ce profil, ou le conserver ?
+5. **Un coach professionnel certifié ICF qui fait aussi du coaching scolaire est-il hors
+   cible ?** Le malus `scolaire` (−25) fait passer Marc Michaud et Stéphanie GOYON de 75 à 50,
+   donc sous le seuil, alors que leur ancrage business est explicite dans le titre.
+6. **Un profil qui n'exerce pas le coaching à titre principal compte-t-il ?** Au seuil de 60
+   entrent Christine Fabayre (retraitée, animatrice d'ateliers philo pour enfants, bénévole)
+   et Vincent LEROUX (directeur d'agence plomberie, coach en second métier).
+7. **Le pouvoir discriminant du score suffit-il au client ?** 48 % du lot frais est à
+   **75 pile** : le score trie bien le pertinent du non-pertinent, mais ne hiérarchise plus
+   à l'intérieur du pertinent. Faut-il un critère de départage supplémentaire, ou une simple
+   liste non ordonnée suffit-elle à son usage ?
+
 
 ---
 
@@ -791,28 +810,109 @@ aux **50 profils frais** extraits le 26/08/2026 par POC-006.
 d'être explicite de l'enchaînement POC-003 → POC-006. Le jeu de contrôle qui manquait
 existe désormais : 50 profils jamais vus, **déjà scorés** dans le magasin.
 
-**Périmètre pressenti** :
-- [Code] Le lot est **déjà scoré** — vérifié le 27/08/2026 dans `profils.db` : les 75
-  profils portent un score (0 à 85), 25 datés du 03/07/2026 et 50 du 26/08/2026. Ce
-  ticket est donc un ticket d'**analyse**, pas de production de lot. *(Une version
-  antérieure de cette section annonçait `score = ''` et « scorer le lot frais » comme
-  première étape ; le prompt POC-007 avait été corrigé au commit `0b02bf8`, pas le
-  Backlog.)*
-- Comparer la distribution des scores et des catégories entre le lot de juillet (25) et le
-  lot d'août (50) : une distribution nettement plus basse sur le lot frais signerait le
-  sur-apprentissage.
-- Relire à la main un échantillon de profils mal classés et décider, règle par règle, ce
-  qui relève du réglage de poids et ce qui relève d'une règle manquante.
-- Ajuster `config/scoring_rules.json` si nécessaire — le fichier est éditable et
-  `charger_regles`/`sauvegarder_regles` sont testés.
+### Résultats de l'analyse (27/08/2026) — revalidation concluante
 
-**Hors périmètre** : toute modification du magasin ou du scraping (POC-006 est clos) ;
-la diversification des requêtes (POC-008).
+**Aucune extraction, aucun re-scoring** : le lot était déjà scoré (vérifié dans `profils.db`,
+75 profils porteurs d'un score, 25 datés du 03/07/2026 et 50 du 26/08/2026). *(Une version
+antérieure de cette section annonçait `score = ''` et « scorer le lot frais » comme première
+étape ; le prompt POC-007 avait été corrigé au commit `0b02bf8`, pas le Backlog.)*
 
-**Point d'attention** : [Inférence] la catégorie `coach_outdoor` sera probablement encore
-absente du lot frais — la requête utilisée ne contient aucun mot-clé outdoor. Son absence
-ne devra donc pas être interprétée comme une validation de la règle, seulement comme une
-non-observation. C'est POC-008 qui la rendra observable.
+**[Code] Comparaison des deux distributions** — juillet = lot de calibration, août = lot frais :
+
+| | Juillet (n=25) | Août (n=50) |
+|---|---|---|
+| Exclus | 1 (4 %) | 2 (4 %) |
+| Conservés | 24 | 48 |
+| **Médiane des conservés** | **75** | **75** |
+| Moyenne | 70,2 | 67,1 |
+| Écart-type | 19,4 | 17,5 |
+| Q1 / Q2 / Q3 | 70 / 75 / 85 | 60 / 75 / 75 |
+| Min / Max | 10 / 85 | 20 / 85 |
+| ≥ seuil 60 | 21/25 (84 %) | 39/50 (78 %) |
+
+Distribution : juillet 85 ×9, 75 ×5, 70 ×5, 60 ×2, 45, 20, 10, 0 — août 85 ×7, **75 ×24**,
+70 ×3, 60 ×5, 50 ×2, 45 ×2, 35, 30, 20 ×3, 0 ×2.
+
+**Verdict : le sur-apprentissage n'est pas confirmé.** Médiane identique, taux d'exclusion
+identique, dispersion comparable, moyenne en baisse de 3 points seulement. Une distribution
+nettement plus basse sur le lot frais aurait signé le sur-apprentissage ; ce n'est pas ce
+qu'on observe. **La réserve n°1 de POC-003 est levée** : les 6 règles tiennent sur 50 profils
+qu'elles n'avaient jamais vus.
+
+**[Code] Défaut découvert à la place, invisible en juillet : la perte de pouvoir
+discriminant.** 24 profils sur 50 (48 % du lot frais) sont **exactement à 75**, et
+Q2 = Q3 = 75 : le classement ne classe presque plus. Cause mesurée dans les justifications
+stockées — taux de déclenchement par règle :
+
+| Règle | Juillet | Août |
+|---|---|---|
+| `base_coach` +20 | 96 % | 96 % |
+| `focus_business` +40 | 84 % | 82 % |
+| `certification` +15 | 64 % | 72 % |
+| `cible_business` +10 | **60 %** | **26 %** |
+| `hors_cible` −25 | 4 % | 4 % |
+| `exclusion_non_coach` | 4 % | 4 % |
+
+C'est `cible_business` (+10) qui séparait 85 de 75 en juillet ; il ne se déclenche plus que
+sur un quart du lot frais. Le lot d'août est un bloc homogène de « Coach professionnel
+certifié par Coaching Ways France Level 2 ICF » → 20 + 40 + 15 = 75 pile. [Inférence] Ce
+n'est pas un défaut de règle mais un effet de l'homogénéité de la requête : POC-008
+(diversification) devrait faire remonter la variance, et c'est un argument de plus en sa
+faveur.
+
+**[Code] Deux règles jamais observées positivement sur données réelles, pas une seule** :
+`coach_outdoor` → **0/75**, conforme à l'attendu (aucun mot-clé outdoor dans la requête) —
+**non-observation, pas validation** ; et `exclusion_hors_metier` (`coach de vie` /
+`life coach`) → **0/75** également. `developpement personnel` : 1/75 (Anne-Laure F., juillet).
+
+### Quatre anomalies relevées à la relecture humaine (27/08/2026)
+
+Trouvées sur profils réels nommés, **toutes laissées en l'état** (voir décision ci-dessous) :
+
+- **A — Le risque « titre mixte » de POC-003 est désormais observé, et la règle n'a pas
+  fonctionné.** [Code] Elise Rousseau, **score 85**, titre « Certified Life & Business
+  Coach | Author | PhD Researcher… ». Vérifié en exécutant `normaliser` : le titre donne
+  `certified life business coach`, où la sous-chaîne `life coach` **n'est pas présente** —
+  l'esperluette a écarté les deux mots. Elle échappe à `exclusion_hors_metier` par accident
+  d'ordre des mots, pas par décision. POC-003 avait documenté le risque inverse (« business
+  coach et life coach » exclu à tort) ; la règle est en fait fragile **dans les deux sens**.
+- **B — `mcc` capte `EMCC` : bonne réponse, mauvaise raison.** [Code] 4 profils d'août
+  (Angélique LAUMOND, Sylvie DUCHENE, Emmanuel Poilane, Yannick GRANGIS). L'EMCC est bien un
+  organisme d'accréditation, le +15 tombe donc sur les bons profils, mais par appariement de
+  sous-chaîne (`mcc` ⊂ `emcc`), pas parce que le mot-clé aurait été prévu. Pour Angélique
+  LAUMOND (35) c'est le **seul** déclencheur de `certification`. Le mot-clé `mcc` reste
+  justifié en soi : Denise Sin Blima est une vraie MCC ICF.
+- **C — Le malus `scolaire` (−25) sort deux coachs business avérés de la sélection.**
+  [Code] Marc Michaud, 50 (« Coach professionnel certifié par Coaching Ways France, accrédité
+  par ICF – Coach scolaire ») et Stéphanie GOYON, 50 (« Coach professionnel & scolaire
+  certifié »). Même schéma qu'Anne-Laure F. en juillet, mais ici sur des profils dont
+  l'ancrage business est explicite dans le titre.
+- **D — Le seuil de 60 laisse entrer deux profils discutables.** [Code] 5 profils pile à 60
+  en août (contre 2 en juillet), dont Christine Fabayre (« Retired From Industry – Animatrice
+  Atelier Philo pour Enfants – Bénévole Association SEVE – Ile de France Coach Professionnel »)
+  et Vincent LEROUX (« Directeur Agence Plomberie EQUANS… Coach professionnel »). Sensibilité
+  mesurée du seuil : 60 → 21/25 et 39/50 ; 65 ou 70 → 19/25 et 34/50 ; 75 → 14/25 et 31/50.
+
+### Décision (27/08/2026) — aucune règle modifiée avant retour client
+
+**Décision utilisateur : `config/scoring_rules.json` reste inchangé.** Motif : la revalidation
+est concluante, et ajuster des poids sur quatre profils repérés à l'œil rouvrirait exactement
+le sur-mesure sur petit échantillon que ce ticket vient de refermer. Les quatre anomalies
+A → D deviennent des **questions client**, ajoutées à la liste de reprise de contact de la
+section POC-003. Conséquences : zéro modification de code, zéro re-scoring, la suite de tests
+reste à 102 passants, et les 3 critères d'acceptation client de POC-003 sont intacts par
+construction (rien n'a bougé).
+
+**Aucun `plan_POC-007.md` n'a été produit** : le plan proposé n'a pas été exécuté, la décision
+ayant été de ne rien modifier. Les résultats ci-dessus tiennent lieu de livrable du ticket.
+
+**Hors périmètre, confirmé** : magasin et scraping (POC-006 clos), diversification des
+requêtes (POC-008).
+
+**[Code] Avertissement transmis à POC-008** : le mot-clé outdoor « coach qui marche » passerait
+par la sous-chaîne `marche`, déjà présente dans 3 titres du lot frais via « Analyste **Marché**
+en ophtalmologie » et « expert du **marché** allemand ». À traiter avant d'écrire les mots-clés
+de la requête outdoor.
 
 ---
 
@@ -836,6 +936,11 @@ requêtes.
   nature*, *coach qui marche*, *coach outdoor*, *coach hors-les-murs*, *coaching en
   itinérance*) n'apparaissent dans aucune requête actuelle. Une requête dédiée rendrait
   enfin observable la catégorie `coach_outdoor` de POC-003.
+  **[Code] Piège mesuré par POC-007 (27/08/2026)** : « coach qui marche » se réduit à la
+  sous-chaîne `marche` après normalisation, déjà présente dans **3 titres du lot frais** via
+  « Analyste **Marché** en ophtalmologie » et « expert du **marché** allemand ». Les mots-clés
+  outdoor doivent être écrits en tenant compte de cet appariement par sous-chaîne, sous peine
+  de faux positifs dès la première requête.
 
 **Contrainte forte, contrairement à POC-006** : ce ticket **exige des runs LinkedIn
 réels** — les sélecteurs des facettes de recherche doivent être vérifiés sur un DOM réel,

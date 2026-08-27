@@ -157,3 +157,74 @@ Format de chaque section :
 - **Renumérotation à signaler** : `plan_POC-006.md` désigne la diversification comme « POC-007 ». À la clôture, la revalidation a pris ce numéro et la diversification est devenue POC-008. Le plan n'a pas été récrit — c'est un document daté.
 - **Ticket ouvert juste après la clôture, à la demande de l'utilisateur : POC-009** — `run_poc002` et `run_poc004` n'ont pas été raccordés au magasin (hors périmètre POC-006), d'où **0 email / 0 email_web / 0 site_web sur les 75 profils en base**. Contrainte posée dès l'ouverture : `run_poc002` ne doit plus refaire la recherche de `run_poc001`. Piège identifié et consigné : rapatrier `profils_extraits_enrichis.csv` tel quel injecterait **7 faux positifs confirmés** dans le magasin comme s'ils étaient des faits.
 - **Toujours en attente, sans lien avec ce ticket** : branchement conditionnel de POC-004 après le scoring (décision client du 13/07/2026), menu configuration Streamlit (seuil + édition des règles), et reprise de contact client (silence depuis le 13/07/2026, trois questions ouvertes dans `Backlog.md` section POC-003).
+
+## 8. POC-007 — Revalidation des règles de scoring sur le lot frais (27/08/2026)
+
+- **Ticket d'analyse : aucun fichier de code, de configuration ou de test modifié.** Seule la
+  documentation a bougé. `git status` était propre au démarrage, la branche était `master`.
+- **Rien n'a été re-scoré et rien n'a été extrait** : le lot était déjà en base. Vérifié dans
+  `profils.db` avant toute analyse — 75 profils porteurs d'un score, 25 datés du 03/07/2026
+  (lot de calibration POC-001/POC-003) et 50 du 26/08/2026 (lot frais POC-006).
+- **Verdict : le sur-apprentissage n'est pas confirmé — la réserve n°1 de POC-003 est levée.**
+  Médiane des conservés **identique** (75 vs 75), taux d'exclusion identique (4 % vs 4 %),
+  écart-type comparable (19,4 vs 17,5), moyenne 70,2 → 67,1, profils au-dessus du seuil 60 :
+  84 % (21/25) contre 78 % (39/50). Les 6 règles tiennent sur 50 profils qu'elles n'avaient
+  jamais vus.
+- **Défaut découvert à la place, invisible sur le lot de calibration : la perte de pouvoir
+  discriminant.** 24 profils sur 50 (**48 % du lot frais**) sont à **75 pile**, et Q2 = Q3 = 75.
+  Cause mesurée en recomptant les règles déclenchées depuis la colonne `justification` du
+  magasin : `cible_business` (+10) passe de **60 % à 26 %** de déclenchement, alors que c'est
+  lui qui séparait 85 de 75 en juillet. Le lot d'août est un bloc homogène de « Coach
+  professionnel certifié par Coaching Ways France Level 2 ICF » → 20 + 40 + 15 = 75.
+  [Inférence] Effet de l'homogénéité de la requête, pas défaut de règle.
+- **Deux règles toujours jamais observées positivement sur données réelles, pas une seule** :
+  `coach_outdoor` **0/75** — conforme à l'attendu, à lire comme une **non-observation et non
+  une validation** — et `exclusion_hors_metier` (`coach de vie` / `life coach`) **0/75**
+  également, ce que POC-003 n'avait pas anticipé.
+- **Quatre anomalies relevées à la relecture, sur profils réels nommés** (détail complet dans
+  `document/Backlog.md`, section POC-007) :
+  - **A** — Elise Rousseau, **score 85**, « Certified Life & Business Coach » : **échappe** à
+    l'exclusion. Vérifié en exécutant `normaliser` — le titre donne `certified life business
+    coach`, la sous-chaîne `life coach` n'y est pas, l'esperluette a séparé les deux mots.
+    POC-003 avait documenté le risque inverse ; la règle est fragile **dans les deux sens**.
+  - **B** — `mcc` capte `EMCC` par sous-chaîne sur 4 profils d'août. Bonne réponse (l'EMCC est
+    un vrai organisme d'accréditation), mauvaise raison. Le mot-clé `mcc` reste justifié en
+    soi : Denise Sin Blima est une vraie MCC ICF.
+  - **C** — Le malus `scolaire` (−25) fait passer Marc Michaud et Stéphanie GOYON de 75 à 50,
+    donc **sous le seuil**, alors que leur ancrage business est explicite (ICF, « coach
+    professionnel »). Même schéma qu'Anne-Laure F. en juillet, mais sur des profils moins
+    ambigus.
+  - **D** — 5 profils pile à 60 en août contre 2 en juillet, dont Christine Fabayre (retraitée,
+    animatrice d'ateliers philo pour enfants, bénévole) et Vincent LEROUX (directeur d'agence
+    plomberie). Sensibilité du seuil mesurée : 60 → 21/25 et 39/50 ; 65 ou 70 → 19/25 et
+    34/50 ; 75 → 14/25 et 31/50.
+- **Décision utilisateur : ne rien modifier avant retour client.** `config/scoring_rules.json`
+  reste inchangé. Motif retenu — la revalidation est concluante, et ajuster des poids sur
+  quatre profils repérés à l'œil rouvrirait exactement le sur-mesure sur petit échantillon que
+  ce ticket venait de refermer. Les quatre anomalies sont donc devenues des **questions
+  client**, ajoutées en 4 à 7 de la liste de reprise de contact (`Backlog.md`, section POC-003),
+  aux côtés d'une cinquième question issue du constat de pouvoir discriminant.
+- **Aucun `plan_POC-007.md` produit** : le plan proposé n'a pas été exécuté, la décision étant
+  de ne rien modifier. Les résultats consignés dans `Backlog.md` tiennent lieu de livrable.
+- **Avertissement transmis à POC-008** : le mot-clé outdoor « coach qui marche » se réduit à la
+  sous-chaîne `marche` après normalisation, déjà présente dans **3 titres du lot frais** via
+  « Analyste **Marché** en ophtalmologie » et « expert du **marché** allemand ». À traiter avant
+  d'écrire les mots-clés de la requête outdoor, sous peine de faux positifs dès le premier run.
+- Fichiers modifiés : `document/Backlog.md`, `document/claude_code/task_list.md`,
+  `document/claude_code/handoff.md`, `CLAUDE.md`. **Aucun fichier de `source/`, `config/` ou
+  `tests/`.**
+- Tests lancés : `uv run --extra test pytest tests/ -q` → **102 passed, 0 failed** — inchangé
+  par rapport à POC-006, ce qui est le résultat attendu puisque aucun code n'a été touché.
+- **POC-007 → DONE.**
+- Lancement de l'app **non nécessaire** : aucun module modifié, `source/frontend_streamlit/`
+  n'existe toujours pas.
+- Prochain ticket : **POC-008** — Diversification des requêtes, **passé P2 → P1**. Il gagne un
+  troisième argument avec ce ticket : au-delà du gisement à ~1 run d'avance et de la catégorie
+  outdoor jamais observée, c'est l'homogénéité de la requête actuelle qui écrase le pouvoir
+  discriminant du scoring. Alternative si tu préfères rester hors-ligne : **POC-009**
+  (raccordement de POC-002/POC-004 au magasin), qui ne demande aucun run LinkedIn alors que
+  POC-008 en **exige** — les sélecteurs de facettes doivent être vérifiés sur un DOM réel.
+- **Toujours en attente, inchangé** : branchement conditionnel de POC-004 après le scoring
+  (décision client du 13/07/2026), menu configuration Streamlit (seuil + édition des règles),
+  et la reprise de contact client — dont la liste de questions compte désormais **7 entrées**
+  au lieu de 3.

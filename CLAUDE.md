@@ -35,8 +35,8 @@ document/
 ## État actuel
 
 - Branche active : `master` (base `master`)
-- **Dernière session** : POC-006 — renouvellement du gisement de profils (26/08/2026)
-- **Prochain ticket actif** : POC-007 — revalidation des règles de scoring sur le lot frais
+- **Dernière session** : POC-007 — revalidation des règles de scoring sur le lot frais (27/08/2026)
+- **Prochain ticket actif** : POC-008 — diversification des requêtes (vocabulaire outdoor + filtre géographique)
 
 Ces deux lignes sont les **seules** informations volatiles de ce fichier : elles se mettent à
 jour en fin de session (voir « Obligation de fin de session »). Tout le reste — statuts,
