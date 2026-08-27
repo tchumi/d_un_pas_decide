@@ -789,10 +789,15 @@ aux **50 profils frais** extraits le 26/08/2026 par POC-006.
 
 **Pourquoi maintenant** : [Documentation] C'est la réserve n°1 de POC-003, et la raison
 d'être explicite de l'enchaînement POC-003 → POC-006. Le jeu de contrôle qui manquait
-existe désormais : 50 profils jamais vus, `score = ''` dans le magasin.
+existe désormais : 50 profils jamais vus, **déjà scorés** dans le magasin.
 
 **Périmètre pressenti** :
-- Scorer le lot frais (`run_poc003` suffit : il score tout le magasin).
+- [Code] Le lot est **déjà scoré** — vérifié le 27/08/2026 dans `profils.db` : les 75
+  profils portent un score (0 à 85), 25 datés du 03/07/2026 et 50 du 26/08/2026. Ce
+  ticket est donc un ticket d'**analyse**, pas de production de lot. *(Une version
+  antérieure de cette section annonçait `score = ''` et « scorer le lot frais » comme
+  première étape ; le prompt POC-007 avait été corrigé au commit `0b02bf8`, pas le
+  Backlog.)*
 - Comparer la distribution des scores et des catégories entre le lot de juillet (25) et le
   lot d'août (50) : une distribution nettement plus basse sur le lot frais signerait le
   sur-apprentissage.
