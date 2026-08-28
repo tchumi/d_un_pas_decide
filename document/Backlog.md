@@ -1017,3 +1017,103 @@ ce qu'il est. Renommer relevait de l'hygiène, pas du périmètre de POC-006.
 - 26/08/2026 — Le rapatriement de `profils_extraits_enrichis.csv` par `run_poc006` est
   **explicitement déconseillé en l'état** (faux positifs, voir ci-dessus). Si l'existant doit
   être récupéré, ce doit être après relecture, ou accompagné d'un statut de validation.
+
+---
+
+## POC-010 — Collecte, scoring et extraction d'email en une seule session LinkedIn
+
+**Objectif** : Faire de `run_poc001` un run complet — collecte des cartes de résultats,
+scoring en mémoire, puis visite des pages profil **des seuls profils intéressants** — au
+lieu d'une collecte nue suivie d'une seconde session qui refait la même recherche. Une
+session LinkedIn, une seule passe, aucune recherche refaite.
+
+**Origine** : ticket ouvert le 28/08/2026 à la demande de l'utilisateur, pendant le cadrage
+de POC-009, sur la question « il faudrait une version enrichie de `run_poc001` qui en
+profite pour récupérer l'email ». La proposition brute a été instruite puis **amendée** :
+voir la décision du 28/08/2026 ci-dessous.
+
+**Constat (vérifié dans le code le 28/08/2026)** :
+
+1. [Code] `run_poc001.main()` enchaîne `ouvrir_magasin` → `urls_connues` →
+   `search_and_extract` → `enregistrer_profils` → `lister_profils` →
+   `export_profiles_to_csv`. **Aucune visite de page profil, aucun email** :
+   `extract_profile_from_card` renvoie exactement `nom`, `titre`, `localisation`, `url`.
+2. [Code] `scorer_titre(titre, regles)` ne lit **que le `titre`**, champ disponible dès la
+   carte de résultat. **Le score est donc calculable pendant le run de collecte, sans
+   visiter une seule page profil.** C'est le fait qui rend ce ticket possible et qui n'avait
+   jamais été explicité.
+3. [Code] `enrich_profiles_with_email(page, profils)` ne lit que `profil["url"]` et renvoie
+   les mêmes dicts + une clé `email` : elle est indifférente à la provenance de la liste.
+4. [Code] `_CHAMPS_COMPLETABLES` (`profile_store.py`) contient déjà `email`, `email_web` et
+   `site_web` : **`enregistrer_profils` sait déjà écrire l'email**. Aucune migration de
+   schéma n'est requise par ce ticket au titre de l'email.
+
+**Design retenu au cadrage** :
+
+```
+search_and_extract (pagination complète, aucune visite de page profil)
+  → scorer_profils en mémoire              ← ne demande que le titre, déjà présent
+  → selectionner_profils_interessants
+  → enrich_profiles_with_email SUR CETTE SÉLECTION SEULEMENT
+  → enregistrer_profils (profils, scores, emails trouvés)
+  → export
+```
+
+Pas d'entrelacement risqué : la pagination est entièrement terminée avant la première
+visite de page profil.
+
+**Ce que ce ticket ne remplace pas** : [Code] les profils déjà en base sont dans
+`urls_connues`, donc `run_poc001` ne les reverra **jamais**. Ce ticket ne fait rien pour le
+stock existant. La passe de rattrapage alimentée par le magasin (`run_poc002` version
+POC-009) reste nécessaire, et reste le seul chemin pour un profil dont le statut change
+après coup — passé sous ou au-dessus du seuil par un ajustement de règles ou par POC-008.
+
+**Points à trancher au cadrage (aucun n'est décidé)** :
+- **couplage collecte ↔ règles de scoring** : le run de collecte se met à dépendre de
+  `config/scoring_rules.json` — changer une règle change ce qui est visité. Acceptable en
+  l'état, ou faut-il un garde-fou (seuil de visite distinct du seuil « intéressant »,
+  plafond de visites par run, mode « collecte seule ») ?
+- **profils non visités** : ils entrent en base avec `email` vide et sans marqueur de
+  visite, ce qui est exact. Vérifier que le reliquat de `run_poc002` les reprend bien et ne
+  les considère pas comme traités.
+- **un script ou deux** : enrichir `run_poc001` en place, ou livrer un `run_poc010` distinct
+  en laissant `run_poc001` intact comme collecte nue ? Pour deux scripts : garder une
+  collecte bon marché et sans risque. Pour un seul : deux scripts qui paginent la même
+  requête, c'est exactement le doublon que POC-009 supprime.
+
+**Contrainte forte, comme POC-008 et contrairement à POC-009** : ce ticket **exige un run
+LinkedIn réel** — seule une session réelle montre que la pagination se termine proprement
+avant les visites et qu'aucune restriction de compte n'apparaît. Premier run plafonné à
+5 profils, sélection montrée avant visite. Chaque profil collecté entre définitivement dans
+`urls_connues` : un run de test consomme du gisement pour de bon.
+
+**Ordre des tickets — trois tickets convergent sur `run_poc001.py` et `profile_search.py`** :
+[Code] POC-008 (plusieurs requêtes, facettes géographiques natives dans `build_search_url`)
+et POC-010. Ordre recommandé : **POC-009 → POC-008 → POC-010**.
+- POC-009 d'abord : il supprime la recherche de `run_poc002`, et donc la duplication de la
+  constante `SEARCH_QUERY`, aujourd'hui présente à l'identique dans `run_poc001.py` **et**
+  `run_poc002.py` — après quoi POC-008 n'a plus qu'un seul endroit à modifier ;
+- POC-008 ensuite : P1, gisement mesuré à ~1 run restant, et c'est lui qui produira les
+  profils frais sur lesquels POC-010 a un intérêt ;
+- POC-010 en dernier, en vérifiant au démarrage l'état **réel** de `run_poc001.main()` : si
+  POC-008 est passé, la fonction boucle probablement sur plusieurs requêtes et le point
+  d'insertion du scoring et de la visite n'est plus celui décrit ci-dessus.
+
+**Décisions** :
+- 28/08/2026 — Ticket ouvert à la demande de l'utilisateur pendant le cadrage de POC-009.
+- 28/08/2026 — **La fusion naïve (visiter la page profil de tous les profils collectés) est
+  écartée**, pour trois raisons instruites au cadrage : (1) [Documentation, POC-002] la
+  visite d'une page profil « ajoute une requête par profil au-dessus de la recherche, ce qui
+  élève le risque de restriction du compte » — fusionner sans filtre rendrait
+  **systématique** l'étape la plus risquée du pipeline ; (2) [Documentation, POC-004] le run
+  réel de POC-002 a donné **0 email public sur 30 profils** — payer 25 visites par run pour
+  une espérance de 0 email est le pire ratio risque/rendement de la chaîne ; (3)
+  [Documentation, décision client du 13/07/2026] les coordonnées ne sont cherchées que pour
+  les profils intéressants, or dans une fusion naïve **le score n'existe pas encore au
+  moment de la visite** — la décision client serait contournée par construction. La variante
+  retenue est le scoring en session décrit ci-dessus, rendu possible par le constat n°2.
+- 28/08/2026 — **Ce ticket ne rend pas POC-009 caduc** : la passe de rattrapage reste
+  nécessaire pour le stock des 75 profils déjà en base et pour tout profil dont le statut
+  change après coup.
+- 28/08/2026 — Prompt de cadrage préparé dans
+  `document/prompts_plans/prompt_POC-010.md`.
