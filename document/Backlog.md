@@ -1117,3 +1117,66 @@ et POC-010. Ordre recommandé : **POC-009 → POC-008 → POC-010**.
   change après coup.
 - 28/08/2026 — Prompt de cadrage préparé dans
   `document/prompts_plans/prompt_POC-010.md`.
+
+---
+
+## POC-011 — Liste noire de domaines éditable sans toucher au code
+
+**Objectif** : Sortir `BLACKLISTED_DOMAINS` du code Python pour la placer dans un fichier de
+configuration éditable, comme `config/scoring_rules.json` l'a fait pour les règles de scoring.
+
+**Origine** : ticket ouvert le 28/08/2026 à la demande de l'utilisateur, pendant le
+rapatriement C2 de POC-009, après constat d'une asymétrie de traitement entre deux corpus de
+connaissance métier de même nature.
+
+**Constat (vérifié dans le code le 28/08/2026)** :
+
+1. [Code] `BLACKLISTED_DOMAINS` est un `frozenset` Python de **18 domaines** dans
+   `source/backend/adapters/enrichment/email_site_extractor.py` : 14 posés au cadrage de
+   POC-004 (réseaux sociaux, annuaires, encyclopédies) et 4 ajoutés le 10/07/2026 après le run
+   réel (`noomii.com`, `journaldunet.com`, `spotify.com`, `amazon.co.uk`), chacun pour un faux
+   positif nommé.
+2. [Code] `is_domain_blacklisted` retire le `www.` puis compare en domaine exact **ou
+   sous-domaine** — c'est ce qui fait que `viadeo.journaldunet.com` et `creators.spotify.com`
+   sont bloqués.
+3. [Code] **Asymétrie** : les règles de scoring vivent dans `config/scoring_rules.json`,
+   éditables par l'utilisateur sans toucher au code, avec `charger_regles`/`sauvegarder_regles`
+   et un aller-retour testé. La liste noire, de même nature — de la connaissance métier qui
+   s'affine à chaque run réel — exige une modification de source, un commit et un test.
+4. [Code, mesuré le 28/08/2026] Sur les 11 candidats du run POC-004 de juillet, **5 sont
+   aujourd'hui bloqués** par la liste noire (les 4 domaines ajoutés en juillet, `journaldunet`
+   comptant pour 2 profils) et **4 passeraient encore** : `intercariforef.org`,
+   `je-change-de-metier.com`, `villepratique.fr`, `lafrenchcom.fr`. Aucun de ces 4 n'est un
+   annuaire ni une plateforme — rien dans la logique actuelle ne peut les écarter.
+
+**Question de fond, à instruire au cadrage** : le rejet d'un candidat existe aujourd'hui à
+**deux granularités qui ne se recouvrent pas**, et POC-009 l'a mis en évidence :
+- **par domaine** (liste noire) : protège tous les profils, pour toujours, sans effet de bord ;
+- **par profil** (`statut_coordonnees = rejete`, POC-009) : [Code] `_STATUTS_HUMAINS` gèle le
+  profil — il ne recevra plus jamais de coordonnées d'un run, même légitimes.
+
+Marquer `rejete` un profil dont le seul tort est d'avoir capté un mauvais domaine l'exclut donc
+définitivement de l'enrichissement, alors que la bonne réponse est d'écarter le domaine. Le
+ticket doit dire quel mécanisme répond à quel cas, et éventuellement offrir un troisième
+niveau (rejeter une **coordonnée** sans geler le profil).
+
+**Périmètre pressenti (à confirmer au cadrage)** :
+- `source/backend/adapters/enrichment/email_site_extractor.py` — chargement depuis la config ;
+- `config/` — nouveau fichier, ou section d'un fichier existant ;
+- tests unitaires — chargement, valeurs par défaut, aller-retour d'édition, sous-domaines.
+
+**Hors périmètre** : le scoring et ses règles ; l'activation du Palier 1 (LLM) de POC-004 ; la
+modification du pipeline d'enrichissement lui-même.
+
+**Lien avec le menu configuration** : POC-003 a déjà identifié un besoin de menu de
+configuration Streamlit (seuil « profil intéressant » + édition des règles de scoring), non
+planifié car `source/frontend_streamlit/` n'existe pas. La liste noire est un troisième
+candidat naturel pour ce menu. [Inférence] Regrouper les trois dans un même ticket d'UI serait
+plus cohérent que trois écrans séparés — à arbitrer quand l'UI sera cadrée.
+
+**Décisions** :
+- 28/08/2026 — Ticket ouvert à la demande de l'utilisateur, pendant POC-009, après mesure de
+  l'effet réel de la liste noire sur les 11 candidats de juillet (5 bloqués, 4 passants).
+- 28/08/2026 — Aucune modification de la liste noire n'a été faite dans POC-009 :
+  `email_site_extractor.py` était hors de son périmètre. Les 4 domaines qui passent encore
+  restent donc actifs en attendant ce ticket.
