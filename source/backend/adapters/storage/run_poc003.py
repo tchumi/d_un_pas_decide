@@ -19,9 +19,8 @@ Run standalone (never via `streamlit run`, see CLAUDE.md rule 6).
 """
 
 import sqlite3
-from pathlib import Path
 
-from source.backend.adapters.storage.csv_export import export_profiles_to_csv
+from source.backend.adapters.storage.csv_export import EXPORT_CSV, export_profiles_to_csv
 from source.backend.adapters.storage.profile_store import (
     DEFAULT_DB_PATH,
     lister_profils,
@@ -34,9 +33,6 @@ from source.backend.core.profile_scoring import (
     scorer_profils,
     selectionner_profils_interessants,
 )
-
-OUTPUT_CSV = Path("./profils_extraits_scores.csv")
-
 
 def main() -> None:
     regles = charger_regles()
@@ -65,7 +61,7 @@ def _scorer_et_exporter(conn: sqlite3.Connection, regles: ReglesScoring) -> None
     scores.sort(key=lambda p: int(p["score"]), reverse=True)
 
     mettre_a_jour_scoring(conn, scores)
-    export_profiles_to_csv(scores, OUTPUT_CSV)
+    export_profiles_to_csv(scores, EXPORT_CSV)
 
     exclus = [p for p in scores if p["categorie"] == regles.categorie_exclusion]
     interessants = selectionner_profils_interessants(scores, regles=regles)
@@ -75,7 +71,7 @@ def _scorer_et_exporter(conn: sqlite3.Connection, regles: ReglesScoring) -> None
         f"(score >= {regles.seuil_profil_interessant}) — candidats a "
         f"l'enrichissement web conditionnel de POC-004"
     )
-    print(f"Export ecrit dans {OUTPUT_CSV}")
+    print(f"Export ecrit dans {EXPORT_CSV}")
 
 
 if __name__ == "__main__":

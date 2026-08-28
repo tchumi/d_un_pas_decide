@@ -1,10 +1,24 @@
 """POC-004 entry script: web enrichment pipeline (deterministic, no LLM).
 
-For each profile already extracted (input CSV from POC-001/POC-002), search
-the web via the Brave Search API for an alternative contact, filter out
-irrelevant domains, then visit the remaining candidate page via a simple HTTP
-request and extract an email/site with regex. See document/Backlog.md
-POC-004 for the full pipeline description and RGPD safeguards.
+For each profile worth the cost, search the web via the Brave Search API for
+an alternative contact, filter out irrelevant domains, then visit the
+remaining candidate page via a simple HTTP request and extract an email/site
+with regex. See document/Backlog.md POC-004 for the full pipeline description
+and RGPD safeguards.
+
+POC-009: input and output are the store, no longer two CSV files. Two rules
+the CSV could not carry:
+
+- the enrichment is conditional on the scoring (client decision, 13/07/2026),
+  so the input is selectionner_profils_interessants applied to the store;
+- what the pipeline finds is stored as a *candidate*, never as a fact. The
+  measured relevance rate is 1 confirmed true positive out of 25 (10/07/2026),
+  so only a human review turns a candidate into valide or rejete - and a later
+  run never downgrades that ruling.
+
+date_enrichissement_web is stamped even when nothing is found, so a profile
+already processed leaves the backlog instead of costing a Brave Search call at
+every run.
 
 Usage:
     python -m source.backend.adapters.enrichment.run_poc004
@@ -13,9 +27,6 @@ Run standalone (never via `streamlit run`, see CLAUDE.md rule 6). No browser
 involved here: candidate pages are fetched via plain HTTP requests, not
 Playwright.
 """
-
-import csv
-from pathlib import Path
 
 import requests
 
@@ -29,22 +40,24 @@ from source.backend.adapters.enrichment.web_search import (
     get_brave_api_key,
     search_candidate_urls,
 )
-from source.backend.adapters.storage.csv_export import export_profiles_to_csv
+from source.backend.adapters.storage.csv_export import EXPORT_CSV, export_profiles_to_csv
+from source.backend.adapters.storage.profile_store import (
+    DEFAULT_DB_PATH,
+    RapportCoordonnees,
+    enregistrer_coordonnees_web,
+    lister_profils,
+    ouvrir_magasin,
+    profils_a_enrichir,
+)
+from source.backend.core.profile_scoring import (
+    charger_regles,
+    selectionner_profils_interessants,
+)
 
-INPUT_CSV = Path("./profils_extraits_email.csv")
-OUTPUT_CSV = Path("./profils_extraits_enrichis.csv")
-
-# Raised to 25 (user decision, 10/07/2026) after the first 5-profile batch
-# confirmed the pipeline mechanism works end-to-end (bug found and fixed on
-# Brave's 50-word query limit) but showed 0/5 relevant candidates on that
-# small sample - a larger batch is needed to judge the real relevance rate.
-MAX_PROFILES = 25
-
-
-def load_profiles(csv_path: Path) -> list[dict[str, str]]:
-    """Read profiles from a CSV file produced by an earlier ticket."""
-    with open(csv_path, newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
+# Kept at 5 for the first run on the store (POC-009): 60 of the 75 stored
+# profiles are above the threshold, so an unbounded run would be 60 Brave
+# Search calls. Raise it only once a run has been reviewed.
+MAX_PROFILES = 5
 
 
 def fetch_candidate_html(url: str) -> str:
@@ -84,12 +97,60 @@ def enrich_profile(profile: dict[str, str], api_key: str) -> dict[str, str]:
 
 
 def main() -> None:
-    api_key = get_brave_api_key()
-    profiles = load_profiles(INPUT_CSV)[:MAX_PROFILES]
-    enriched = [enrich_profile(profile, api_key) for profile in profiles]
+    regles = charger_regles()
+    conn = ouvrir_magasin(DEFAULT_DB_PATH)
+    try:
+        interessants = selectionner_profils_interessants(lister_profils(conn), regles=regles)
+        reliquat = profils_a_enrichir(interessants)
+        print(
+            f"{len(interessants)} profils interessants "
+            f"(score >= {regles.seuil_profil_interessant}), "
+            f"dont {len(reliquat)} jamais enrichis"
+        )
+        if not reliquat:
+            print("Rien a traiter : tous les profils interessants ont deja ete enrichis.")
+            return
 
-    export_profiles_to_csv(enriched, OUTPUT_CSV)
-    print(f"{len(enriched)} profils enrichis -> {OUTPUT_CSV.resolve()}")
+        lot = reliquat[:MAX_PROFILES]
+        print(
+            f"Lot traite : {len(lot)} profils, soit autant d'appels Brave Search "
+            f"(plafond MAX_PROFILES={MAX_PROFILES})"
+        )
+        for profil in lot:
+            print(f"  - {profil['nom']} — {profil['url']}")
+
+        api_key = get_brave_api_key()
+        enrichis = [enrich_profile(profil, api_key) for profil in lot]
+
+        rapport = enregistrer_coordonnees_web(conn, enrichis)
+        _afficher_rapport(rapport)
+
+        profils_magasin = lister_profils(conn)
+        export_profiles_to_csv(profils_magasin, EXPORT_CSV)
+        print(f"{len(profils_magasin)} profils exportes -> {EXPORT_CSV.resolve()}")
+    finally:
+        conn.close()
+
+
+def _afficher_rapport(rapport: RapportCoordonnees) -> None:
+    """Print what the run wrote, contradictions and frozen rulings included.
+
+    A stored value replaced by a fresh one is never silent (AGENTS.md).
+    """
+    print(
+        f"{len(rapport.profils_traites)} profils marques comme enrichis, "
+        f"{len(rapport.coordonnees_trouvees)} candidat(s) trouve(s) — "
+        f"a relire avant tout contact, aucun n'est un fait etabli"
+    )
+    for url, colonne, ancienne, nouvelle in rapport.valeurs_remplacees:
+        print(f"  ATTENTION valeur remplacee — {url} : {colonne} '{ancienne}' -> '{nouvelle}'")
+    if rapport.figes_par_statut:
+        print(
+            f"  {len(rapport.figes_par_statut)} profil(s) deja tranche(s) par un humain, "
+            f"coordonnees inchangees"
+        )
+    if rapport.urls_inconnues:
+        print(f"  {len(rapport.urls_inconnues)} URL(s) absente(s) du magasin, ignoree(s)")
 
 
 if __name__ == "__main__":

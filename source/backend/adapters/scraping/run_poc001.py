@@ -23,7 +23,7 @@ from source.backend.adapters.scraping.profile_search import (
     message_arret,
     search_and_extract,
 )
-from source.backend.adapters.storage.csv_export import export_profiles_to_csv
+from source.backend.adapters.storage.csv_export import EXPORT_CSV, export_profiles_to_csv
 from source.backend.adapters.storage.profile_store import (
     DEFAULT_DB_PATH,
     enregistrer_profils,
@@ -43,7 +43,6 @@ SEARCH_QUERY = (
 MAX_PROFILES = 25
 
 PROFILE_DIR = Path("./browser_profile")
-OUTPUT_CSV = Path("./profils_extraits.csv")
 
 
 def main() -> None:
@@ -63,8 +62,8 @@ def main() -> None:
         # The CSV is now a view of the whole store, not just of this run:
         # nothing collected earlier is lost by rewriting it.
         profils_magasin = lister_profils(conn)
-        export_profiles_to_csv(profils_magasin, OUTPUT_CSV)
-        print(f"{len(profils_magasin)} profils exportes -> {OUTPUT_CSV.resolve()}")
+        export_profiles_to_csv(profils_magasin, EXPORT_CSV)
+        print(f"{len(profils_magasin)} profils exportes -> {EXPORT_CSV.resolve()}")
     finally:
         conn.close()
 

@@ -20,6 +20,11 @@ from pathlib import Path
 # store (the CSV is now a view of it) and carry the two RGPD guardrails,
 # limited retention and right to object. Both are visible to the client
 # (user decision, 26/08/2026) so an objection can be expressed in the CSV.
+# date_visite_email/date_enrichissement_web/statut_coordonnees added in
+# POC-009: the two dates tell "attempted, nothing found" apart from "not
+# attempted yet", and statut_coordonnees carries the human ruling on the web
+# contact details. The status is exported because that is how the review comes
+# back into the store, exactly like commentaire_client.
 PROFILE_CSV_FIELDS = [
     "nom",
     "url",
@@ -34,7 +39,18 @@ PROFILE_CSV_FIELDS = [
     "commentaire_client",
     "date_collecte",
     "ne_plus_traiter",
+    "date_visite_email",
+    "date_enrichissement_web",
+    "statut_coordonnees",
 ]
+
+# Single export file shared by every run script (POC-009, user decision of
+# 28/08/2026). Before it, run_poc001 wrote profils_extraits.csv and run_poc003
+# profils_extraits_scores.csv - two names for two views of the same store,
+# carrying identical content once the scoring had run, and the first no longer
+# holding the raw extraction its name suggested. The older files are left on
+# disk untouched (CLAUDE.md rule 3), they simply stop being written.
+EXPORT_CSV = Path("./profils_magasin.csv")
 
 
 def export_profiles_to_csv(profiles: list[dict[str, str]], output_path: Path) -> None:

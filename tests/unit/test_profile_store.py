@@ -1,4 +1,5 @@
 import csv
+import sqlite3
 
 import pytest
 
@@ -8,12 +9,21 @@ from source.backend.adapters.storage.csv_export import (
 )
 from source.backend.adapters.storage.profile_store import (
     PROFILE_COLUMNS,
+    SCHEMA_VERSION,
+    STATUT_CANDIDAT,
+    STATUT_REJETE,
+    STATUT_VALIDE,
+    enregistrer_coordonnees_web,
+    enregistrer_email_linkedin,
     enregistrer_profils,
     importer_commentaires_csv,
     lister_profils,
     marquer_ne_plus_traiter,
     mettre_a_jour_scoring,
+    migrer_schema,
     ouvrir_magasin,
+    profils_a_enrichir,
+    profils_a_visiter,
     urls_connues,
 )
 from source.backend.core.profile_scoring import charger_regles, scorer_profils
@@ -281,3 +291,290 @@ def test_aller_retour_complet_du_retour_client(conn, tmp_path):
     assert final[URL_MARIE]["commentaire_client"] == "exactement le profil recherche"
     assert final[URL_JEAN]["commentaire_client"] == ""
     assert final[URL_MARIE]["score"] != ""
+
+
+# --- POC-009 : migration de schema, marqueurs de reliquat, statut de validation ---
+
+# The store exactly as POC-006 left it: 13 columns, PRAGMA user_version = 1.
+# Written out in full on purpose - a migration test that builds its "before"
+# state from the current code tests nothing.
+_SCHEMA_V1 = """
+CREATE TABLE profils (
+    url                TEXT PRIMARY KEY,
+    nom                TEXT NOT NULL DEFAULT '',
+    localisation       TEXT NOT NULL DEFAULT '',
+    titre              TEXT NOT NULL DEFAULT '',
+    email              TEXT NOT NULL DEFAULT '',
+    email_web          TEXT NOT NULL DEFAULT '',
+    site_web           TEXT NOT NULL DEFAULT '',
+    categorie          TEXT NOT NULL DEFAULT '',
+    score              TEXT NOT NULL DEFAULT '',
+    justification      TEXT NOT NULL DEFAULT '',
+    commentaire_client TEXT NOT NULL DEFAULT '',
+    date_collecte      TEXT NOT NULL,
+    ne_plus_traiter    INTEGER NOT NULL DEFAULT 0
+);
+"""
+
+
+def creer_magasin_v1(chemin):
+    """Build a pre-POC-009 store holding one fully filled profile."""
+    connexion = sqlite3.connect(chemin)
+    connexion.executescript(_SCHEMA_V1)
+    connexion.execute("PRAGMA user_version = 1")
+    connexion.execute(
+        "INSERT INTO profils (url, nom, titre, score, commentaire_client, date_collecte) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (URL_MARIE, "Marie Dupont", "Coach business", "75", "retour client", "2026-07-03"),
+    )
+    connexion.commit()
+    connexion.close()
+    return chemin
+
+
+def test_migration_ajoute_les_colonnes_poc009_a_un_magasin_v1(tmp_path):
+    chemin = creer_magasin_v1(tmp_path / "profils.db")
+
+    connexion = ouvrir_magasin(chemin)
+    try:
+        colonnes = {row["name"] for row in connexion.execute("PRAGMA table_info(profils)")}
+        assert {
+            "date_visite_email",
+            "date_enrichissement_web",
+            "statut_coordonnees",
+        } <= colonnes
+        assert connexion.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
+    finally:
+        connexion.close()
+
+
+def test_migration_ne_touche_a_aucune_donnee_existante(tmp_path):
+    chemin = creer_magasin_v1(tmp_path / "profils.db")
+
+    connexion = ouvrir_magasin(chemin)
+    try:
+        stocke = lister_profils(connexion)[0]
+    finally:
+        connexion.close()
+
+    assert stocke["nom"] == "Marie Dupont"
+    assert stocke["score"] == "75"
+    assert stocke["commentaire_client"] == "retour client"
+    assert stocke["date_collecte"] == "2026-07-03"
+    # On the rows already there, "empty" reads as "never attempted" - which is
+    # exactly true, and is the whole point of the new columns.
+    assert stocke["date_visite_email"] == ""
+    assert stocke["date_enrichissement_web"] == ""
+    assert stocke["statut_coordonnees"] == ""
+
+
+def test_migration_signale_les_colonnes_ajoutees_puis_est_idempotente(tmp_path):
+    chemin = creer_magasin_v1(tmp_path / "profils.db")
+    connexion = sqlite3.connect(chemin)
+    connexion.row_factory = sqlite3.Row
+
+    try:
+        assert migrer_schema(connexion) == [
+            "date_visite_email",
+            "date_enrichissement_web",
+            "statut_coordonnees",
+        ]
+        # Re-running must be a no-op, not a duplicate-column error.
+        assert migrer_schema(connexion) == []
+    finally:
+        connexion.close()
+
+
+def test_magasin_neuf_est_deja_en_derniere_version(conn):
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
+    assert migrer_schema(conn) == []
+
+
+def test_visite_sans_email_marque_quand_meme_le_profil(conn):
+    enregistrer_profils(conn, [profil()])
+
+    rapport = enregistrer_email_linkedin(
+        conn, [{"url": URL_MARIE, "email": ""}], date_visite="2026-08-28"
+    )
+
+    stocke = lister_profils(conn)[0]
+    assert stocke["email"] == ""
+    assert stocke["date_visite_email"] == "2026-08-28"
+    assert rapport.profils_traites == [URL_MARIE]
+    assert rapport.coordonnees_trouvees == []
+    # Marking a fruitless visit is what makes the backlog shrink: before
+    # POC-009 an empty email meant "not visited" and "no public email" alike.
+    assert profils_a_visiter(lister_profils(conn)) == []
+
+
+def test_visite_avec_email_ecrit_l_email_sans_statut_de_validation(conn):
+    enregistrer_profils(conn, [profil()])
+
+    enregistrer_email_linkedin(
+        conn, [{"url": URL_MARIE, "email": "marie@example.com"}], date_visite="2026-08-28"
+    )
+
+    stocke = lister_profils(conn)[0]
+    assert stocke["email"] == "marie@example.com"
+    assert stocke["date_visite_email"] == "2026-08-28"
+    # The person published that address on their own profile: it is a fact,
+    # not a candidate awaiting review.
+    assert stocke["statut_coordonnees"] == ""
+
+
+def test_enrichissement_web_enregistre_une_trouvaille_comme_candidate(conn):
+    enregistrer_profils(conn, [profil()])
+
+    rapport = enregistrer_coordonnees_web(
+        conn,
+        [{"url": URL_MARIE, "email_web": "marie@mycoach.fr", "site_web": "mycoach.fr"}],
+        date_enrichissement="2026-08-28",
+    )
+
+    stocke = lister_profils(conn)[0]
+    assert stocke["email_web"] == "marie@mycoach.fr"
+    assert stocke["site_web"] == "mycoach.fr"
+    # Never valide: the measured relevance rate is 1 true positive out of 25.
+    assert stocke["statut_coordonnees"] == STATUT_CANDIDAT
+    assert stocke["date_enrichissement_web"] == "2026-08-28"
+    assert rapport.coordonnees_trouvees == [URL_MARIE]
+
+
+def test_enrichissement_sans_resultat_marque_sans_donner_de_statut(conn):
+    enregistrer_profils(conn, [profil()])
+
+    enregistrer_coordonnees_web(
+        conn,
+        [{"url": URL_MARIE, "email_web": "", "site_web": ""}],
+        date_enrichissement="2026-08-28",
+    )
+
+    stocke = lister_profils(conn)[0]
+    assert stocke["statut_coordonnees"] == ""
+    assert stocke["date_enrichissement_web"] == "2026-08-28"
+    # One Brave Search call already spent on this profile: never spend a
+    # second one on the same result.
+    assert profils_a_enrichir(lister_profils(conn)) == []
+
+
+def test_un_run_ne_retrograde_jamais_un_statut_tranche_par_un_humain(conn, tmp_path):
+    enregistrer_profils(conn, [profil()])
+    enregistrer_coordonnees_web(
+        conn,
+        [{"url": URL_MARIE, "email_web": "vrai@mycoach.fr", "site_web": "mycoach.fr"}],
+        date_enrichissement="2026-07-10",
+    )
+    chemin = ecrire_csv_annote(
+        tmp_path / "relu.csv", [{"url": URL_MARIE, "statut_coordonnees": "valide"}]
+    )
+    importer_commentaires_csv(conn, chemin)
+
+    rapport = enregistrer_coordonnees_web(
+        conn,
+        [{"url": URL_MARIE, "email_web": "faux@agence.fr", "site_web": "agence.fr"}],
+        date_enrichissement="2026-08-28",
+    )
+
+    stocke = lister_profils(conn)[0]
+    assert stocke["statut_coordonnees"] == STATUT_VALIDE
+    assert stocke["email_web"] == "vrai@mycoach.fr"
+    assert stocke["site_web"] == "mycoach.fr"
+    assert rapport.figes_par_statut == [URL_MARIE]
+    # Still stamped, so a reviewed profile leaves the backlog for good.
+    assert stocke["date_enrichissement_web"] == "2026-08-28"
+
+
+def test_un_profil_rejete_n_est_jamais_repropose_par_un_run(conn, tmp_path):
+    enregistrer_profils(conn, [profil()])
+    enregistrer_coordonnees_web(
+        conn, [{"url": URL_MARIE, "email_web": "urgent@lafrenchcom.fr", "site_web": ""}]
+    )
+    chemin = ecrire_csv_annote(
+        tmp_path / "relu.csv", [{"url": URL_MARIE, "statut_coordonnees": "rejete"}]
+    )
+    importer_commentaires_csv(conn, chemin)
+
+    enregistrer_coordonnees_web(
+        conn, [{"url": URL_MARIE, "email_web": "urgent@lafrenchcom.fr", "site_web": ""}]
+    )
+
+    assert lister_profils(conn)[0]["statut_coordonnees"] == STATUT_REJETE
+
+
+def test_valeur_entrante_vide_ne_blanchit_pas_une_coordonnee_stockee(conn):
+    enregistrer_profils(conn, [profil()])
+    enregistrer_coordonnees_web(
+        conn, [{"url": URL_MARIE, "email_web": "marie@mycoach.fr", "site_web": "mycoach.fr"}]
+    )
+
+    enregistrer_coordonnees_web(conn, [{"url": URL_MARIE, "email_web": "", "site_web": ""}])
+
+    stocke = lister_profils(conn)[0]
+    assert stocke["email_web"] == "marie@mycoach.fr"
+    assert stocke["site_web"] == "mycoach.fr"
+
+
+def test_une_valeur_remplacee_est_signalee_et_jamais_silencieuse(conn):
+    enregistrer_profils(conn, [profil()])
+    enregistrer_email_linkedin(conn, [{"url": URL_MARIE, "email": "ancien@example.com"}])
+
+    rapport = enregistrer_email_linkedin(
+        conn, [{"url": URL_MARIE, "email": "nouveau@example.com"}]
+    )
+
+    assert rapport.valeurs_remplacees == [
+        (URL_MARIE, "email", "ancien@example.com", "nouveau@example.com")
+    ]
+    assert lister_profils(conn)[0]["email"] == "nouveau@example.com"
+
+
+def test_une_url_inconnue_n_est_pas_creee_par_une_ecriture_de_coordonnees(conn):
+    rapport = enregistrer_email_linkedin(conn, [{"url": URL_JEAN, "email": "jean@example.com"}])
+
+    assert rapport.urls_inconnues == [URL_JEAN]
+    assert lister_profils(conn) == []
+
+
+def test_profils_a_visiter_ne_garde_que_les_profils_jamais_visites():
+    # Pure function over listed rows: no database, no browser, no network.
+    profils = [
+        {"url": URL_MARIE, "date_visite_email": ""},
+        {"url": URL_JEAN, "date_visite_email": "2026-08-28"},
+    ]
+
+    assert [p["url"] for p in profils_a_visiter(profils)] == [URL_MARIE]
+
+
+def test_profils_a_enrichir_ne_garde_que_les_profils_jamais_enrichis():
+    profils = [
+        {"url": URL_MARIE, "date_enrichissement_web": ""},
+        {"url": URL_JEAN, "date_enrichissement_web": "2026-08-28"},
+    ]
+
+    assert [p["url"] for p in profils_a_enrichir(profils)] == [URL_MARIE]
+
+
+def test_un_statut_non_reconnu_est_refuse_et_signale(conn, tmp_path):
+    enregistrer_profils(conn, [profil()])
+    chemin = ecrire_csv_annote(
+        tmp_path / "relu.csv", [{"url": URL_MARIE, "statut_coordonnees": "peut-etre"}]
+    )
+
+    rapport = importer_commentaires_csv(conn, chemin)
+
+    assert rapport.statuts_refuses == [(URL_MARIE, "peut-etre")]
+    assert lister_profils(conn)[0]["statut_coordonnees"] == ""
+
+
+def test_un_statut_vide_dans_le_csv_ne_leve_pas_une_decision_existante(conn, tmp_path):
+    enregistrer_profils(conn, [profil()])
+    valide = ecrire_csv_annote(
+        tmp_path / "valide.csv", [{"url": URL_MARIE, "statut_coordonnees": "valide"}]
+    )
+    importer_commentaires_csv(conn, valide)
+
+    vide = ecrire_csv_annote(tmp_path / "vide.csv", [{"url": URL_MARIE}])
+    rapport = importer_commentaires_csv(conn, vide)
+
+    assert lister_profils(conn)[0]["statut_coordonnees"] == STATUT_VALIDE
+    assert rapport.statuts_tranches == []

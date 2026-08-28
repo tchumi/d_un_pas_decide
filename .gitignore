@@ -27,6 +27,7 @@ profils_extraits.csv
 profils_extraits_email.csv
 profils_extraits_enrichis.csv
 profils_extraits_scores.csv
+profils_magasin.csv
 
 # Sauvegardes locales des CSV de profils (memes donnees personnelles)
 *.csv.bak
