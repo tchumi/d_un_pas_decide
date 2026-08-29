@@ -9,54 +9,93 @@ conversation.
 > Dernière révision : 28/08/2026 (après POC-009). Ce fichier vieillit vite : si l'écart avec
 > `task_list.md` est flagrant, c'est `task_list.md` qui a raison.
 
-## ⚠️ Le point le plus important : `profils.db` n'est PAS sur cette machine
+## ⚠️ Le point le plus important : `profils.db` est ici une COPIE
 
 Depuis POC-006, la source de vérité du projet n'est plus un CSV mais un magasin SQLite,
-`profils.db` à la racine. Il est **gitignoré** — donc absent après un `git clone`/`git pull`.
-Il contient aujourd'hui 81 profils, leurs scores, les statuts de coordonnées relus à la main,
-les commentaires client, les dates de collecte et les marquages d'opposition RGPD.
+`profils.db` à la racine. Il est **gitignoré** : il ne circule pas par Git, il est **recopié
+à la main** d'une machine à l'autre (décision utilisateur du 28/08/2026 — la base et les CSV
+partent sur le laptop, contrairement à `browser_profile/`, voir plus bas). Il contient
+aujourd'hui 81 profils, leurs scores, les statuts de coordonnées relus à la main, les
+commentaires client, les dates de collecte et les marquages d'opposition RGPD.
 
-**Le piège** : [Code] `ouvrir_magasin` (`source/backend/adapters/storage/profile_store.py`)
-fait `executescript(_SCHEMA)`, qui **crée la base si elle n'existe pas**. Lancer un
-`run_pocNNN.py` sur cette machine ne provoquerait donc **aucune erreur** : le script
-créerait un magasin vide et se mettrait à collecter dedans. On se retrouverait avec deux
-jeux de données divergents — exactement le défaut que POC-009 a découvert et corrigé
-(en juillet, deux recherches sur la même requête avaient produit deux lots différents,
-6 profils n'étant jamais entrés en base).
+**Le risque n'est donc pas l'absence, c'est la divergence.** Deux copies existent, et
+**SQLite n'a aucun mécanisme de fusion** : si les deux sont modifiées, il n'y a pas de
+`git merge` pour les réconcilier — il faut en sacrifier une, ou recoller les lignes à la
+main. Le projet a déjà payé ce prix : POC-009 a découvert que deux recherches sur la même
+requête, lancées à deux moments différents, avaient produit deux jeux divergents dont
+6 profils qui n'étaient jamais entrés en base.
 
-**Règle en déplacement : ne lancer aucun script `run_pocNNN.py`.** Pas de collecte, pas de
-scoring, pas d'enrichissement, pas d'export. Si un besoin réel se présente, restaurer
-d'abord une sauvegarde (voir ci-dessous) et le dire explicitement à l'utilisateur avant
-d'exécuter quoi que ce soit.
+**Règle : une seule copie fait foi à un instant donné.**
+
+- Décider **avant de partir** quelle machine écrit. En déplacement, c'est normalement le
+  laptop, et le poste principal ne doit alors plus rien écrire jusqu'au retour.
+- Ne jamais lancer un `run_pocNNN.py` sur les deux machines entre deux recopies. Toute
+  écriture (collecte, scoring, enrichissement, ré-import) rend cette copie-ci la référence.
+- **Au retour** : sauvegarder la base du poste principal dans
+  `D:\Documents\Dev\_backup_prospection\` **avant** de la remplacer par celle du laptop.
+  Écraser d'abord et constater ensuite est irréversible.
+- En cas de doute sur la copie la plus récente, comparer avant d'écraser — nombre de
+  profils, `max(date_collecte)`, et le compte des `statut_coordonnees` non vides.
+
+**Ce qui ne se reconstruit pas** : les scores et les profils se recalculent depuis les CSV,
+mais les **commentaires client**, les **statuts relus à la main** (`valide`/`rejete`), les
+**dates de collecte** et les **marquages d'opposition** n'existent nulle part ailleurs.
+Perdre la bonne copie, c'est perdre la seule trace du travail de relecture humaine et des
+garde-fous RGPD.
+
+**Piège technique à connaître** : [Code] `ouvrir_magasin`
+(`source/backend/adapters/storage/profile_store.py`) fait `executescript(_SCHEMA)`, qui
+**crée la base si elle n'existe pas**. Si la copie a été oubliée, un `run_pocNNN.py` ne
+lèvera **aucune erreur** : il créera un magasin vide et collectera dedans. Toujours vérifier
+que `profils.db` est bien là **et non vide** avant d'exécuter quoi que ce soit.
 
 Les tests, eux, ne touchent jamais le magasin réel (aucun navigateur, aucun réseau, base en
 mémoire) : `uv run --extra test pytest tests/ -q` est sans danger.
+
+**Données personnelles sur une machine nomade** : la base et les CSV contiennent 81 profils
+réels. Un laptop se perd plus facilement qu'un poste fixe — chiffrement du disque recommandé,
+et effacer les copies au retour si elles n'ont plus lieu d'être.
 
 ## Ce qui ne se synchronise pas par Git
 
 Le code et la documentation sont dans le dépôt (`origin` = GitHub privé), donc à jour dès
 `git pull`. En revanche, **rien de ce qui suit ne se synchronise** (volontairement, voir
-`.gitignore`) et doit être vérifié ou accepté comme absent :
+`.gitignore`). Deux catégories, à ne pas confondre : ce qui est **recopié à la main** et ce
+qui ne doit **surtout pas** l'être.
 
-- **`profils.db`** — voir la section ci-dessus. Sans équivalent, sans reconstruction possible
-  à l'identique : les commentaires client, dates de collecte et oppositions n'existent nulle
-  part ailleurs.
+**Recopié à la main d'une machine à l'autre** :
+
+- **`profils.db`** — voir la section ci-dessus : c'est une copie, le risque est la
+  divergence, et son contenu relu à la main ne se reconstruit pas.
+- **Les CSV de profils** (`profils_extraits*.csv`, `profils_magasin.csv`) — recopiés
+  également. `profils_magasin.csv` est l'export du magasin : s'il a été régénéré avant le
+  départ il est cohérent avec la base, sinon il peut être périmé (c'est arrivé le
+  28/08/2026 — un export figé au milieu d'une relecture annonçait 1 contact validé au lieu
+  de 7). En cas de doute, **la base fait foi, pas le CSV**.
+
+- **`document/compte_rendu/`** — la correspondance client (PDF des échanges avec Christophe
+  Hoffstetter et Henri-Pierre Michaud, brouillons de mails), si un travail de communication
+  est prévu pendant le déplacement. C'est l'historique des décisions business : sans lui, on
+  ne peut ni citer un engagement ni vérifier une demande. À défaut, s'appuyer sur les
+  décisions datées reportées dans `Backlog.md`, qui en sont le résumé fidèle.
+
+**À ne JAMAIS recopier** :
+
+- **`browser_profile/`** — session Playwright/cookies LinkedIn. Un même cookie de session
+  apparaissant depuis une nouvelle localisation ressemble à un vol de session pour les
+  systèmes anti-fraude de LinkedIn. C'est la seule exception vraiment non négociable de
+  cette liste : préférer une connexion manuelle fraîche sur cette machine si un run réel est
+  nécessaire, et naviguer normalement quelques instants avant de lancer le moindre script.
+
+**Absent, à recréer ou à accepter tel quel** :
+
+- **`.env.local`** — à recréer à la main plutôt qu'à copier (`BRAVE_SEARCH_API_KEY` au
+  minimum ; les identifiants LinkedIn y restent vides, le login est manuel, voir décisions
+  POC-001 dans `Backlog.md`).
 - **`D:\Documents\Dev\_backup_prospection\`** — les sauvegardes datées du magasin. Chemin
-  local à la machine principale, donc absent ici aussi.
-- **`.env.local`** — notamment `BRAVE_SEARCH_API_KEY` (les identifiants LinkedIn y restent
-  vides, le login est manuel, voir décisions POC-001 dans `Backlog.md`).
-- **`browser_profile/`** — session Playwright/cookies LinkedIn. **Ne pas copier ce dossier
-  d'une machine à l'autre** : un même cookie de session apparaissant depuis une nouvelle
-  localisation ressemble à un vol de session pour les systèmes anti-fraude de LinkedIn.
-  Préférer une connexion manuelle fraîche sur cette machine si un run réel est nécessaire,
-  et naviguer normalement quelques instants avant de lancer le moindre script.
-- **`document/compte_rendu/`** — toute la correspondance client (PDF des échanges avec
-  Christophe Hoffstetter et Henri-Pierre Michaud, brouillons de mails). C'est l'historique
-  des décisions business : sans lui, on ne peut ni citer un engagement ni vérifier une
-  demande. À défaut, s'appuyer sur les décisions datées reportées dans `Backlog.md`, qui en
-  sont le résumé fidèle.
-- **Les CSV de profils** (`profils_extraits*.csv`, `profils_magasin.csv`) — données
-  personnelles, à ne recopier qu'en cas de besoin réel et en quantité minimale.
+  local au poste principal, donc absent ici. Conséquence directe : **en déplacement, il n'y
+  a pas de filet** — la copie emportée est la seule, en faire un double avant toute
+  opération d'écriture.
 - **Le binaire navigateur Playwright** (`playwright install chromium`) — distinct de
   `uv sync`, à ne pas oublier sur une machine neuve.
 
@@ -70,10 +109,24 @@ git log --oneline -5
 
 Vérifier aussi, sans jamais afficher leur contenu :
 - Présence et non-vacuité de `.env.local` (au minimum `BRAVE_SEARCH_API_KEY`).
-- **Présence ou absence de `profils.db`** — et le signaler explicitement dans la réponse.
-  Son absence est normale en déplacement ; ce qui ne l'est pas, c'est de l'ignorer.
 - `playwright install chromium` a bien été exécuté sur cette machine (sinon le signaler,
   ne pas lancer de script de scraping avant).
+
+**Et surtout, l'état du magasin** — une base présente mais vide est le scénario dangereux
+(voir l'avertissement en tête). Vérifier en lecture seule, sans passer par `ouvrir_magasin`
+qui écrirait le schéma :
+
+```powershell
+uv run python -c "import sqlite3; c=sqlite3.connect('profils.db'); print('profils:', c.execute('select count(*) from profils').fetchone()[0]); print('derniere collecte:', c.execute('select max(date_collecte) from profils').fetchone()[0]); print('statuts relus:', c.execute(\"select count(*) from profils where coalesce(statut_coordonnees,'')<>''\").fetchone()[0])"
+```
+
+Comparer au dernier ticket DONE de `handoff.md` (au 28/08/2026 : **81 profils**, dernière
+collecte du 26/08/2026, **20 statuts relus** dont 7 `valide`). Trois lectures possibles :
+- **chiffres cohérents** → la copie est bonne, continuer ;
+- **base absente ou à 0 profil** → la copie a été oubliée : **ne lancer aucun
+  `run_pocNNN.py`**, le signaler à l'utilisateur, et se limiter au travail hors magasin ;
+- **chiffres inférieurs à l'attendu** → copie périmée : le dire avant toute écriture, écrire
+  dedans figerait la divergence.
 
 ```powershell
 uv run --extra test pytest tests/ -q
@@ -122,20 +175,31 @@ Ne modifie aucun fichier. Réponds avec :
 
 ## Ce qui est faisable — et ce qui ne l'est pas — en déplacement
 
-**Faisable sans risque** (ni LinkedIn, ni magasin, ni clé API) :
+**Sans risque — n'écrit pas dans le magasin, donc ne crée aucune divergence** :
 - cadrage et rédaction de tickets, prompts, plans ;
 - communication client (un brouillon de reprise de contact attend d'être relu et envoyé,
-  voir `document/compte_rendu/` sur la machine principale) ;
+  dans `document/compte_rendu/`) ;
 - logique pure et tests unitaires : le moteur de scoring (`core/profile_scoring.py`) et les
   règles (`config/scoring_rules.json`) sont versionnés et testables hors-ligne ;
+- **lecture** du magasin (requêtes SQL en lecture seule, statistiques, vérifications) ;
 - documentation, revue d'architecture, décisions d'outillage.
 
+**Possible, mais rend cette copie la référence** — à faire seulement si l'utilisateur
+confirme que le poste principal n'écrira rien d'ici le retour, et après un double de la base :
+- `run_poc003.py` (re-scoring depuis le magasin — hors-ligne, pas de LinkedIn) ;
+- `run_poc006.py` (amorçage ou ré-import d'un CSV annoté — c'est le chemin qui rapatrie les
+  commentaires client s'ils arrivent pendant le déplacement) ;
+- `run_poc004.py` (enrichissement web — nécessite `BRAVE_SEARCH_API_KEY` et le réseau).
+
 **À éviter en déplacement** :
-- tout `run_pocNNN.py` (voir l'avertissement en tête de fichier) ;
+- tout ce qui ouvre une session LinkedIn : `run_poc001.py`, `run_poc002.py` — le login est
+  manuel, la session doit être fraîche sur cette machine, et le quota comme le risque de
+  restriction de compte se gèrent mieux depuis le poste habituel ;
 - **POC-008** (diversification des requêtes) et **POC-010** (session LinkedIn unique) :
   ils **exigent** un run LinkedIn réel — les sélecteurs de facettes doivent être vérifiés
   sur un DOM réel, et le DOM LinkedIn change régulièrement ;
-- toute manipulation du magasin ou migration de schéma.
+- toute migration de schéma : la procédure impose un backup explicite, et le dossier de
+  sauvegardes n'est pas sur cette machine.
 
 **Bon candidat pour une session en déplacement** : **POC-011** (liste noire de domaines
 éditable sans toucher au code) — logique pure et configuration, dans la lignée de ce qui a
