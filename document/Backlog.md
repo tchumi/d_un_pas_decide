@@ -1180,3 +1180,70 @@ plus cohérent que trois écrans séparés — à arbitrer quand l'UI sera cadr�
 - 28/08/2026 — Aucune modification de la liste noire n'a été faite dans POC-009 :
   `email_site_extractor.py` était hors de son périmètre. Les 4 domaines qui passent encore
   restent donc actifs en attendant ce ticket.
+
+---
+
+## POC-012 — Annuaires de coachs comme source de prospects (gisement hors LinkedIn)
+
+**Objectif** : Instruire les annuaires de coachs en ligne comme **source de prospection à part
+entière**, indépendante de LinkedIn — là où POC-008 diversifie les requêtes sur la même source.
+
+**Origine** : idée de l'utilisateur le 28/08/2026, pendant la relecture humaine des candidats de
+POC-009 : « on peut garder les annuaires sous la main et essayer de les scraper ».
+
+**Le retournement qui fonde le ticket** : [Code + run réel du 28/08/2026] les domaines que le
+pipeline POC-004 doit **écarter** comme candidats sont précisément ceux qui **listent des
+coachs**. `noomii.com` est en liste noire depuis le 10/07/2026 pour cette raison ; le run du
+28/08 y a ajouté `priorise.fr`, `mon-coach.tel` et `intch.org`, tous rejetés à la relecture
+comme annuaires ou plateformes de mise en contact. **Le même domaine est un mauvais candidat
+pour un profil donné et une bonne source de prospects.** POC-011 les traite comme des domaines à
+exclure ; ce ticket les traite comme des sources à exploiter. Les deux sont liés et distincts.
+
+**Trois arguments en faveur** :
+
+1. **Gisement indépendant de LinkedIn.** [Code, mesuré le 26/08/2026] la requête booléenne
+   actuelle est à la page 8 sur ~10, soit [Inférence] environ un run d'avance. POC-008 répond en
+   variant les requêtes, mais reste sur la même source et la même exposition ToS. Un annuaire
+   est une source entièrement distincte.
+2. **Situation RGPD plus favorable, pas moins.** Sur LinkedIn on **infère** un moyen de contact
+   à partir d'une recherche web ; dans un annuaire professionnel, la personne a **publié ses
+   coordonnées dans le but explicite d'être contactée**. L'intérêt légitime (art. 6.1.f) y est
+   sensiblement plus facile à défendre que dans le pipeline actuel.
+3. **Taux de pertinence sans commune mesure.** [Documentation] Le pipeline POC-004 mesure 1 vrai
+   positif sur 25 en juillet, 7 coordonnées validées sur 56 profils le 28/08/2026. Une fiche
+   d'annuaire est structurée : la personne y est identifiée comme coach, avec sa spécialité et
+   ses coordonnées, sans inférence.
+
+**Réserves à instruire, pas à balayer** :
+
+- **CGU propres à chaque annuaire** : on ne supprime pas un risque ToS, on le déplace. Chaque
+  site doit être examiné pour lui-même, comme LinkedIn l'a été en POC-001.
+- **Couverture et volumétrie inconnues** : nombre de coachs français réellement listés, fraîcheur
+  des fiches, recouvrement avec le gisement LinkedIn déjà collecté — tout est à mesurer avant
+  d'écrire une ligne d'extracteur.
+- **Un extracteur par site** : là où LinkedIn n'en demande qu'un, N annuaires en demandent N,
+  chacun avec ses sélecteurs et sa maintenance. Le coût croît linéairement.
+- **[Code] La clé de déduplication ne tient plus.** `profils` a pour clé primaire l'URL LinkedIn
+  normalisée par `clean_profile_url`, et `urls_connues` en dépend entièrement. Un prospect venu
+  d'un annuaire n'a pas d'URL LinkedIn. Il faut soit une autre clé, soit un rapprochement
+  nom + localisation — avec le risque d'homonymie que tout le reste du projet s'efforce
+  d'éviter. **C'est le vrai point dur du ticket, et il touche au schéma du magasin.**
+- **Le scoring est calibré sur le `titre` LinkedIn** : une fiche d'annuaire n'a pas ce champ
+  sous la même forme. `scorer_titre` s'appliquerait-il tel quel, ou faut-il un mapping ?
+
+**Pistes de départ identifiées par le pipeline lui-même** (aucune évaluée) : `noomii.com`,
+`priorise.fr`, `mon-coach.tel`, `intch.org`.
+
+**Périmètre pressenti (à confirmer au cadrage)** : un nouveau module d'adaptateur de collecte,
+`profile_store` pour la question de la clé, les tests associés. **Aucun code avant une étape
+d'instruction** : couverture, CGU et volumétrie d'abord, extracteur ensuite.
+
+**Hors périmètre** : le scoring et ses règles ; la liste noire (POC-011) ; la diversification des
+requêtes LinkedIn (POC-008), qui reste utile et n'est pas remplacée par ce ticket.
+
+**Décisions** :
+- 28/08/2026 — Ticket ouvert à la demande de l'utilisateur, pendant la relecture de POC-009,
+  après que 4 annuaires soient sortis du pipeline comme faux positifs.
+- 28/08/2026 — **Ne remplace pas POC-008** : diversifier les requêtes LinkedIn et ouvrir une
+  source hors LinkedIn répondent au même problème de gisement par deux chemins indépendants,
+  dont aucun ne rend l'autre inutile.
