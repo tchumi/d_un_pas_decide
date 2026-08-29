@@ -35,7 +35,7 @@ document/
 ## État actuel
 
 - Branche active : `master` (base `master`)
-- **Dernière session** : POC-007 — revalidation des règles de scoring sur le lot frais (27/08/2026)
+- **Dernière session** : POC-009 — raccordement de POC-002 et POC-004 au magasin (28/08/2026)
 - **Prochain ticket actif** : POC-008 — diversification des requêtes (vocabulaire outdoor + filtre géographique)
 
 Ces deux lignes sont les **seules** informations volatiles de ce fichier : elles se mettent à

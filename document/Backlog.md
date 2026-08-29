@@ -1018,6 +1018,98 @@ ce qu'il est. Renommer relevait de l'hygiène, pas du périmètre de POC-006.
   **explicitement déconseillé en l'état** (faux positifs, voir ci-dessus). Si l'existant doit
   être récupéré, ce doit être après relecture, ou accompagné d'un statut de validation.
 
+**Résultats du ticket (28/08/2026)** :
+
+*Décisions de cadrage validées par l'utilisateur le 28/08/2026* :
+- **(a) Marqueurs datés** `date_visite_email` et `date_enrichissement_web`, `TEXT DEFAULT ''`,
+  écrits **même quand rien n'est trouvé** — c'est cette écriture systématique qui distingue
+  enfin « pas encore traité » de « traité, rien trouvé ». Reliquat = colonne vide, pas de
+  ré-essai automatique dans ce ticket.
+- **(a-bis) abandonnée** : `run_poc002` **ne devient pas** conditionnel au score ; son reliquat
+  reste l'ensemble des profils non visités. Seul `run_poc004` est conditionnel, conformément à
+  la décision client du 13/07/2026.
+- **(b) Statut de validation** `statut_coordonnees` : `''` / `candidat` / `valide` / `rejete`,
+  **portant sur les coordonnées web uniquement**. L'email LinkedIn de POC-002 n'en relève pas :
+  la personne l'a publié sur son propre profil, c'est un fait et non un candidat. `run_poc004`
+  écrit `candidat` et jamais `valide` ; seul un humain écrit `valide`/`rejete`, par le CSV
+  ré-importé — ce qui a imposé d'étendre `importer_commentaires_csv`, sans quoi la décision (b)
+  restait inerte. `candidat` est refusé à l'import : c'est le mot de la machine.
+- **(c) Rapatriement nominatif** de `profils_extraits_enrichis.csv`, jamais en bloc.
+- **(§5)** Les trois colonnes sont exportées au CSV : c'est par lui que la relecture revient.
+- **(§6) Export unifié** : constante `EXPORT_CSV` (`profils_magasin.csv`) partagée par les
+  quatre scripts, gitignorée. Les anciens fichiers restent sur disque sans être écrits.
+
+*Migration de schéma* : `user_version` 1 → 2 par `migrer_schema`, idempotente et purement
+additive. Backup pris hors dépôt avant tout `ALTER`, migration **vérifiée ligne à ligne contre
+le backup : 0 colonne v1 modifiée sur 75 lignes**. Défaut corrigé au passage : [Code]
+`ouvrir_magasin` posait `PRAGMA user_version` **inconditionnellement** et aurait marqué une base
+v1 comme v2 sans y ajouter une seule colonne.
+
+*Runs réels, un par un* :
+- `run_poc002`, 5 profils : **la recherche a bien disparu** — aucune pagination, aucun
+  chargement de page de résultats, 5 pages profil et 0 page de recherche. **0 email public
+  trouvé**, conforme au 0/30 mesuré le 07/07/2026 : le résultat utile est le marqueur, pas
+  l'email. Reliquat 75 → 70.
+- `run_poc004`, 4 runs (5 + 25 + 25 + 6) : **56 profils enrichis, 14 candidats trouvés (25 %)**.
+  La sélection conditionnelle a fonctionné : 65 profils intéressants traités, **14 profils sous
+  le seuil ou exclus jamais interrogés** — 14 appels Brave et 14 collectes de données
+  personnelles évités, au titre de la minimisation RGPD.
+
+*Découverte majeure, non anticipée* : [Code, vérifié le 28/08/2026] **6 des 25 profils du lot
+POC-002/POC-004 de juillet n'étaient jamais entrés dans le magasin** (recouvrement 19/25,
+vérifié : ce n'est pas un défaut d'appariement d'URL). En juillet, `run_poc002` faisait **sa
+propre recherche**, distincte de celle de `run_poc001` ; deux recherches sur la même requête
+booléenne à deux moments différents n'ont pas ramené le même lot. **La redondance supprimée par
+ce ticket ne coûtait pas que du quota : elle produisait deux jeux de données divergents.** Les 6
+profils manquants ont été ajoutés au magasin, datés du 07/07/2026, puis scorés — **0 profil
+préexistant modifié**. Magasin : 75 → 81 profils.
+
+*Relecture humaine faite avec l'utilisateur le 28/08/2026*, sur les 14 candidats du jour plus
+les 11 rapatriés de juillet. **État final : 7 `valide`, 11 `rejete`, 2 `candidat`.**
+- Les 7 validés : Elise Rousseau, Isabelle Zelmat, Emmanuel Poilane, Julie Leger, Sylvie
+  DUCHENE, Alexandre Schuers, Manuel BOSSU (rapatrié de juillet).
+- Faux positifs instructifs : `rgpd@emccfrance.org` retenu pour **deux** profils — l'adresse du
+  délégué à la protection des données de la fédération EMCC, le pire destinataire possible ;
+  `bibliotheque@ehesp.fr` (employeur, pas homonyme, mais mauvais type de contact) ;
+  `music.amazon.com`, que la liste noire a laissé passer alors qu'elle contient `amazon.co.uk` —
+  elle raisonne par domaine exact, pas par marque ; `allocine.fr` (homonyme).
+- **Modification explicite signalée** : pour Alexandre Schuers, `site_web` (`intch.org`, une
+  plateforme) a été **effacé** et l'email `sophro-theatre@schuers.fr` conservé — le pipeline
+  avait retenu deux choses d'origines différentes sur la même ligne.
+- **Bilan de fond** : **7 coordonnées exploitables sur 56 profils (12,5 %)**, contre 1/25 (4 %)
+  en juillet. [Inférence] Amélioration réelle mais non attribuable : liste noire élargie ou
+  meilleur lot, les deux effets sont confondus.
+
+*Bug trouvé sur données réelles et corrigé* : deux profils du magasin portent un **emoji dans
+leur nom**. L'affichage nominatif du lot, ajouté par ce ticket, levait `UnicodeEncodeError` sur
+une console Windows cp1252 et tuait le run **avant le premier appel Brave** — rien n'avait été
+écrit en base. Corrigé dans les deux scripts (`run_poc002` portait la même faiblesse sans
+l'avoir révélée), avec un test de non-régression sur le chemin des données.
+
+*Laissé en l'état, délibérément* :
+- **Titre divergent d'Erwan Jorand** : le CSV du 07/07 porte `certifié RNCP N6 et ICF Level 2`,
+  le magasin `certifié ICF Level 2`. Les 19 profils déjà en base n'ont pas été réimportés pour
+  ne pas écraser un titre sur lequel un score a été calculé. L'un des deux est périmé, on ne
+  sait pas lequel.
+- **Anomalie de scoring, 5ᵉ du genre** (après les quatre de POC-007, questions 4 à 7) : **Manon
+  Dumartin, score 0 mais catégorie `coach_business_indifferencie`**, donc conservée et non
+  exclue. Justification : `base_coach +20 | hors_cible -25`, soit **−5 borné à 0**. Le bornage
+  rend un profil de signal **net négatif** indistinguable d'un profil sans aucun signal, alors
+  que Cécile Pollin est à 0 *et* exclue. Deux états métier différents, une seule valeur. Non
+  corrigé : POC-007 a décidé le 27/08/2026 de ne rien ajuster avant retour client.
+- **14 profils du magasin n'ont jamais eu de recherche web** : les 11 sous le seuil et les 3
+  exclus, moins les 2 rapatriés. C'est le comportement voulu. Si le seuil passait de 60 à 50,
+  Marc Michaud et Stéphanie GOYON entreraient dans la sélection et **le marqueur les reprendrait
+  automatiquement**, sans rien refaire.
+
+*Tickets ouverts par ce ticket* : **POC-010** (fusion collecte/scoring/email en une session),
+**POC-011** (liste noire éditable — alimenté par `emccfrance.org`, `ehesp.fr`, `allocine.fr` et
+la faiblesse `amazon.co.uk` qui n'attrape pas `amazon.com`), **POC-012** (annuaires de coachs
+comme source de prospects).
+
+*Question client n°8 produite, non tranchée* : qui valide les coordonnées, nous ou le client ?
+La colonne `statut_coordonnees` est exportée dans le CSV, donc visible de lui.
+
 ---
 
 ## POC-010 — Collecte, scoring et extraction d'email en une seule session LinkedIn
