@@ -20,6 +20,7 @@ Usage:
 Run standalone (never via `streamlit run`, see CLAUDE.md rule 6).
 """
 
+import sys
 from pathlib import Path
 
 from source.backend.adapters.scraping.browser_session import (
@@ -47,6 +48,11 @@ PROFILE_DIR = Path("./browser_profile")
 
 
 def main() -> None:
+    # LinkedIn names carry emoji (observed 28/08/2026: two real profiles in
+    # the store). Printing one raw on a cp1252 Windows console raises
+    # UnicodeEncodeError and kills the run before a single profile is
+    # processed - the store data itself is UTF-8 and unaffected.
+    sys.stdout.reconfigure(errors="replace")
     conn = ouvrir_magasin(DEFAULT_DB_PATH)
     try:
         reliquat = profils_a_visiter(lister_profils(conn))

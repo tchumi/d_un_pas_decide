@@ -247,3 +247,25 @@ def test_export_csv_est_le_fichier_unique_partage_par_les_scripts():
     # run_poc003 profils_extraits_scores.csv - two names for two views of the
     # same store. One name now, and it says what the file is.
     assert EXPORT_CSV.name == "profils_magasin.csv"
+
+
+def test_export_preserves_emoji_in_names(tmp_path):
+    # Real LinkedIn names carry emoji (two such profiles in the store,
+    # 28/08/2026). They broke the console output of a run script; the data
+    # path must stay UTF-8 clean whatever the console can display.
+    profiles = [
+        {
+            "nom": "Charlotte Leveque🔥Coaching Professionnel",
+            "url": "https://www.linkedin.com/in/charlotte-leveque",
+            "localisation": "Lille",
+            "titre": "Coach business",
+        }
+    ]
+    output_path = tmp_path / "profils.csv"
+
+    export_profiles_to_csv(profiles, output_path)
+
+    with open(output_path, newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+
+    assert rows[0]["nom"] == "Charlotte Leveque🔥Coaching Professionnel"

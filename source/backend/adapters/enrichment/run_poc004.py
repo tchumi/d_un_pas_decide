@@ -28,6 +28,8 @@ involved here: candidate pages are fetched via plain HTTP requests, not
 Playwright.
 """
 
+import sys
+
 import requests
 
 from source.backend.adapters.enrichment.email_site_extractor import (
@@ -54,10 +56,12 @@ from source.backend.core.profile_scoring import (
     selectionner_profils_interessants,
 )
 
-# Kept at 5 for the first run on the store (POC-009): 60 of the 75 stored
-# profiles are above the threshold, so an unbounded run would be 60 Brave
-# Search calls. Raise it only once a run has been reviewed.
-MAX_PROFILES = 5
+# Raised to 25 (user decision, 28/08/2026) after a first 5-profile run on the
+# store confirmed the wiring end to end. Unlike POC-001/POC-002 the cap is not
+# about a LinkedIn account restriction - this pipeline never touches LinkedIn -
+# but about keeping a checkpoint on a long run: 25 profiles is 25 Brave Search
+# calls plus the HTTP fetches of the surviving candidates.
+MAX_PROFILES = 25
 
 
 def fetch_candidate_html(url: str) -> str:
@@ -97,6 +101,11 @@ def enrich_profile(profile: dict[str, str], api_key: str) -> dict[str, str]:
 
 
 def main() -> None:
+    # LinkedIn names carry emoji (observed 28/08/2026: two real profiles in
+    # the store). Printing one raw on a cp1252 Windows console raises
+    # UnicodeEncodeError and kills the run before a single profile is
+    # processed - the store data itself is UTF-8 and unaffected.
+    sys.stdout.reconfigure(errors="replace")
     regles = charger_regles()
     conn = ouvrir_magasin(DEFAULT_DB_PATH)
     try:
