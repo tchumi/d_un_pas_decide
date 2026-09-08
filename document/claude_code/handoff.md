@@ -267,3 +267,91 @@ Format de chaque section :
 
 - Prochain ticket : **POC-008** — diversification des requêtes, seul P1, gisement mesuré à ~1 run d'avance. Prompt mis à jour dans `document/prompts_plans/prompt_POC-008.md` avec ce que POC-009 a changé (plus de `SEARCH_QUERY` dupliquée, export unifié, schéma v2, 81 profils, 123 tests).
 - **Toujours en attente** : reprise de contact client, silence depuis le 13/07/2026 — **huit** questions ouvertes désormais (`Backlog.md` POC-003), la huitième étant produite par ce ticket : qui valide les coordonnées, nous ou le client, sachant que `statut_coordonnees` est exporté dans le CSV.
+
+## 10. Onboarding itinérance et prise en compte du call client du 04/09/2026 (08/09/2026)
+
+- **Session de suivi de projet, pas de ticket** : menée depuis le **laptop en itinérance** via
+  `document/claude_code/prompt_onboarding_travel.md`. **Aucun fichier de `source/`, `config/` ou
+  `tests/` modifié. Aucune écriture dans le magasin** — la base n'a été lue qu'en SQL direct,
+  jamais via `ouvrir_magasin`.
+- **Vérification d'environnement** : dépôt propre sur `master`, **123 passed, 0 failed**
+  (conforme à POC-009 ; `uv sync` a créé le `.venv` de cette machine, 53 paquets). `.env.local`
+  recréé à la main avec `BRAVE_SEARCH_API_KEY` renseignée, identifiants LinkedIn vides comme
+  prévu. **Navigateur Playwright absent** sur cette machine — sans conséquence, aucun ticket
+  hors-ligne n'en a besoin. `browser_profile/` absent, ce qui est le comportement voulu.
+- **Magasin vérifié conforme au départ** : **81 profils**, dernière collecte **2026-08-26**,
+  **20 statuts relus** (7 `valide`, 11 `rejete`, 2 `candidat`), `user_version = 2`.
+- **Piège du transport, relevé et corrigé** : les fichiers de données étaient rangés dans un
+  dossier `output/` à la racine, alors que [Code] `DEFAULT_DB_PATH = Path("./profils.db")` et
+  `EXPORT_CSV = Path("./profils_magasin.csv")` sont relatifs au répertoire courant. Un
+  `run_pocNNN.py` n'aurait levé **aucune erreur** : `executescript(_SCHEMA)` aurait créé un
+  magasin vide à la racine, à côté du vrai. C'est la variante « la copie n'est pas là où le code
+  regarde » du scénario dangereux documenté dans le prompt travel. Les 7 fichiers ont été
+  **remontés à la racine**, empreintes MD5 vérifiées identiques avant/après ; `output/` est
+  laissé vide en place (règle CLAUDE.md n°3). Vérifié aussi que les 7 fichiers sont bien tous
+  ignorés par `.gitignore` — aucun risque de committer des données personnelles.
+- **Le poste principal est éteint pour toute la durée du déplacement** (décision utilisateur du
+  08/09/2026). Conséquence : **la base du laptop est la seule copie qui vit**, et il n'y a aucun
+  risque de divergence. Comme il n'y a pas de `D:\...\_backup_prospection\` ici, une sauvegarde
+  a été prise dans `C:\Users\HP\Documents\_backup_prospection\` (base + CSV, datés, empreinte
+  vérifiée).
+- **Fait majeur de la session : le silence client, ouvert le 13/07/2026, a pris fin le
+  04/09/2026** par un call de suivi (CR reçu dans `document/compte_rendu/`). Le brouillon de
+  reprise de contact du 28/08/2026 est **caduc** et n'a pas été envoyé. Les **8 questions
+  ouvertes** n'ont pas été posées telles quelles : Christophe a tranché en pratique — *« même
+  sans scoring sophistiqué, le tableau Excel représente déjà une avancée considérable »* — ce qui
+  répond en creux à la question 7 sur le pouvoir discriminant et fait descendre les autres en
+  priorité, le retour d'usage devant les trancher sur pièces.
+- **Le call produit le premier engagement daté du projet** : livrer un **tableau Excel** de plus
+  d'une dizaine de profils, colonnes de scoring et colonne `commentaire_client`, **pour la fin de
+  la semaine du 08/09/2026**. A ouvert **POC-013**.
+- **Le call mandate POC-008** : le ciblage géographique passe d'axe technique à besoin métier
+  explicite (Vosges/Remiremont, Grand Est ; Bordeaux cité comme contre-exemple), l'objectif étant
+  de réunir sur une zone le quota nécessaire au lancement d'un bootcamp. Christophe et
+  Henri-Pierre doivent fournir un brainstorming de requêtes ciblées — **dépendance externe**.
+  Sales Navigator et le passage du scrapping sur serveur sont explicitement mis en veille.
+- **Mesure faite à l'appui, en lecture seule sur les 81 profils** : **5 profils en Grand Est**
+  (Labry 85, Colmar 75, Saint-Avold 75, Strasbourg 70, Haguenau 45 — donc 4 au-dessus du seuil)
+  contre **21 en Île-de-France** et 2 à Bordeaux. Le gisement constitué est presque orthogonal au
+  besoin exprimé par le client. C'est l'argument chiffré le plus direct en faveur de POC-008.
+- **Deux imprécisions du CR relevées, sans conséquence** (c'est une synthèse de réunion, pas une
+  spec) : le scoring y est résumé en « +10 si présent, −10 sinon » alors que [Code] le moteur est
+  une somme bornée de 6 règles pondérées ; et le « 90 % des mêmes profils d'une semaine à
+  l'autre » est un constat antérieur à POC-006, dont la déduplication persistante a produit deux
+  lots **strictement disjoints** — la vraie limite est l'épuisement du gisement, page 8 sur ~10.
+- Fichiers créés : `document/prompts_plans/prompt_POC-013.md`,
+  `document/claude_code/prompt_reconciliation_retour.md`.
+- Fichiers modifiés : `document/Backlog.md` (sous-section « Call client du 04/09/2026 »,
+  sous-section « Mandat client du 04/09/2026 » dans POC-008, nouvelle section POC-013),
+  `document/claude_code/task_list.md` (ligne POC-013, ligne POC-008 complétée),
+  `document/claude_code/handoff.md`, `CLAUDE.md`.
+- Tests : **123 passed, 0 failed** — inchangé, résultat attendu puisque aucun code n'a été touché.
+- Lancement de l'app **non nécessaire** : `source/frontend_streamlit/` n'existe toujours pas.
+
+### Points de vigilance légués
+
+- **Le retour d'itinérance est une opération de données, pas une reprise ordinaire.** La
+  procédure est écrite dans `document/claude_code/prompt_reconciliation_retour.md` : comparer les
+  deux bases avant tout, sauvegarder celle du poste principal **avant** de la remplacer, vérifier
+  que le remplacement a pris, et n'effacer les copies du laptop qu'ensuite. Le fichier porte un
+  tableau « ce qui a été écrit sur le laptop » **à compléter par chaque session qui écrit dans le
+  magasin** — c'est lui qui rendra la réconciliation vérifiable.
+- **Empreinte de référence** : `profils.db` au départ vaut `df1a7427c0db5aae23353ac0ad5a467f`.
+  Si elle est inchangée au retour, rien n'a été écrit et il n'y a rien à réconcilier.
+- **POC-013 porte une échéance ferme** — fin de semaine du 08/09/2026 — et c'est le seul du
+  projet dans ce cas.
+- Les points de vigilance de POC-009 restent tous ouverts : titre divergent d'Erwan Jorand,
+  5ᵉ anomalie de scoring (Manon Dumartin, score 0 mais conservée), `rejete` non complètement
+  réversible, 14 profils jamais enrichis par choix, `.scores_avant.json` à supprimer.
+
+### Tickets ouverts par cette session
+
+- **POC-013** — livrable Excel client et boucle de retour au format xlsx. Périmètre minimal
+  décidé par l'utilisateur : convertir le CSV **sans le modifier**, et savoir relire un `.xlsx`.
+
+- Prochain ticket : **POC-013**, à traiter en itinérance — il est le seul avec une échéance, il
+  ne demande aucun run LinkedIn, et il débloque le retour d'usage client (point d'action n°5) dont
+  dépendent les arbitrages de scoring encore ouverts. Prompt prêt dans
+  `document/prompts_plans/prompt_POC-013.md`. **POC-008**, désormais mandaté par le client, reste
+  le prochain P1 après lui, mais son volet décisif exige un run LinkedIn réel : il attend le
+  retour sur le poste principal.

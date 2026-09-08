@@ -35,8 +35,8 @@ document/
 ## État actuel
 
 - Branche active : `master` (base `master`)
-- **Dernière session** : POC-009 — raccordement de POC-002 et POC-004 au magasin (28/08/2026)
-- **Prochain ticket actif** : POC-008 — diversification des requêtes (vocabulaire outdoor + filtre géographique)
+- **Dernière session** : onboarding itinérance et prise en compte du call client du 04/09/2026 (08/09/2026)
+- **Prochain ticket actif** : POC-013 — livrable Excel client et boucle de retour au format xlsx
 
 Ces deux lignes sont les **seules** informations volatiles de ce fichier : elles se mettent à
 jour en fin de session (voir « Obligation de fin de session »). Tout le reste — statuts,
@@ -98,6 +98,8 @@ pytest tests/unit/ -v                       # tests unitaires seuls
 
 - `document/claude_code/task_list.md` — **source de vérité courante** (tous tickets)
 - `document/claude_code/handoff.md` — état du sprint en cours
+- `document/claude_code/prompt_onboarding_travel.md` — reprise sur une machine secondaire (départ en itinérance)
+- `document/claude_code/prompt_reconciliation_retour.md` — **retour d'itinérance** : réconcilier la base du laptop avec celle du poste principal, à faire avant tout autre travail
 - `document/claude_code/AGENTS.md` — règles détaillées, conventions, variables d'environnement
 - `document/Backlog.md` — référentiel de specs complet ; ne pas y mettre les statuts
 - `document/ARCHITECTURE.md` — structure réelle du projet

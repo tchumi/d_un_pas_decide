@@ -285,6 +285,80 @@ client**, ces points ne sont donc pas des bugs ouverts mais des arbitrages méti
    à l'intérieur du pertinent. Faut-il un critère de départage supplémentaire, ou une simple
    liste non ordonnée suffit-elle à son usage ?
 
+### Call client du 04/09/2026 — le silence est rompu, les questions sont dépassées
+
+**Le silence client, ouvert le 13/07/2026, a pris fin le 04/09/2026** par un call de suivi
+réunissant Michel Kleck, Henri-Pierre et Christophe (CR dans `document/compte_rendu/`,
+« 2026 09 04 - CR call.pdf »). Le brouillon de reprise de contact du 28/08/2026 est donc
+**caduc** : il n'a pas été envoyé et n'a plus d'objet.
+
+**Effet sur les sept questions ci-dessus** : elles n'ont **pas** été posées telles quelles. Le
+call a porté sur l'usage de l'outil, pas sur le détail des règles, et Christophe a tranché en
+pratique plutôt qu'en théorie — *« même sans scoring sophistiqué, la simple constitution d'un
+tableau Excel avec des colonnes exploitables représente déjà une avancée considérable »*. Cela
+répond en creux à la question 7 : **le pouvoir discriminant du score n'est pas un sujet pour le
+client à ce stade**, il veut trier et filtrer lui-même dans Excel. Les questions 1 à 6 restent
+ouvertes mais **descendent en priorité** : le retour d'usage promis (point d'action n°5) est le
+chemin par lequel elles seront tranchées, sur pièces plutôt que dans l'abstrait.
+
+**Huitième question, ajoutée par POC-009** (qui valide les coordonnées, nous ou le client) :
+également non posée, et en partie répondue par le dispositif convenu — le client annote le
+fichier, nous le réinjectons.
+
+**Décisions et engagements pris au call** :
+
+1. **Livrable attendu — un tableau Excel de plus d'une dizaine de profils**, colonnes de scoring
+   et colonne `commentaire_client`, **pour la fin de la semaine du 08/09/2026**. C'est le seul
+   engagement daté du projet. Il a ouvert **POC-013**.
+2. **La boucle de retour est confirmée comme le mécanisme central** : Michel envoie le tableau,
+   Christophe et Henri-Pierre le manipulent dans Excel (tri, filtres) et documentent la colonne
+   `commentaire_client`, Michel réinjecte manuellement en base. Christophe a relevé le caractère
+   fastidieux de la réinjection ; réponse retenue : c'est la seule solution viable pour démarrer,
+   en attendant une automatisation ultérieure.
+3. **Le ciblage géographique devient l'axe stratégique n°1.** Christophe a insisté sur les
+   Vosges (Remiremont) et le Grand Est, en citant Bordeaux comme contre-exemple non pertinent :
+   l'enjeu est de réunir un quota de participants suffisant pour lancer un bootcamp sur une zone
+   donnée. Michel a confirmé que c'est un point essentiel de l'outil. **Cela mandate POC-008**
+   (points d'action 2 et 4).
+4. **Multiplication de requêtes ciblées plutôt qu'une requête générique unique** — proposition de
+   Christophe (« Coach business » + géographie, « Executive coaching », etc.), complétée par
+   Michel sur la distinction entre types de coachs et l'exclusion de « coach sportif ».
+   Christophe et Henri-Pierre doivent fournir un **brainstorming de requêtes** (point d'action
+   n°3) : **dépendance externe** à leur charge.
+5. **Approche pragmatique et itérative validée** : d'abord un scrapping fonctionnel qui alimente
+   l'Excel, l'amélioration ensuite. Christophe a explicitement écarté toute pression de rythme
+   (« ton rythme sera le bon »).
+6. **Sales Navigator** — mis en veille. Michel ne souhaite pas s'y investir à ce stade ;
+   Christophe et Henri-Pierre peuvent l'explorer de leur côté.
+7. **Passage du scrapping sur serveur** — reporté. Obstacle identifié : la session LinkedIn doit
+   être locale, une origine « serveur » exposerait le compte à un blocage immédiat.
+
+**Deux imprécisions du CR, relevées et sans conséquence** (le CR est une synthèse de réunion,
+pas une spécification) :
+
+- Le scoring y est résumé en « +10 si le mot-clé est présent, −10 s'il est absent ». [Code] Le
+  moteur réel est une somme algébrique bornée de 6 règles pondérées déclarées dans
+  `config/scoring_rules.json`.
+- Le CR rapporte « 90 % des mêmes profils d'une semaine à l'autre ». C'est un constat antérieur
+  à POC-006 : [Code, run réel du 26/08/2026] la déduplication persistante a produit deux lots
+  **strictement disjoints**. La limite réelle n'est pas la redondance mais l'**épuisement du
+  gisement** — page 8 sur ~10 atteinte sur la requête actuelle.
+
+**Mesure faite le 08/09/2026 sur le magasin, à l'appui du point 3** — répartition géographique
+des 81 profils, en lecture seule :
+
+| Zone | Profils |
+|---|---|
+| **Grand Est** | **5** (Labry 85, Colmar 75, Saint-Avold 75, Strasbourg 70, Haguenau 45) |
+| Île-de-France / Paris | 21 |
+| Bordeaux | 2 |
+| « France » sans précision | 6 |
+
+**5 profils sur 81 dans la zone que le client dit prioritaire, dont 4 au-dessus du seuil**,
+contre 21 en Île-de-France. C'est l'argument chiffré le plus direct en faveur de POC-008, et il
+confirme le diagnostic déjà posé : [Code] `build_search_url` place `AND (France)` dans le seul
+paramètre `keywords`, ce qui est une correspondance textuelle et non un filtre géographique.
+
 
 ---
 
@@ -950,6 +1024,46 @@ comme l'ont été ceux de POC-001/002/005. Il n'est pas développable entièreme
 pagination numérotée et journaliser la taille exacte du gisement par requête (voir la
 piste « Mesurer le plafond réel au lieu de l'estimer » en section POC-006).
 
+### Mandat client du 04/09/2026 — le ticket change de nature
+
+Jusqu'ici POC-008 était justifié par des constats **internes** : gisement à ~1 run d'avance,
+catégorie `coach_outdoor` jamais observée, pouvoir discriminant écrasé par l'homogénéité de la
+requête. Le call du 04/09/2026 y ajoute une **demande client explicite**, et elle est plus
+exigeante que ce que le ticket prévoyait.
+
+- **La géographie n'est pas un axe de variation parmi d'autres, c'est un besoin métier.**
+  Christophe a cité les Vosges (Remiremont) et le Grand Est, et Bordeaux comme contre-exemple :
+  l'objectif est de réunir sur une zone donnée un quota de participants suffisant pour lancer un
+  bootcamp. Un profil pertinent mais lointain a donc une valeur faible — ce que le scoring
+  actuel ne modélise pas du tout.
+- **Mesure du 08/09/2026 sur les 81 profils en base** : **5 en Grand Est** (Labry 85, Colmar 75,
+  Saint-Avold 75, Strasbourg 70, Haguenau 45 — donc 4 au-dessus du seuil), contre **21 en
+  Île-de-France** et 2 à Bordeaux. Le gisement constitué est presque orthogonal au besoin
+  exprimé. C'est l'argument le plus fort du dossier, et il est chiffré.
+- **Point d'action n°2 (Michel)** : tester le remplacement de `France` par `Grand Est` dans la
+  requête, et mesurer l'effet sur la variance des résultats. **Exige un run LinkedIn réel.**
+- **Point d'action n°4 (Michel)** : étudier la faisabilité technique d'intégrer **facilement
+  plusieurs requêtes** dans l'outil. [Inférence] Ce volet-là est de la **configuration**, dans la
+  lignée de `config/scoring_rules.json` : il est instruisable et implémentable **hors-ligne**,
+  sans DOM réel. Le ticket se scinde donc naturellement en une partie configurable hors-ligne et
+  une partie « facettes / DOM » qui reste conditionnée à un run.
+- **Point d'action n°3 (client)** : Christophe et Henri-Pierre doivent fournir un brainstorming
+  de requêtes ciblées (« Coach business » + géographie, « Executive coaching », types de coachs,
+  exclusion de « coach sportif »). **Dépendance externe** : le vocabulaire de la campagne ne sera
+  pas décidé unilatéralement, et attendre cette liste avant de figer le format de configuration
+  évite de la définir deux fois.
+- **Arbitrage rappelé par Michel au call** : multiplier les requêtes augmente mécaniquement le
+  volume de sollicitations, donc le risque de détection. Le rapport bénéfice/risque fait partie
+  du ticket, il n'est pas un détail d'implémentation.
+- Le piège de POC-007 reste entier et s'applique au vocabulaire que le client fournira : « coach
+  qui marche » se réduit à la sous-chaîne `marche`, déjà présente dans 3 titres du lot frais.
+
+**Décisions** :
+- 04/09/2026 — Ciblage géographique confirmé comme **besoin métier prioritaire** par le client.
+- 08/09/2026 — [Inférence] Le volet « plusieurs requêtes configurables » est identifié comme
+  faisable hors-ligne ; le volet « facettes natives / filtre géographique réel » reste
+  conditionné à un run LinkedIn, donc au retour d'itinérance.
+
 ---
 
 ## POC-009 — Raccordement de POC-002 et POC-004 au magasin (sans refaire le scraping)
@@ -1339,3 +1453,88 @@ requêtes LinkedIn (POC-008), qui reste utile et n'est pas remplacée par ce tic
 - 28/08/2026 — **Ne remplace pas POC-008** : diversifier les requêtes LinkedIn et ouvrir une
   source hors LinkedIn répondent au même problème de gisement par deux chemins indépendants,
   dont aucun ne rend l'autre inutile.
+
+---
+
+## POC-013 — Livrable Excel client et boucle de retour au format xlsx
+
+**Objectif** : Honorer le point d'action n°1 du call du 04/09/2026 — livrer un **tableau Excel**
+que Christophe et Henri-Pierre puissent trier et filtrer, et **accepter en retour le `.xlsx`
+annoté**, sans leur demander de le reconvertir.
+
+**Origine** : ticket ouvert le 08/09/2026, depuis le laptop en itinérance, à la lecture du CR du
+call du 04/09/2026. **C'est le seul ticket du projet porteur d'une échéance ferme** : fin de la
+semaine du 08/09/2026.
+
+**Pourquoi ce n'est pas déjà fait** :
+
+1. [Code] `export_profiles_to_csv` écrit en `encoding="utf-8"` **sans BOM**, avec le séparateur
+   virgule par défaut de `csv.DictWriter`. Ouvert d'un double-clic dans un Excel français, ce
+   fichier arrive **entièrement en colonne A, accents cassés**. Or le livrable convenu est un
+   tableau qu'Henri-Pierre — décrit au call comme « un grand connaisseur d'Excel » — doit trier
+   et filtrer. Le format actuel est un obstacle dès la première ouverture.
+2. [Code] `importer_commentaires_csv` lit le fichier elle-même (`open(...)` puis
+   `csv.DictReader`) : elle ne sait pas lire un classeur. Livrer de l'Excel sans traiter le
+   retour reporterait la conversion chez le client, sur un Excel français où « enregistrer en
+   CSV » produit exactement le fichier cassé du point 1 — en pire, puisque le séparateur
+   deviendrait `;` et que la relecture, elle, attend `,`.
+
+Les deux points forment donc **un seul ticket** : livrer de l'Excel sans savoir le relire
+casserait la boucle de retour, qui est le mécanisme central confirmé au call.
+
+**Périmètre — volontairement minimal (décision utilisateur du 08/09/2026)** :
+
+- **Export** : *convertir le CSV existant sans le modifier*. Les 16 colonnes de
+  `PROFILE_CSV_FIELDS`, leur ordre et leur contenu restent **strictement identiques**. Ce ticket
+  ajoute une conversion, il ne retouche pas l'export.
+- **Import** : la boucle de retour accepte un `.xlsx`, en s'appuyant sur l'extension du fichier.
+
+**Risque principal, et vraie raison d'être des tests** : ce n'est pas le code, c'est **ce
+qu'Excel fait aux données en chemin**. `csv.DictReader` rend des `str` ; openpyxl rend des
+`int`, des `float`, des `datetime` et des `None`. Une date `2026-08-26` peut revenir en
+`26/08/2026` ou en numéro de série, un `score` en flottant, un `ne_plus_traiter` en entier, une
+cellule vide en `None` — et [Code] `_importer_statut_coordonnees` fait `.strip().lower()` sur
+cette valeur, tandis que `_STATUTS_IMPORTABLES` compare des chaînes. Tout doit être relu **en
+texte**, une cellule vide valant `""`.
+
+**Piège aggravant, vérifié le 08/09/2026** : [Code] `run_poc006.main` appelle
+`enregistrer_profils` **avant** `importer_commentaires_csv`. La première passe complète les
+champs des profils connus depuis le fichier relu : c'est elle qui écrirait en base une valeur
+reformatée par Excel. Le projet a déjà un titre divergent entre CSV et magasin dont personne ne
+sait lequel est le bon (Erwan Jorand, point de vigilance de POC-009) ; ce ticket ne doit pas en
+créer un second.
+
+**Exigence héritée de POC-009** : un en-tête non conforme — colonne insérée, supprimée ou
+réordonnée par le client — doit être **signalé et bloquant**, jamais deviné. Même logique que les
+`statuts_refuses` : la donnée métier est chère, on ne la corrige pas en silence.
+
+**Périmètre pressenti (à confirmer au cadrage)** :
+- `source/backend/adapters/storage/xlsx_export.py` — nouveau : conversion CSV → xlsx et lecture
+  xlsx → `list[dict[str, str]]` ;
+- `source/backend/adapters/storage/run_poc006.py` — accepter un `.xlsx` en entrée ;
+- `source/backend/adapters/storage/run_poc013.py` — nouveau, si retenu : produit le `.xlsx`
+  depuis l'export CSV, ce qui laisse les quatre `run_pocNNN.py` existants intacts ;
+- `pyproject.toml` — dépendance xlsx (openpyxl n'est pas installé aujourd'hui ; pandas l'est,
+  mais via Streamlit et sans moteur Excel) ;
+- `tests/unit/test_xlsx_export.py` — nouveau.
+
+**Hors périmètre** : toute modification du contenu de l'export (aucune colonne ajoutée, retirée,
+renommée ni réordonnée, aucune valeur reformatée) ; la mise en forme Excel (largeurs, filtre
+automatique, figeage d'en-tête, styles), **hors périmètre par défaut**, à proposer comme
+arbitrage explicite ; le scoring et ses règles ; les règles de conflit du ré-import, acquises
+depuis POC-006 et POC-009 ; toute migration de schéma.
+
+**Question ouverte, à trancher au cadrage** : quelles lignes livrer ? Le magasin compte **81
+profils, dont 65 au-dessus du seuil 60**. Le client demandait « plus d'une dizaine de noms ».
+[Inférence] Livrer les 81 avec la colonne `score` est cohérent avec ce qu'il a dit vouloir faire
+— trier et filtrer lui-même, notamment par localisation — et lui laisse l'arbitrage du seuil,
+qui est précisément l'une des questions ouvertes. Les profils marqués `ne_plus_traiter` restent
+exclus de l'export, comme depuis POC-006.
+
+**Décisions** :
+- 08/09/2026 — Ticket ouvert depuis le laptop, à la lecture du CR du 04/09/2026.
+- 08/09/2026 — **Périmètre minimal retenu** (utilisateur) : conversion du CSV sans modification,
+  et ré-import du `.xlsx`. Pas de refonte de l'export, pas de mise en forme par défaut.
+- 08/09/2026 — Ticket **réalisable en itinérance** : aucun run LinkedIn, aucun réseau, lecture du
+  magasin puis une écriture maîtrisée au ré-import de vérification. Prompt prêt dans
+  `document/prompts_plans/prompt_POC-013.md`.
