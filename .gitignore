@@ -29,6 +29,13 @@ profils_extraits_enrichis.csv
 profils_extraits_scores.csv
 profils_magasin.csv
 
+# Livrable client xlsx et trace de conversion du re-import (POC-013) — memes
+# donnees personnelles que les CSV ci-dessus. Le glob est volontairement large :
+# les tests ecrivent leurs classeurs dans tmp_path, jamais dans le depot.
+profils_magasin.xlsx
+*.xlsx
+*.reimport.csv
+
 # Sauvegardes locales des CSV de profils (memes donnees personnelles)
 *.csv.bak
 
