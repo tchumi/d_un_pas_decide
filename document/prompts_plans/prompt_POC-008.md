@@ -3,6 +3,78 @@ Tu travailles dans le repo ProspectionLinkedIn avec Claude Code dans VS Code.
 Je viens de faire un /clear pour réduire le contexte. Tu dois reprendre proprement à partir de
 la documentation projet, mais sans relire tout le repository.
 
+---
+
+## ⚠ Mise à jour du 08/09/2026 — à lire avant tout le reste
+
+> Ce prompt a été rédigé le 28/08/2026 à la clôture de POC-009, **avant** le call client du
+> 04/09/2026 et **avant** le départ en itinérance. Le corps ci-dessous reste valable sur le fond,
+> mais trois choses ont changé. **En cas de contradiction, ce bloc fait foi.**
+
+**1. Le client a mandaté le ticket, et il en a déplacé le centre de gravité.** Au call du
+04/09/2026, Christophe a insisté sur le **ciblage géographique** — Vosges (Remiremont) et Grand
+Est, Bordeaux cité comme contre-exemple non pertinent — l'enjeu étant de réunir sur une zone un
+quota de participants suffisant pour lancer un bootcamp. Il propose de **multiplier des requêtes
+ciblées simples** plutôt que de creuser une requête générique. Le vocabulaire outdoor, axe n°1 du
+prompt d'origine, reste au dossier mais **passe derrière la géographie**.
+
+[Mesuré le 08/09/2026 sur les 81 profils] **5 profils en Grand Est** (dont 4 au-dessus du seuil)
+contre **21 en Île-de-France** et 2 à Bordeaux : le gisement constitué est presque orthogonal au
+besoin exprimé. C'est l'argument chiffré le plus direct en faveur du ticket, à ajouter aux trois
+du corps ci-dessous.
+
+**2. Le ticket se scinde en deux volets, et un seul est faisable maintenant.**
+
+| Volet | Contenu | Faisable en itinérance ? |
+|---|---|---|
+| **A — configuration** | sortir les requêtes du code, en déclarer **plusieurs**, les parcourir en séquence, tracer le rendement de chacune | **Oui** — aucun réseau, aucun navigateur |
+| **B — facettes natives** | remplacer `AND (France)` dans `keywords` par les facettes géographiques réelles | **Non** — exige un run LinkedIn et un DOM réel |
+
+Le corps de ce prompt (notamment « Méthode attendue », étapes 1, 4 et 5) suppose le volet B et
+donc un run réel. **Si la session se tient encore en itinérance, traite le volet A seul** et
+laisse le volet B au retour sur le poste principal ; l'étape 1 « diagnostic sur DOM réel » est
+alors sans objet. La question (a) de l'étape 2 — « les requêtes deviennent-elles de la
+configuration éditable » — est de fait **déjà tranchée par le mandat client** : oui, et sur le
+modèle de `config/scoring_rules.json`, validé au chargement.
+
+Critères propres au volet A :
+* requêtes déclarées hors du code, dans un fichier de configuration versionné, **validé au
+  chargement**, erreur explicite si absent ou malformé ;
+* **plusieurs requêtes parcourues en séquence**, chacune avec un libellé lisible, et la sortie
+  console dit **par requête** combien de profils nouveaux elle a ramenés et pourquoi elle s'est
+  arrêtée — sans quoi on ne saura pas laquelle est productive, ce qui est tout l'intérêt ;
+* **`urls_connues` est passé et enrichi d'une requête à la suivante** : la déduplication doit
+  valoir *entre* les requêtes, sinon deux requêtes qui se recouvrent ramènent deux fois le même
+  profil — c'est exactement le défaut que POC-009 a corrigé sur `run_poc002` ;
+* la requête actuelle est reprise **à l'identique** comme première entrée (**vérifie la chaîne
+  exacte dans le code, ne la recopie pas de mémoire**), et un run sans nouvelle requête se
+  comporte comme avant ;
+* tout se teste avec une **fonction de recherche injectée**, comme la boucle de pagination.
+
+**3. Dépendance externe, non bloquante.** Christophe et Henri-Pierre doivent fournir un
+**brainstorming de requêtes ciblées** (point d'action n°3 du call). **Ne l'attends pas** :
+construis le mécanisme et amorce-le avec la requête actuelle, plus au plus une ou deux requêtes
+d'exemple clairement étiquetées comme provisoires. **N'invente pas de requêtes métier à leur
+place.**
+
+**4. Chiffres et état à jour.** La branche `master` est à **143 tests** (et non 123) depuis
+POC-013, qui a ajouté `openpyxl` et le livrable xlsx. Le magasin est **inchangé** : 81 profils,
+dernière collecte 2026-08-26, 20 statuts relus, empreinte
+`df1a7427c0db5aae23353ac0ad5a467f`. Utiliser `uv run --extra test pytest ...` pour les commandes
+de vérification du corps ci-dessous.
+
+**5. Précautions d'itinérance, si la session s'y tient encore.** `profils.db` est la **seule
+copie qui vit** (poste principal éteint) ; les sauvegardes sont dans
+`C:\Users\HP\Documents\_backup_prospection\`. **Le volet A ne doit rien écrire dans le magasin** :
+si une étape s'apprête à le faire, c'est qu'elle déborde sur le volet B — s'arrêter et le
+signaler. Vérifier le magasin **en lecture seule**, sans passer par `ouvrir_magasin` qui créerait
+un magasin vide si le fichier manquait. **Le navigateur Playwright est absent de cette machine** —
+sans conséquence pour le volet A, et une raison de plus de ne pas déborder. Enfin, compléter en
+fin de session le tableau de `document/claude_code/prompt_reconciliation_retour.md` (a priori une
+ligne « Non — lecture seule »).
+
+---
+
 ## Ticket à traiter
 
 Ticket : POC-008
@@ -144,7 +216,8 @@ git status --short
 git branch --show-current
 ```
 
-La branche attendue est `master` (123 tests). Ne change pas de branche sans validation humaine.
+La branche attendue est `master` (**143 tests** depuis POC-013 — voir le bloc de mise a jour
+en tete). Ne change pas de branche sans validation humaine.
 Ne fais jamais : `git reset --hard` ; checkout destructif ; suppression de fichiers ; amend de
 commit ; modification de fichiers non liés au ticket.
 

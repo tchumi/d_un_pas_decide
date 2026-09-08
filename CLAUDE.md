@@ -21,7 +21,7 @@ source/
     core/                    # scoring, catégorisation, modèles métier — zéro import Streamlit
     adapters/
       scraping/               # Playwright, sélecteurs CSS LinkedIn centralisés, session
-      storage/                # magasin SQLite persistant (POC-006) + export CSV
+      storage/                # magasin SQLite persistant (POC-006) + export CSV + livrable xlsx (POC-013)
       enrichment/             # recherche web + extraction de coordonnées (POC-004)
 tests/
   unit/    integration/    e2e/
@@ -35,8 +35,8 @@ document/
 ## État actuel
 
 - Branche active : `master` (base `master`)
-- **Dernière session** : onboarding itinérance et prise en compte du call client du 04/09/2026 (08/09/2026)
-- **Prochain ticket actif** : POC-013 — livrable Excel client et boucle de retour au format xlsx
+- **Dernière session** : POC-013 — livrable Excel client et boucle de retour au format xlsx (08/09/2026)
+- **Prochain ticket actif** : POC-008 — diversification des requêtes (volet configuration, hors-ligne ; le volet facettes attend un run LinkedIn au retour d'itinérance)
 
 Ces deux lignes sont les **seules** informations volatiles de ce fichier : elles se mettent à
 jour en fin de session (voir « Obligation de fin de session »). Tout le reste — statuts,

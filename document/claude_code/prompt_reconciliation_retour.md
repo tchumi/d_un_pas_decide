@@ -54,6 +54,38 @@ côté données, et seules les étapes 1, 5 et 6 restent à faire.
 | Date | Session / ticket | Écriture dans le magasin ? | Effet attendu sur les compteurs |
 |---|---|---|---|
 | 08/09/2026 | Onboarding itinérance + prise en compte du CR du 04/09 | **Non** — lecture seule | aucun |
+| 08/09/2026 | POC-013 — livrable xlsx et ré-import | **Oui, puis annulée par restauration** | **aucun** — voir ci-dessous |
+
+**POC-013, détail de l'écriture et de son annulation.** Le critère d'acceptation du ticket
+imposait un aller-retour sur le magasin réel : le livrable a été ouvert et annoté dans le **vrai
+Excel**, puis ré-importé. Cela a écrit **5 cellules** (4 `commentaire_client` + le
+`statut_coordonnees` d'Eric Fritsch passé à `rejete`), vérifiées ligne à ligne contre une
+sauvegarde prise avant — **les 14 autres colonnes intactes sur les 81 profils**.
+
+Ces 5 valeurs étaient des **données de test**, pas un retour client. Les laisser aurait envoyé à
+Christophe et Henri-Pierre un fichier portant de faux commentaires à leur nom, et aurait mis un
+verdict humain factice dans une colonne qui, depuis POC-009, ne doit contenir que des décisions
+humaines réelles. **La base a donc été restaurée** depuis la sauvegarde
+`profils_avant_POC013_20260908_090426.db` (décision utilisateur du 08/09/2026).
+
+**Conséquence pour la réconciliation : `profils.db` vaut de nouveau
+`df1a7427c0db5aae23353ac0ad5a467f`, l'empreinte de départ.** Si elle est toujours celle-là au
+retour, **il n'y a rien à réconcilier côté données** — seuls le code et la documentation ont
+changé, et ils circulent par Git.
+
+**Sauvegardes ajoutées pendant le déplacement**, dans
+`C:\Users\HP\Documents\_backup_prospection\` :
+
+| Fichier | Contenu |
+|---|---|
+| `profils_avant_POC013_20260908_090426.db` | état d'avant le ticket — **c'est celui qui a été remis en place** |
+| `profils_magasin_avant_POC013_20260908_090426.csv` | l'export correspondant |
+| `profils_apres_test_POC013_<horodatage>.db` | état d'après l'aller-retour de test, **conservé comme preuve**, à ne pas restaurer |
+
+**Deux fichiers de données nouveaux à la racine du laptop**, tous deux gitignorés depuis ce
+ticket et à traiter comme les CSV existants : `profils_magasin.xlsx` (le livrable client) et
+`profils_magasin.reimport.csv` (la trace de conversion d'un ré-import). Ils se régénèrent depuis
+le magasin, il n'y a rien à rapatrier à la main.
 
 ## Étape 1 — Récupérer le code et la documentation
 

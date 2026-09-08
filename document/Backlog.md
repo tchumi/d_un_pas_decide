@@ -1538,3 +1538,65 @@ exclus de l'export, comme depuis POC-006.
 - 08/09/2026 — Ticket **réalisable en itinérance** : aucun run LinkedIn, aucun réseau, lecture du
   magasin puis une écriture maîtrisée au ré-import de vérification. Prompt prêt dans
   `document/prompts_plans/prompt_POC-013.md`.
+- 08/09/2026 — **Question « quelles lignes livrer » tranchée (utilisateur) : le CSV intégral**,
+  soit les 81 profils moins les `ne_plus_traiter`, **sans filtre de seuil**. Cohérent avec un
+  client qui a dit vouloir trier et filtrer lui-même ; l'arbitrage du seuil lui revient, et c'est
+  précisément l'une des questions ouvertes que le retour d'usage doit trancher.
+- 08/09/2026 — **Bascule xlsx → lignes : option A** (utilisateur). `run_poc006` convertit le
+  classeur en CSV voisin, puis déroule son chemin actuel. **`profile_store.py` n'est pas
+  touché** : c'est lui qui porte les règles de conflit de POC-006 et POC-009, et l'option B
+  (ajouter un paramètre `lignes` à `importer_commentaires_csv`) aurait modifié le seul module où
+  une régression coûterait des données client. Bénéfice secondaire retenu : le CSV intermédiaire
+  est une **trace inspectable** de ce qu'Excel a rendu.
+- 08/09/2026 — **Mise en forme : minimum strict accepté** (utilisateur) — figeage de la ligne
+  d'en-tête et filtre automatique, **rien d'autre**. Aucune valeur touchée.
+- 08/09/2026 — **Données de test retirées du magasin** (utilisateur). L'aller-retour de
+  vérification avait écrit 4 `commentaire_client` et 1 `statut_coordonnees` inventés ; les
+  laisser aurait livré au client de faux commentaires à son nom et un verdict humain factice.
+  Base restaurée depuis la sauvegarde, empreinte de départ retrouvée.
+
+**Réalisé le 08/09/2026 — ce que le run réel a appris**
+
+- **`openpyxl>=3.1`** ajouté aux dépendances. Nouveau module
+  `source/backend/adapters/storage/xlsx_export.py` : `convertir_csv_en_xlsx`, `lire_xlsx`,
+  `xlsx_vers_csv`, et l'exception `EnteteXlsxInvalide`. Nouveau script `run_poc013.py` ; les
+  quatre `run_pocNNN.py` existants sont restés intacts, sauf `run_poc006.py` qui reçoit
+  l'aiguillage par extension.
+- **La parade au risque principal est en deux temps, pas un.** À l'aller, chaque cellule est
+  écrite **en texte** (format Excel `"@"`), ce qui empêche Excel de réinterpréter une date ou un
+  score à l'ouverture. Au retour, tout est ramené en `str` et une cellule vide vaut `""`. Le
+  premier temps est ce qui fait que le second n'a presque rien à rattraper.
+- **Détail vérifié à l'écriture** : [Code] openpyxl type une chaîne commençant par `=` comme une
+  **formule**. Un `commentaire_client` ou une `justification` commençant par `=` serait devenu
+  une formule Excel ; les cellules sont donc forcées en type `s`.
+- **Aller-retour fait dans le vrai Excel** (Excel 16.0 piloté par COM), pas simulé — c'est ce que
+  demandait le critère. Résultat mesuré : après ouverture et enregistrement par Excel,
+  **exactement 5 cellules divergentes sur 81 × 16, les 5 annotées à la main**. Aucune date
+  reformatée, aucun score en flottant, **aucun des 6 noms à emoji abîmé**. Puis ré-import et
+  comparaison ligne à ligne contre la sauvegarde : **14 colonnes sur 16 intactes**, seules
+  `commentaire_client` et `statut_coordonnees` ont bougé. Le piège de `enregistrer_profils`
+  appelé en premier n'a rien abîmé.
+- **Trou de POC-009 découvert par ce run et corrigé** : [Code] `_afficher_rapport` de
+  `run_poc006` n'imprimait **ni `statuts_tranches` ni `statuts_refuses`**. Les deux champs
+  existent dans `RapportReimport` depuis POC-009 et `_importer_statut_coordonnees` les remplit,
+  mais aucun script ne les affichait — un statut entrait en base sans trace, et surtout une
+  valeur **non reconnue** (« Validé » accentué, « OK ») était **écartée en silence**, ce que la
+  règle de POC-009 interdit explicitement. Corrigé (décision utilisateur du 08/09/2026), avec un
+  test. Le run de contrôle affiche désormais les 19 statuts tranchés et 0 refusé.
+- **Angle mort RGPD refermé** : `profils_magasin.xlsx` et `profils_magasin.reimport.csv`
+  n'étaient couverts par **aucune** règle de `.gitignore`, qui listait les CSV **un par un**.
+  Deux fichiers de données personnelles de 81 personnes réelles étaient à un `git add .` d'être
+  versionnés. `*.xlsx` et `*.reimport.csv` ajoutés.
+- **Le bug cp1252 de POC-009 s'est reproduit** — dans un script d'analyse jetable de la session,
+  pas dans le code du projet, qui lui a tenu. Confirmation que le magasin contient **6 profils à
+  emoji** et non 2 comme le handoff le laissait entendre : ce sont 2 profils qui avaient fait
+  planter le run, sur 6 porteurs du risque.
+- **Comportement idempotent constaté, sans conséquence** : chaque ré-import ré-écrit les statuts
+  déjà tranchés avec la même valeur, et les signale comme tranchés. Rien n'est perdu ; c'est
+  seulement bruyant sur un gros lot. Non corrigé, hors périmètre.
+- Tests : **143 passed, 0 failed, 0 skipped** (123 avant POC-013), dont 20 nouveaux dans
+  `tests/unit/test_xlsx_export.py`.
+
+**Reste ouvert après POC-013** : le fichier est produit, il n'est pas **envoyé**. L'envoi à
+Christophe et Henri-Pierre est un geste humain, hors outil. Le retour d'usage promis au call
+(point d'action n°5) reste la dépendance qui débloque les arbitrages de scoring.

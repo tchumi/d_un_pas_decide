@@ -355,3 +355,102 @@ Format de chaque section :
   `document/prompts_plans/prompt_POC-013.md`. **POC-008**, désormais mandaté par le client, reste
   le prochain P1 après lui, mais son volet décisif exige un run LinkedIn réel : il attend le
   retour sur le poste principal.
+
+## 11. POC-013 — Livrable Excel client et boucle de retour au format xlsx (08/09/2026)
+
+- **Ticket à échéance ferme, tenu** : point d'action n°1 du call du 04/09/2026, livrable attendu
+  pour la fin de la semaine du 08/09/2026. Session menée depuis le **laptop en itinérance**, sans
+  aucun run LinkedIn ni accès réseau. Dépôt propre sur `master` au départ, **123 passed**.
+- **Livrable produit** : `profils_magasin.xlsx`, **81 profils**, les 16 colonnes de
+  `PROFILE_CSV_FIELDS` **inchangées en contenu et en ordre**. Le CSV est livré **intégral**, sans
+  filtre de seuil (décision utilisateur) : le client a dit vouloir trier et filtrer lui-même,
+  l'arbitrage du seuil lui revient.
+- **Périmètre minimal tenu** : ni `csv_export.py` ni `profile_store.py` n'ont été touchés. Nouveau
+  module `xlsx_export.py`, nouveau script `run_poc013.py`, aiguillage par extension dans
+  `run_poc006.py`, `openpyxl>=3.1` en dépendance.
+- **La parade au risque principal est en deux temps, et c'est le vrai enseignement du ticket.** À
+  l'aller, chaque cellule est écrite **en texte** (format Excel arobase), ce qui empêche Excel de
+  réinterpréter une date ou un score **à l'ouverture** ; au retour, tout est ramené en `str` et
+  une cellule vide vaut la chaîne vide. Le premier temps est ce qui fait que le second n'a presque
+  rien à rattraper. Un ticket qui n'aurait traité que la lecture aurait « marché » en test
+  unitaire et laissé le vrai Excel abîmer les données.
+- **Détail vérifié à l'écriture** : [Code] openpyxl type une chaîne commençant par un signe égal
+  comme une **formule**. Un `commentaire_client` commençant ainsi serait devenu une formule
+  Excel ; les cellules sont forcées en type texte.
+- **L'aller-retour a été fait dans le vrai Excel** (16.0 piloté par COM), pas simulé — c'est ce
+  que demandait le critère, et c'est la seule façon de mesurer « ce qu'Excel fait aux données en
+  chemin ». **Résultat : après ouverture et enregistrement par Excel, exactement 5 cellules
+  divergentes sur 81 × 16, les 5 annotées à la main.** Aucune date reformatée, aucun score en
+  flottant, **aucun des 6 noms à emoji abîmé**. Puis ré-import et comparaison ligne à ligne contre
+  une sauvegarde datée : **14 colonnes sur 16 intactes**, seules `commentaire_client` et
+  `statut_coordonnees` ont bougé. **Le piège documenté — `enregistrer_profils` appelé avant
+  `importer_commentaires_csv` — n'a rien abîmé** : aucun second « cas Erwan Jorand » créé.
+- **Bascule par option A** (décision utilisateur) : `run_poc006` convertit le classeur en CSV
+  voisin puis déroule son chemin actuel. `profile_store.py`, seul module portant les règles de
+  conflit de POC-006 et POC-009, n'est pas touché. Le CSV intermédiaire est en prime une **trace
+  inspectable** de ce qu'Excel a rendu — sur un fichier non annoté il est **identique octet pour
+  octet** au CSV d'origine, ce qui est vérifié par un test.
+- **Trou de POC-009 découvert par le run réel et corrigé** (décision utilisateur) : [Code]
+  `_afficher_rapport` de `run_poc006` n'imprimait **ni `statuts_tranches` ni `statuts_refuses`**.
+  Les deux champs existent dans `RapportReimport` depuis POC-009 et `_importer_statut_coordonnees`
+  les remplit, mais aucun script ne les affichait — un statut entrait en base **sans trace**, et
+  surtout une valeur **non reconnue** (« Validé » accentué, « OK ») était **écartée en silence**,
+  ce que la règle de POC-009 interdit explicitement. Le run de contrôle affiche désormais les
+  **19 statuts tranchés et 0 refusé**. Ce défaut ne se voyait dans aucun test : il fallait le run.
+- **Angle mort RGPD refermé** : `.gitignore` listait les CSV de profils **un par un**.
+  `profils_magasin.xlsx` et `profils_magasin.reimport.csv`, tous deux créés par ce ticket,
+  n'étaient couverts par **aucune** règle — deux fichiers de données personnelles de 81 personnes
+  réelles à un `git add .` d'être versionnés. Les motifs correspondants ont été ajoutés.
+- **Données de test retirées du magasin** (décision utilisateur) : les 4 `commentaire_client` et
+  le `statut_coordonnees` inventés pour la vérification auraient livré au client de faux
+  commentaires **à son nom**, et mis un verdict humain factice dans une colonne qui depuis
+  POC-009 ne doit contenir que des décisions humaines réelles. Base restaurée depuis
+  `profils_avant_POC013_20260908_090426.db` ; **empreinte de départ
+  `df1a7427c0db5aae23353ac0ad5a467f` retrouvée**. L'état d'après-test est conservé comme preuve
+  dans `profils_apres_test_POC013_*.db`.
+- **Magasin vérifié après restauration** : 81 profils, dernière collecte 2026-08-26, 20 statuts
+  relus (7 `valide`, 11 `rejete`, 2 `candidat`), 0 commentaire client. Identique au départ.
+- **Le bug cp1252 de POC-009 s'est reproduit** — dans un script d'analyse jetable de la session,
+  pas dans le code du projet, qui a tenu. Au passage : le magasin contient **6 profils à emoji**,
+  pas 2 ; les 2 du handoff précédent sont ceux qui avaient fait planter le run, pas la population
+  à risque.
+- Fichiers créés : `source/backend/adapters/storage/xlsx_export.py`,
+  `source/backend/adapters/storage/run_poc013.py`, `tests/unit/test_xlsx_export.py`,
+  `document/prompts_plans/plan_POC-013.md`.
+- Fichiers modifiés : `source/backend/adapters/storage/run_poc006.py`, `pyproject.toml`,
+  `uv.lock`, `.gitignore`, `document/Backlog.md`, `document/claude_code/task_list.md`,
+  `document/claude_code/handoff.md`, `document/claude_code/prompt_reconciliation_retour.md`,
+  `CLAUDE.md`.
+- Tests : **143 passed, 0 failed, 0 skipped** (123 avant), dont 20 nouveaux.
+- Lancement de l'app **non nécessaire** : `source/frontend_streamlit/` n'existe toujours pas, et
+  aucun chemin UI n'est concerné.
+
+### Points de vigilance légués
+
+- **Le livrable est produit, il n'est pas envoyé.** L'envoi à Christophe et Henri-Pierre est un
+  geste humain, hors outil, et c'est lui qui tient l'échéance. Le fichier est
+  `profils_magasin.xlsx` à la racine ; il se régénère par
+  `python -m source.backend.adapters.storage.run_poc013`.
+- **Le retour client se ré-injecte par**
+  `python -m source.backend.adapters.storage.run_poc006 profils_magasin.xlsx`.
+  **Prendre une sauvegarde datée avant.** Lire la sortie : les blocs « statuts REFUSES » et
+  « commentaires REMPLACES » sont les seuls endroits où une décision client peut se perdre, et ils
+  sont désormais visibles.
+- **Le ré-import est bruyant mais sûr** : chaque passage ré-écrit les statuts déjà tranchés avec
+  la même valeur et les liste. Rien n'est perdu ; laissé en l'état, hors périmètre.
+- **La réconciliation au retour est simplifiée** : `profils.db` porte de nouveau l'empreinte de
+  départ, donc **il n'y a rien à réconcilier côté données**. Seuls le code et la documentation ont
+  changé, et ils circulent par Git. Le tableau de
+  `document/claude_code/prompt_reconciliation_retour.md` est à jour.
+- Les points de vigilance de POC-009 restent tous ouverts : titre divergent d'Erwan Jorand,
+  5ᵉ anomalie de scoring (Manon Dumartin), `rejete` non complètement réversible, 14 profils jamais
+  enrichis par choix, `.scores_avant.json` à supprimer.
+
+### Prochain ticket
+
+- **POC-008** — diversification des requêtes, **mandaté par le client** au call du 04/09/2026
+  (ciblage géographique Vosges/Grand Est). Il se scinde : le volet « plusieurs requêtes
+  configurables » est de la configuration et reste **faisable en itinérance** ; le volet facettes
+  natives / filtre géographique réel exige un **run LinkedIn** et attend le retour sur le poste
+  principal. **Dépendance externe** : le brainstorming de requêtes dû par Christophe et
+  Henri-Pierre (point d'action n°3).
