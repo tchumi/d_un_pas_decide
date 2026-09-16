@@ -27,6 +27,11 @@ d'opposition RGPD**. Les scores et les profils, eux, se recalculent depuis les C
 
 ## État connu au départ (08/09/2026)
 
+> **Mise à jour du 16/09/2026 — l'empreinte de départ ne vaut plus.** Le retour client du 11/09/2026 a été
+> ré-importé sur le laptop : la base porte désormais **81 commentaires client** qui n'existent **nulle part
+> ailleurs**. Le cas « rien à réconcilier » ci-dessous est **caduc** ; voir l'état à jour dans la section
+> « Ce qui a été écrit sur le laptop ». Le poste principal, éteint, a toujours **0 commentaire client**.
+
 Les deux bases étaient identiques au moment du départ :
 
 | Mesure | Valeur au départ |
@@ -55,6 +60,7 @@ côté données, et seules les étapes 1, 5 et 6 restent à faire.
 |---|---|---|---|
 | 08/09/2026 | Onboarding itinérance + prise en compte du CR du 04/09 | **Non** — lecture seule | aucun |
 | 08/09/2026 | POC-013 — livrable xlsx et ré-import | **Oui, puis annulée par restauration** | **aucun** — voir ci-dessous |
+| 16/09/2026 | Ré-import du retour client du 11/09/2026 | **Oui — écriture réelle, conservée** | `commentaire_client` non vides : **0 → 81** ; tout le reste inchangé — voir ci-dessous |
 
 **POC-013, détail de l'écriture et de son annulation.** Le critère d'acceptation du ticket
 imposait un aller-retour sur le magasin réel : le livrable a été ouvert et annoté dans le **vrai
@@ -86,6 +92,45 @@ changé, et ils circulent par Git.
 ticket et à traiter comme les CSV existants : `profils_magasin.xlsx` (le livrable client) et
 `profils_magasin.reimport.csv` (la trace de conversion d'un ré-import). Ils se régénèrent depuis
 le magasin, il n'y a rien à rapatrier à la main.
+
+**Ré-import du retour client du 11/09/2026 (16/09/2026) — écriture réelle, à rapatrier.**
+Christophe et Henri-Pierre ont renvoyé le classeur annoté
+(`document/compte_rendu/profils_magasin_2026_09_11.xlsx`, mail du 11/09/2026). Il a été ré-importé
+par `run_poc006` après sauvegarde, puis vérifié cellule par cellule contre cette sauvegarde :
+**exactement 81 cellules modifiées, toutes dans `commentaire_client`**, aucune autre colonne, aucun
+profil ajouté, `user_version` inchangé. `profils_magasin.csv` a été régénéré depuis la base.
+
+**Ces 81 verdicts sont la donnée la plus précieuse du projet** — le premier jeu de référence
+humain, sur lequel POC-014 mesure le scoring. **Perdre la base du laptop, c'est les perdre**, sauf
+à ré-importer le classeur client, conservé dans `compte_rendu/`.
+
+**État de la base du laptop au 16/09/2026** — c'est la référence à comparer au retour :
+
+| Mesure | Valeur |
+|---|---|
+| Profils | **81** |
+| Dernière `date_collecte` | **2026-08-26** |
+| `statut_coordonnees` non vides | **20** (7 `valide`, 11 `rejete`, 2 `candidat`) — inchangé |
+| `commentaire_client` non vides | **81** (0 au départ) |
+| Oppositions `ne_plus_traiter` | **0** |
+| `PRAGMA user_version` | **2** |
+| Empreinte MD5 | `47b767d5acca659a29511933dfa8352f` |
+
+**Conséquence pour la réconciliation** : à l'étape 2, le laptop doit afficher **commentaires=81**
+et le poste principal **commentaires=0**, toutes les autres mesures égales. C'est le cas normal
+« le laptop a avancé » : **remplacer**, en suivant les étapes 3 et 4. Si le poste principal
+affiche autre chose que 0 commentaire, **arrêter** — l'hypothèse « poste éteint » est contredite.
+
+**Sauvegarde ajoutée**, dans `C:\Users\HP\Documents\_backup_prospection\` :
+`profils_avant_retour_client_20260916_180620.db` et
+`profils_magasin_avant_retour_client_20260916_180620.csv` — l'état juste avant le ré-import.
+
+**Fichier de données nouveau hors dépôt** : la trace de conversion
+`profils_magasin_2026_09_11.reimport.csv`, écrite à côté du classeur client dans `compte_rendu/`.
+Même traitement que les autres copies de données personnelles à l'étape 6.
+
+**Mettre à jour cette section et l'empreinte à chaque nouvelle écriture** (re-scoring de POC-014,
+en particulier).
 
 ## Étape 1 — Récupérer le code et la documentation
 

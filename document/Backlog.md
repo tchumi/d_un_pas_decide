@@ -359,6 +359,105 @@ contre 21 en Île-de-France. C'est l'argument chiffré le plus direct en faveur 
 confirme le diagnostic déjà posé : [Code] `build_search_url` place `AND (France)` dans le seul
 paramètre `keywords`, ce qui est une correspondance textuelle et non un filtre géographique.
 
+### Retour client du 11/09/2026 — la grille de profilage et le premier jeu de référence
+
+**Ce qui est arrivé** : réponse de Christophe (Henri-Pierre en copie) au mail de livraison de
+POC-013, avec le classeur annoté (`document/compte_rendu/`, « 2026 09 11 - mail Christophe.pdf »
+et `profils_magasin_2026_09_11.xlsx`). **81 commentaires sur 81**, aucune autre colonne modifiée,
+en-tête intact : la boucle de retour de POC-013 a fonctionné sur un vrai retour, sans retouche.
+**Ré-importé le 16/09/2026** dans le magasin — 81 cellules `commentaire_client` écrites, aucune
+autre cellule modifiée, vérifié contre une sauvegarde prise avant.
+
+**La grille de profilage du client** (texte du mail) :
+
+| Verdict | Définition client | Profils |
+|---|---|---|
+| **Excellent profil** | Ancien dirigeant. Coach business qui travaille avec dirigeants et CODIRs, donc aussi pour des équipes | 6 |
+| **Bon profil** | Carrière entreprise privée. Coach business qui travaille ou pas avec des équipes | 20 |
+| **Mauvais profil** | Carrière fonction publique. Coach de vie ou multicarte ou autre type de coaching ou de métier | 46 |
+| **Rien à voir** | Pas coach | 9 |
+
+Cinq commentaires portent une justification libre : « numérologie », « consultant » (×2),
+« coach interne », « service aux coachs ».
+
+**Déclaration clé du mail** : *« Nous avons beaucoup utilisé, en plus du titre, les champs
+"Expérience" et "Infos" qui sont très utiles pour le profilage. »* [Code] Le scoring ne lit que
+le `titre` (`scorer_titre`). Deux des trois axes de la grille — ancien dirigeant, carrière
+privée ou publique — relèvent du parcours, pas du titre.
+
+**Mesures du 16/09/2026, score v1 contre verdict client** (lecture seule) :
+
+| Score | Profils | Excellent | Bon | Mauvais | Rien à voir |
+|---|---|---|---|---|---|
+| 85 | 18 | 3 | 7 | 8 | 0 |
+| 75 | 30 | 0 | 9 | 17 | 4 |
+| 60–74 | 17 | 3 | 4 | 8 | 2 |
+| < 60 | 16 | 0 | 0 | 13 | 3 |
+
+- **Le seuil 60 ne rate aucun bon profil** : les 26 bons ou excellents sont tous à 60 ou plus.
+  Comme filtre d'exclusion, le score fonctionne, et c'est vraisemblablement ce que Christophe
+  appelle « pertinent ». **Monter le seuil serait une erreur** : à 75, 7 bons profils sortiraient,
+  dont 3 des 6 excellents (scores 70, 70, 60).
+- **Au-dessus du seuil, le score ne classe pas** : 26 bons sur 65 retenus (**précision 40 %**,
+  pour un taux de base de 32 %). Au score maximal de 85, **8 mauvais pour 10 bons ou excellents**.
+- **Pouvoir discriminant par règle** (part de bons ou excellents parmi les profils où la règle
+  s'est déclenchée, pour un taux de base de 32 %) :
+
+  | Règle | Déclenchée | Bons / excellents |
+  |---|---|---|
+  | `base_coach` (+20) | 78 | 33 % |
+  | `certification` (+15) | 55 | **35 % — aucun signal** |
+  | `focus_business` (+40) | 67 | 39 % — signal faible, pour le plus gros poids |
+  | `cible_business` (+10) | 31 | **45 % — seul bonus qui discrimine**, pour le plus petit poids |
+  | `exclusion_non_coach` | 3 | 0 % — juste |
+  | `hors_cible` (malus) | 4 | 0 % — juste |
+
+  Les exclusions et le malus ne se sont jamais trompés ; les bonus sont **pondérés à l'envers de
+  leur pouvoir discriminant**. La certification Coaching Ways, omniprésente dans le lot d'août,
+  n'est pas une règle en soi : elle déclenche `focus_business` (« coach professionnel ») **et**
+  `certification`, d'où le bloc de profils à 75.
+- **Ce que disent les titres des 6 excellents** : Directeur (monde industriel), Directeur associé,
+  Co-fondateur, VP Human Resources, Executive Coach, « je coache les dirigeants ». [Inférence] Le
+  critère « ancien dirigeant » est **partiellement** visible dans le titre quand la personne
+  l'affiche ; il ne l'est pas quand elle ne le fait pas, d'où le besoin des rubriques
+  « Expérience » et « Infos ».
+- **« Consultant » n'est pas un critère d'exclusion en soi** : cité comme motif pour 2 mauvais
+  profils, il apparaît aussi dans le titre d'un excellent (Eric Fritsch). Le client vise le
+  **multicarte**, pas le mot.
+
+**Questions ouvertes tranchées par ce retour** :
+
+- **Q4 (`life coach`)** : Elise Rousseau, « Certified Life & Business Coach », jugée **mauvais
+  profil**. L'exclusion aurait dû la capter : l'anomalie A était bien un raté.
+- **Q5 (malus `scolaire`)** : Marc Michaud et Stéphanie GOYON jugés **mauvais profil**. Le malus
+  était juste ; l'inquiétude de l'anomalie C n'était pas fondée.
+- **Q6 (coaching en second métier)** : Christine Fabayre **rien à voir**, Vincent LEROUX **mauvais
+  profil**. Ils doivent sortir de la sélection (anomalie D confirmée).
+- **Q7 (pouvoir discriminant)** : répondue par la grille elle-même — le client veut **4 niveaux**.
+- **5ᵉ anomalie (Manon Dumartin, score 0 mais conservée)** : **mauvais profil**, confirmée.
+- **Q1 (débutant / expérimenté)** : répondue de biais — le critère n'est pas l'ancienneté dans le
+  coaching mais **la carrière d'avant** (ancien dirigeant, privé contre public).
+- **Seuil 60 (Q3)** : non discuté par le client, mais **validé par la mesure** — zéro faux négatif.
+
+**Deux faits annexes** :
+
+- **Les coordonnées ont été cherchées pour les mauvais profils** : sur les 7 profils à
+  `statut_coordonnees = valide`, **5 sont jugés mauvais** (Elise Rousseau, Emmanuel Poilane,
+  Julie Leger, Sylvie DUCHENE, Manuel BOSSU). La recherche web s'enclenche au seuil 60, qui ne
+  classe pas (voir POC-017).
+- **Suggestion du client** : *« une nouvelle colonne numéro de département ou nom du département
+  serait la bienvenue »* (voir POC-015).
+
+**Décisions** :
+- 11/09/2026 — Grille de profilage à 4 niveaux définie par le client.
+- 11/09/2026 — **Géographie déclarée critère accessoire** par le client (voir POC-008).
+- 16/09/2026 — Retour ré-importé dans le magasin, avant toute évolution des colonnes de l'export
+  (sinon le contrôle d'en-tête de POC-013 aurait refusé le fichier).
+- 16/09/2026 — Itération validée par l'utilisateur : POC-014 (scoring v2 sur le titre, mesuré
+  contre la grille), POC-015 (colonne département), POC-016 (extraction « Expérience » et
+  « Infos »), POC-017 (recherche de coordonnées déclenchée par le verdict).
+
+
 
 ---
 
@@ -1064,6 +1163,27 @@ exigeante que ce que le ticket prévoyait.
   faisable hors-ligne ; le volet « facettes natives / filtre géographique réel » reste
   conditionné à un run LinkedIn, donc au retour d'itinérance.
 
+### Retour du 11/09/2026 — la géographie redevient secondaire
+
+Le mail de Christophe du 11/09/2026 contredit la lecture du call du 04/09/2026 : *« Nous n'avons
+pas tenu compte de la géographie qui reste pour nous un critère accessoire à ce stade. […] Il n'y
+a pas de mauvais profil géographique. »* Le mandat géographique de la sous-section précédente
+**tombe**. Ce qui reste :
+
+- **Le volume et la variété** : le gisement de la requête actuelle est toujours à ~1 run
+  d'avance (page 8 sur ~10). C'est de nouveau l'argument principal du ticket.
+- **Le brainstorming de requêtes** dû par le client (point d'action n°3) **n'est pas arrivé** avec
+  ce mail. Dépendance externe toujours ouverte.
+- **La grille de profilage du 11/09 réoriente le vocabulaire** : viser des coachs d'anciens
+  dirigeants et de CODIR (« executive coach », « coach de dirigeants ») plutôt que multiplier des
+  variantes géographiques.
+
+**Décisions** :
+- 11/09/2026 — Géographie déclarée **critère accessoire** par le client.
+- 16/09/2026 — Priorité **P1 → P2** : le levier le plus direct sur la qualité est désormais
+  POC-014 puis POC-016 ; POC-008 reste nécessaire pour le volume.
+
+
 ---
 
 ## POC-009 — Raccordement de POC-002 et POC-004 au magasin (sans refaire le scraping)
@@ -1323,6 +1443,17 @@ et POC-010. Ordre recommandé : **POC-009 → POC-008 → POC-010**.
   change après coup.
 - 28/08/2026 — Prompt de cadrage préparé dans
   `document/prompts_plans/prompt_POC-010.md`.
+
+### Retour du 11/09/2026 — la prémisse du ticket est fragilisée
+
+[Code] POC-010 reposait sur un fait : `scorer_titre` ne lit que le `titre`, disponible dès la
+carte de résultat, donc le score est calculable **sans visiter une seule page profil**. Le retour
+client du 11/09/2026 montre que **le titre ne suffit pas** à reproduire le jugement du client, qui
+s'appuie sur « Expérience » et « Infos ». Si POC-016 confirme ce besoin, **le scoring utile
+exigera une visite de profil**, et l'ordre « scorer d'abord, visiter ensuite » devient « filtrer
+sur le titre (seuil 60, zéro faux négatif sur le lot du 11/09), visiter, scorer ». À réinstruire
+après POC-016, pas avant.
+
 
 ---
 
@@ -1600,3 +1731,151 @@ exclus de l'export, comme depuis POC-006.
 **Reste ouvert après POC-013** : le fichier est produit, il n'est pas **envoyé**. L'envoi à
 Christophe et Henri-Pierre est un geste humain, hors outil. Le retour d'usage promis au call
 (point d'action n°5) reste la dépendance qui débloque les arbitrages de scoring.
+
+---
+
+## POC-014 — Scoring v2 sur le titre, mesuré contre la grille de profilage du client
+
+**Objectif** : Mesurer, et pousser aussi loin que raisonnable, ce que le **titre seul** permet de
+reproduire du jugement client du 11/09/2026 — sans extraction supplémentaire, sans run LinkedIn.
+
+**Origine** : ticket ouvert le 16/09/2026, à l'analyse du retour client du 11/09/2026 (section
+POC-003, « Retour client du 11/09/2026 »).
+
+**Pourquoi** : pour la première fois, le projet dispose d'un **jeu de référence humain** — 81
+profils jugés par le client. Le score v1 écarte correctement (zéro faux négatif au seuil 60) mais
+ne classe pas (précision 40 % au-dessus du seuil, pour un taux de base de 32 %), et ses bonus sont
+pondérés à l'envers de leur pouvoir discriminant mesuré.
+
+**Pistes relevées à l'analyse, à instruire — pas à appliquer d'office** :
+- **Catégorie** : remplacer `coach_business_indifferencie` (78 profils sur 81) par les 4 niveaux
+  du client (excellent, bon, mauvais, rien à voir), ou une projection du score sur ces niveaux.
+- **Exclusions ou malus nommés par le client** : numérologie, coach interne (salarié d'une
+  entreprise, ex. « chez Stellantis »), service aux coachs, coach « en formation ».
+- **Fonction publique** : indices dans le titre (Conseil Régional, Fédération Hospitalière, cadre
+  de santé…) — **couverture partielle attendue**, le critère relève surtout du parcours.
+- **Ancien dirigeant** : signaux visibles dans 5 des 6 titres excellents (Directeur, Directeur
+  associé, Co-fondateur, VP, Executive Coach, « coache les dirigeants »).
+- **Anomalie A** : « Life & Business Coach » doit être exclu — normalisation de l'esperluette ou
+  mot-clé dédié.
+- **Rééquilibrer les poids** : `certification` (+15) n'apporte aucun signal (35 % pour 32 % de
+  base), `focus_business` (+40) presque aucun, `cible_business` (+10) est le plus discriminant.
+- **« Consultant » n'est pas un motif d'exclusion** : un excellent le porte. Le client vise le
+  multicarte.
+
+**Risque principal — le sur-apprentissage** : ajuster des règles sur 81 profils **et** les évaluer
+sur les mêmes 81 reproduit exactement le défaut que POC-007 a dû lever pour POC-003. Garde-fous à
+arrêter au cadrage :
+- **règles génériques uniquement**, jamais un mot-clé qui ne vise qu'un profil nommé ;
+- chaque règle ajoutée justifiée par **la définition du client**, pas par un profil ;
+- métriques publiées **avant et après** (précision au-dessus du seuil, rappel, matrice
+  score × verdict), et **validation obligatoire sur le prochain lot annoté** avant de s'y fier.
+- **Ne jamais dégrader le rappel** : aujourd'hui aucun bon profil n'est écarté ; une v2 qui en
+  écarte un doit le justifier explicitement.
+
+**Critère de sortie attendu** : un chiffre honnête — « le titre seul permet d'atteindre X % de
+précision sans perte de rappel » — qui dira si POC-016 est **indispensable** ou seulement utile.
+
+**Périmètre pressenti** : `config/scoring_rules.json` ; `source/backend/core/profile_scoring.py`
+si un nouveau type de règle ou la catégorie à 4 niveaux l'exige ; un script d'évaluation
+**en lecture seule** contre les verdicts stockés ; tests unitaires. **Aucune migration** si la
+catégorie reste dans la colonne `categorie` existante.
+
+**Hors périmètre** : extraction de nouveaux champs LinkedIn (POC-016) ; colonne département
+(POC-015) ; toute modification de `commentaire_client`, qui est la vérité terrain.
+
+**Faisable en itinérance** : oui — hors-ligne, magasin lu, puis re-scoring par `run_poc003` après
+sauvegarde.
+
+**Décisions** :
+- 16/09/2026 — Ticket ouvert, itération validée par l'utilisateur.
+
+---
+
+## POC-015 — Colonne département dans l'export
+
+**Objectif** : Répondre à la suggestion du client du 11/09/2026 — *« une nouvelle colonne numéro
+de département ou nom du département serait la bienvenue »* — pour **trier**, la géographie
+restant un critère accessoire.
+
+**Constat mesuré le 16/09/2026** : la `localisation` LinkedIn n'est pas homogène. **52 profils** au
+format « Ville, Région, France » (département dérivable via une table commune → département),
+**28** en libellé unique (« Paris et périphérie », « Lille et périphérie », « France ») dont une
+partie **n'est pas rattachable** à un département, 1 en deux parties. Une valeur vide doit rester
+possible et assumée, jamais devinée.
+
+**Point de vigilance hérité de POC-013** : [Code] le ré-import **refuse** un classeur dont
+l'en-tête ne correspond pas à `PROFILE_CSV_FIELDS`. Ajouter une colonne rend **inimportables les
+classeurs déjà envoyés au client**. C'est pourquoi le retour du 11/09/2026 a été ré-importé
+**avant** ce ticket. Le cadrage doit décider : colonne dérivée à l'export seulement (pas de
+migration) ou stockée ; et comment traiter un ancien classeur qui reviendrait.
+
+**Périmètre pressenti** : table de correspondance statique versionnée ; fonction pure de
+dérivation ; `csv_export.py` ; tests. **Hors périmètre** : tout filtrage géographique de collecte
+(POC-008).
+
+**Faisable en itinérance** : oui.
+
+**Décisions** :
+- 11/09/2026 — Suggestion client.
+- 16/09/2026 — Ticket ouvert, **après** le ré-import du retour du 11/09/2026.
+
+---
+
+## POC-016 — Extraction des rubriques « Expérience » et « Infos » du profil LinkedIn
+
+**Objectif** : Donner au scoring les informations que le client utilise réellement pour juger un
+profil.
+
+**Origine** : retour client du 11/09/2026 — *« Nous avons beaucoup utilisé, en plus du titre, les
+champs "Expérience" et "Infos" qui sont très utiles pour le profilage. »* Deux des trois axes de
+leur grille (ancien dirigeant ; carrière privée contre fonction publique) relèvent du parcours.
+
+**Levier identifié** : [Code] `run_poc002` **visite déjà** la page profil pour l'email — pour
+**0 email public sur 30 profils** testés. Capturer « Expérience » et « Infos » pendant cette même
+visite rendrait enfin utile l'étape la plus risquée du pipeline, sans ajouter de visite. Restreinte
+aux profils au seuil 60 ou plus, la visite n'aurait écarté **aucun** bon profil du lot du 11/09.
+
+**Contraintes fortes** :
+- **Run LinkedIn réel obligatoire** — sélecteurs à vérifier sur DOM vivant, centralisés dans
+  `selectors.py`. **Pas en itinérance** : attend le retour sur le poste principal et sa session.
+- **Migration de schéma** (nouvelles colonnes) — **plan validé et sauvegarde explicite**.
+- **RGPD** : « Expérience » et « Infos » sont des données personnelles plus riches que le titre.
+  Minimisation à instruire au cadrage : stocker le texte brut, ou seulement les signaux dérivés.
+- **Volume de texte** : des règles par mots-clés sur un texte long déclenchent beaucoup plus
+  facilement que sur un titre ; le piège de sous-chaîne de POC-007 (« marche » / « marché ») y est
+  aggravé. [Inférence] C'est aussi le premier endroit où le palier LLM, écarté jusqu'ici, pourrait
+  se justifier — la philosophie « pas de sophistication inutile » du call du 04/09 impose de
+  mesurer d'abord le déterministe.
+
+**Dépend de** : POC-014, dont le chiffre dira si ce ticket est indispensable ou seulement utile.
+**Remet en cause** : la prémisse de POC-010.
+
+**Décisions** :
+- 16/09/2026 — Ticket ouvert, itération validée par l'utilisateur. Réalisation au retour
+  d'itinérance.
+
+---
+
+## POC-017 — Recherche de coordonnées déclenchée par le verdict, pas par le seuil
+
+**Objectif** : Ne plus chercher les coordonnées des profils que le client ne contactera pas.
+
+**Constat du 16/09/2026** : sur les **7** profils dont les coordonnées ont été validées à la main
+(POC-009), **5 sont jugés mauvais profil** par le client. [Code] `run_poc004` s'enclenche sur
+`selectionner_profils_interessants`, c'est-à-dire le seuil 60, qui écarte bien mais ne classe pas.
+Le coût est double : appels Brave et relecture humaine dépensés au mauvais endroit, et collecte de
+données personnelles sur des personnes qui ne seront pas contactées (**minimisation RGPD**).
+
+**Pistes** : déclencher sur le verdict client quand il existe (`bon` ou `excellent`), et sur le
+score v2 de POC-014 sinon. Question ouverte : que faire des coordonnées **déjà** collectées pour
+des profils jugés mauvais — les conserver, ou les effacer au titre de la minimisation.
+
+**Faisable en itinérance** : la sélection oui ; un run d'enrichissement demande `BRAVE_SEARCH_API_KEY`
+et le réseau, disponibles sur le laptop, et **écrit dans le magasin** (à consigner dans le prompt
+de réconciliation).
+
+**Dépend de** : POC-014.
+
+**Décisions** :
+- 16/09/2026 — Ticket ouvert, itération validée par l'utilisateur.

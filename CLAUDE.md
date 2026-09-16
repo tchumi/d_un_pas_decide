@@ -35,8 +35,8 @@ document/
 ## État actuel
 
 - Branche active : `master` (base `master`)
-- **Dernière session** : POC-013 — livrable Excel client et boucle de retour au format xlsx (08/09/2026)
-- **Prochain ticket actif** : POC-008 — diversification des requêtes (volet configuration, hors-ligne ; le volet facettes attend un run LinkedIn au retour d'itinérance)
+- **Dernière session** : retour client du 11/09/2026 — analyse, ré-import des verdicts et itération (16/09/2026)
+- **Prochain ticket actif** : POC-014 — scoring v2 sur le titre, mesuré contre la grille de profilage du client
 
 Ces deux lignes sont les **seules** informations volatiles de ce fichier : elles se mettent à
 jour en fin de session (voir « Obligation de fin de session »). Tout le reste — statuts,

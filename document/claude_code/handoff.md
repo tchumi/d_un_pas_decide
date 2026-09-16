@@ -454,3 +454,83 @@ Format de chaque section :
   natives / filtre géographique réel exige un **run LinkedIn** et attend le retour sur le poste
   principal. **Dépendance externe** : le brainstorming de requêtes dû par Christophe et
   Henri-Pierre (point d'action n°3).
+
+## 12. Retour client du 11/09/2026 — analyse, ré-import et itération (16/09/2026)
+
+- **Session de suivi de projet, pas de ticket**, depuis le laptop en itinérance. **Aucun fichier
+  de `source/`, `config/` ou `tests/` modifié.** Consigne utilisateur pour l'analyse : « ne code
+  pas ».
+- **Le mail de livraison de POC-013 a été envoyé le 09/09/2026** ; Christophe a répondu le
+  **11/09/2026** (Henri-Pierre en copie) avec le classeur annoté. Pièces dans
+  `document/compte_rendu/` : « 2026 09 11 - mail Christophe.pdf » et
+  `profils_magasin_2026_09_11.xlsx`.
+- **Retour exploitable sans retouche** : 81 commentaires sur 81, aucune autre colonne modifiée,
+  en-tête intact, aucune URL inconnue — vérifié en lecture seule avant tout import. **La boucle de
+  POC-013 a tenu sur un vrai retour client.**
+- **Contenu du retour** : une **grille de profilage à 4 niveaux** définie par le client (excellent :
+  ancien dirigeant, coach de dirigeants et CODIR ; bon : carrière privée, coach business ; mauvais :
+  fonction publique, coach de vie, multicarte ; rien à voir : pas coach). Répartition : **6
+  excellents, 20 bons, 46 mauvais, 9 rien à voir**. **Géographie déclarée critère accessoire** —
+  contredit la lecture du call du 04/09. **Suggestion : une colonne département.** Et une phrase
+  qui commande la suite : ils ont jugé en lisant « Expérience » et « Infos », pas seulement le titre.
+- **Mesure du score v1 contre le verdict client** : au seuil 60, **zéro faux négatif** (les 26 bons
+  ou excellents sont tous au-dessus) mais **précision 40 %** au-dessus du seuil, pour un taux de
+  base de 32 % ; au score maximal de 85, 8 mauvais pour 10 bons ou excellents. Par règle :
+  `certification` 35 % (aucun signal), `focus_business` 39 %, `cible_business` 45 % ; exclusions
+  et malus jamais en erreur. **Les bonus sont pondérés à l'envers de leur pouvoir discriminant.**
+- **Correction faite en cours d'analyse** : j'avais d'abord parlé de « baisser le poids de Coaching
+  Ways ». [Code] Il n'existe pas de règle Coaching Ways dans `config/scoring_rules.json` : la
+  certification déclenche `focus_business` (« coach professionnel », +40) **et** `certification`
+  (+15). Les tickets sont rédigés sur les règles réelles.
+- **Questions ouvertes tranchées** : Q4 (Elise Rousseau « Life & Business Coach » → mauvais, raté
+  confirmé), Q5 (malus scolaire → juste), Q6 (Fabayre, Leroux → à sortir), Q7 (4 niveaux), 5ᵉ
+  anomalie (Manon Dumartin → mauvais), Q1 répondue de biais (carrière d'avant, pas ancienneté de
+  coach), seuil 60 validé par la mesure.
+- **Coordonnées mal ciblées** : sur les 7 profils à coordonnées validées, **5 sont jugés mauvais**.
+- **Ré-import réalisé** (étape 0 validée par l'utilisateur) : sauvegarde
+  `profils_avant_retour_client_20260916_180620.db`, puis
+  `run_poc006` sur le classeur. Comparaison cellule par cellule contre la sauvegarde : **exactement
+  81 cellules modifiées, toutes dans `commentaire_client`**, `user_version` 2 inchangé, aucun profil
+  ajouté. Le rapport liste 18 « statuts tranchés » : ce sont les valeurs déjà en base, ré-écrites à
+  l'identique (comportement bruyant connu de POC-013) — vérifié, aucun statut n'a changé.
+  **Nouvelle empreinte de `profils.db` : `47b767d5acca659a29511933dfa8352f`.**
+- **Ordre imposé et respecté** : le ré-import a été fait **avant** toute évolution des colonnes de
+  l'export, faute de quoi le contrôle d'en-tête de POC-013 aurait refusé le classeur du client.
+- **`profils_magasin.csv` régénéré** depuis la base (81 lignes, 81 commentaires), par les fonctions
+  existantes `lister_profils` et `export_profiles_to_csv` ; empreinte de la base vérifiée inchangée
+  après l'export.
+- **Itération validée par l'utilisateur**, quatre tickets ouverts (voir ci-dessous). POC-008 passe
+  **P1 → P2** ; la prémisse de POC-010 est notée fragilisée.
+- Fichiers créés : `document/prompts_plans/prompt_POC-014.md`.
+- Fichiers modifiés : `document/Backlog.md` (sous-section « Retour client du 11/09/2026 » dans
+  POC-003, compléments POC-008 et POC-010, sections POC-014 à POC-017),
+  `document/claude_code/task_list.md`, `document/claude_code/handoff.md`,
+  `document/claude_code/prompt_reconciliation_retour.md`, `CLAUDE.md`.
+- Tests : **143 passed, 0 failed** — inchangé, aucun code touché.
+- Lancement de l'app **non nécessaire**.
+
+### Points de vigilance légués
+
+- **La base du laptop n'est plus identique à celle du poste principal.** Elle porte 81 verdicts
+  client qui n'existent nulle part ailleurs (hors le classeur dans `compte_rendu/`). Le prompt de
+  réconciliation est à jour : au retour, le laptop doit afficher 81 commentaires et le poste 0.
+- **Les commentaires client sont la vérité terrain de POC-014.** Aucun re-scoring ni ré-import ne
+  doit les écraser ; la règle de conflit de POC-006 le garantit (un blanc n'efface rien), mais un
+  classeur d'une autre version pourrait remplacer un verdict — le rapport le signalerait.
+- **Sur-apprentissage** : 81 profils, dont 6 excellents. Toute règle de POC-014 doit dériver de la
+  définition du client, et être revalidée sur le lot annoté suivant.
+- **Brainstorming de requêtes client** (point d'action n°3 du 04/09) : toujours pas reçu.
+- Points de vigilance antérieurs toujours ouverts : titre divergent d'Erwan Jorand (jugé
+  **excellent**, ce qui rend la question du bon titre plus importante), `rejete` non complètement
+  réversible, `.scores_avant.json` à supprimer.
+
+### Tickets ouverts par cette session
+
+- **POC-014** (P1) — scoring v2 sur le titre, mesuré contre la grille client. Hors-ligne.
+- **POC-015** (P2) — colonne département. Hors-ligne.
+- **POC-016** (P1) — extraction « Expérience » et « Infos ». Run LinkedIn et migration : au retour.
+- **POC-017** (P2) — recherche de coordonnées déclenchée par le verdict. Dépend de POC-014.
+
+### Prochain ticket
+
+- **POC-014**, en itinérance. Prompt prêt dans `document/prompts_plans/prompt_POC-014.md`.
