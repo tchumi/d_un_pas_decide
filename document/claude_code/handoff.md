@@ -534,3 +534,41 @@ Format de chaque section :
 ### Prochain ticket
 
 - **POC-014**, en itinérance. Prompt prêt dans `document/prompts_plans/prompt_POC-014.md`.
+
+## 13. Réponse au retour client du 11/09/2026 et découpage géographique (19/09/2026)
+
+- **Session de suivi, pas de ticket.** Aucun fichier de `source/`, `config/` ou `tests/` modifié ;
+  **aucune écriture dans le magasin** (empreinte `47b767d5acca659a29511933dfa8352f` inchangée).
+- **Angles de réponse proposés puis arbitrés par l'utilisateur** : remerciement et restitution
+  simple (retenu), avec l'extraction « Expérience » / « Infos » posée comme **point ouvert à trancher
+  par le client** (ajout de l'utilisateur) ; relance sur l'usage réel (retenue) ; brainstorming de
+  requêtes **en attente**, non relancé ; **aucune date** de livraison.
+- **Brouillon rédigé**, prêt à coller dans Outlook :
+  `document/compte_rendu/2026 09 19 - brouillon mail Michel - reponse retour du 11-09 (a coller dans
+  Outlook).txt`. **Non envoyé** à la fin de la session. Points à relire : la phrase « plusieurs
+  profils que vous jugez mauvais ont la meilleure note » (exacte : 8 sur 18 à 85) est le seul endroit
+  qui nuance leur « pertinent » ; « de l'ordre d'une centaine » est une estimation, pas une mesure.
+- **Question de l'utilisateur : peut-on se passer du filtre géographique ?** Non — instruit dans
+  `Backlog.md`, section POC-008 : le client écarte la géographie comme critère de sélection, pas
+  comme moyen de **découper** la recherche. Une requête plafonne à ~10 pages [Inférence] ; un
+  découpage par région, toutes balayées, donne des tranches disjointes, exhaustives et peu profondes,
+  sans biais géographique. Le passage de POC-008 en P2 (16/09) n'est donc qu'à moitié fondé ;
+  **priorité à réexaminer au retour**, le ticket exigeant de toute façon un run LinkedIn.
+- Fichiers modifiés : `document/Backlog.md` (POC-008, décision du 19/09 dans le retour client de
+  POC-003), `document/claude_code/task_list.md` (ligne POC-008), `document/claude_code/handoff.md`,
+  `document/claude_code/prompt_reconciliation_retour.md`, `CLAUDE.md`.
+- Tests : **143 passed** — inchangé, aucun code touché.
+- Lancement de l'app **non nécessaire**.
+
+### Points de vigilance légués
+
+- **Le mail n'est pas envoyé.** Il promet trois choses à tenir : la colonne département (POC-015) dans
+  le prochain fichier, les chiffres du « titre seul » (POC-014) au rendez-vous, et un découpage
+  régional des recherches (POC-008).
+- **Le prochain lot annoté sera la validation hors échantillon de POC-014** : ne pas l'utiliser pour
+  ajuster les règles avant de l'avoir mesuré.
+
+### Prochain ticket
+
+- **POC-014**, inchangé. Prompt dans `document/prompts_plans/prompt_POC-014.md`.
+

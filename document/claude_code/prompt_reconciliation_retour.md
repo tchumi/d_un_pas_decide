@@ -61,6 +61,7 @@ côté données, et seules les étapes 1, 5 et 6 restent à faire.
 | 08/09/2026 | Onboarding itinérance + prise en compte du CR du 04/09 | **Non** — lecture seule | aucun |
 | 08/09/2026 | POC-013 — livrable xlsx et ré-import | **Oui, puis annulée par restauration** | **aucun** — voir ci-dessous |
 | 16/09/2026 | Ré-import du retour client du 11/09/2026 | **Oui — écriture réelle, conservée** | `commentaire_client` non vides : **0 → 81** ; tout le reste inchangé — voir ci-dessous |
+| 19/09/2026 | Réponse au client (brouillon) + analyse du découpage géographique | **Non** — lecture seule | aucun — empreinte toujours `47b767d5…` |
 
 **POC-013, détail de l'écriture et de son annulation.** Le critère d'acceptation du ticket
 imposait un aller-retour sur le magasin réel : le livrable a été ouvert et annoté dans le **vrai

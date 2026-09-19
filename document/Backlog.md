@@ -456,6 +456,15 @@ privée ou publique — relèvent du parcours, pas du titre.
 - 16/09/2026 — Itération validée par l'utilisateur : POC-014 (scoring v2 sur le titre, mesuré
   contre la grille), POC-015 (colonne département), POC-016 (extraction « Expérience » et
   « Infos »), POC-017 (recherche de coordonnées déclenchée par le verdict).
+- 19/09/2026 — **Réponse au client rédigée** (brouillon, `document/compte_rendu/`, non envoyé à cette
+  date). Angle retenu par l'utilisateur : remerciement et restitution simple de ce que l'annotation a
+  montré (le score écarte, il ne classe pas encore), sans pourcentages ; **extraction « Expérience » /
+  « Infos » présentée comme un point ouvert à trancher par le client** (coût : moins de profils par
+  semaine, risque LinkedIn accru, plus de données personnelles), chiffres promis pour le rendez-vous de
+  fin septembre ou début octobre ; géographie prise en compte, découpage régional technique annoncé,
+  colonne département confirmée ; relance sur l'usage réel (contacts pris ?) ; demande d'annoter le
+  prochain lot de la même façon — c'est la validation hors échantillon de POC-014. **Pas de date** de
+  livraison. Le brainstorming de requêtes n'est pas relancé (décision utilisateur : en attente).
 
 
 
@@ -1182,6 +1191,43 @@ a pas de mauvais profil géographique. »* Le mandat géographique de la sous-se
 - 11/09/2026 — Géographie déclarée **critère accessoire** par le client.
 - 16/09/2026 — Priorité **P1 → P2** : le levier le plus direct sur la qualité est désormais
   POC-014 puis POC-016 ; POC-008 reste nécessaire pour le volume.
+
+### Découpage géographique : un levier technique, distinct du critère client (19/09/2026)
+
+Le client a déclaré la géographie « critère accessoire » (11/09/2026) — **pour sélectionner un
+profil**. Question soulevée par l'utilisateur le 19/09/2026 : peut-on se passer du filtre
+géographique **pour maîtriser le résultat de la requête LinkedIn** ? Réponse instruite : non, et
+les deux positions ne se contredisent pas.
+
+- **Une recherche LinkedIn a un plafond.** [Inférence, run réel du 26/08/2026] Au-delà d'une
+  dizaine de pages (~100 profils), on ne voit plus rien : page 8 atteinte sur ~10 estimées. Le
+  plafond exact n'est **pas mesuré** (piste ouverte de POC-006). Une requête nationale ramène donc
+  toujours la même tête de liste — le « 90 % des mêmes profils » du call du 04/09. La
+  déduplication persistante évite de ré-extraire, elle ne fait pas passer le plafond.
+- **Il faut découper l'espace de recherche** en sous-requêtes chacune sous le plafond. Faire
+  varier les mots-clés produit des tranches qui **se recouvrent** et dont on ne voit pas la fin.
+  Découper par région produit des tranches **disjointes, exhaustives, dont on voit l'épuisement**.
+  Chaque tranche reste peu profonde, ce qui limite aussi la pagination profonde, facteur de risque
+  de détection.
+- **Balayer toutes les régions n'introduit aucun biais géographique** : c'est un découpage, pas un
+  filtre. Compatible avec « il n'y a pas de mauvais profil géographique ».
+- **Prérequis inchangé** : [Code] `AND (France)` est du texte dans `keywords`, pas une facette. Le
+  découpage exige les facettes natives de lieu, à vérifier sur DOM réel — le volet de ce ticket qui
+  demande un run LinkedIn.
+
+**Conséquence sur la priorité** : le passage P1 → P2 du 16/09/2026 reposait sur « le mandat
+géographique tombe ». Seul l'argument **commercial** tombe ; l'argument **technique** (accès au
+gisement au-delà du plafond) reste entier. **Priorité laissée en P2 pour l'instant, à réexaminer au
+retour d'itinérance** : le ticket ne peut de toute façon pas avancer sans run LinkedIn, et POC-014
+se fait hors-ligne.
+
+**Côté client** : le principe est annoncé dans la réponse du 19/09/2026 (brouillon), en deux
+phrases — découpage par région pour des raisons techniques, toutes les régions balayées.
+
+**Décisions** :
+- 19/09/2026 — Découpage géographique retenu comme **moyen technique d'accès au gisement**,
+  distinct du critère de sélection client. Priorité à réexaminer au retour.
+
 
 
 ---
