@@ -628,3 +628,62 @@ Format de chaque section :
 
 - **POC-014**, inchangé. Prompt dans `document/prompts_plans/prompt_POC-014.md`.
 
+## 15. POC-014 — Scoring v2 sur le titre, mesuré contre la grille du client (05/10/2026)
+
+- **Le chiffre attendu** : sur les 81 profils annotés, la précision au seuil 60 passe de **40 % à
+  43 %**, rappel **100 % inchangé** (65 → 60 retenus, les 26 bons ou excellents conservés). Le gain
+  est dans le classement : tranche haute v1 (score 85) 18 profils, 56 % de bons, 3 excellents sur 6 ;
+  tranche haute v2 (score ≥ 80) **21 profils, 76 % de bons, 6 excellents sur 6**.
+- **La limite du titre** : 28 profils sur 81 à 65 pile (titre générique « Coach professionnel
+  certifié Coaching Ways / Level 2 ICF » : 8 bons, 16 mauvais, 4 rien à voir), indépartageables par
+  le titre. **POC-016 est indispensable, pas seulement utile.**
+- **Évaluateur en lecture seule** `run_poc014_evaluation` : SQLite `mode=ro`, rescoring en mémoire
+  d'un ou plusieurs fichiers de règles, matrice score × verdict, précision, rappel, pouvoir
+  discriminant par règle ; commentaire hors grille signalé, jamais deviné. Mesure v1 reproduite
+  (40 % / 100 %) et committée **avant** toute règle.
+- **Règles v2** (`config/scoring_rules.json`, version 2), mesurées une à une : exclusion « life &
+  business coach », exclusion `exclusion_en_formation`, bonus `profil_dirigeant` +20, malus
+  `autre_pratique` −10, `certification` +15 → +5, `cible_business` +10 → +15 sans `executive`.
+  Rattachement à la grille et mesures dans `Backlog.md`, section POC-014.
+- **Non retenus** : malus fonction publique (1/3, au taux de base ; le mot figure dans le titre d'un
+  bon profil) ; catégorie à 4 niveaux (score seul, décision utilisateur) ; seuil inchangé à 60.
+- **Écarts au prompt, validés** : sauvegarde dans `D:\Documents\Dev\_backup_prospection\` (poste
+  principal) ; empreinte consignée ici et dans `task_list.md`, `prompt_reconciliation_retour.md` non
+  touché (procédure close).
+- **Magasin re-scoré** après sauvegarde `profils_avant_POC-014_20261005_173237.db` (et le CSV
+  correspondant). Contrôle cellule par cellule : seules `score` (70), `justification` (72) et
+  `categorie` (3) ont bougé ; **81 `commentaire_client` identiques** ; schéma et `user_version`
+  inchangés. **Empreinte : `47b767d5…` → `7bf1cbb0fa4d015ade51ab9a942e4f41`.**
+  `profils_magasin.csv` régénéré par `run_poc003`.
+- Fichiers créés : `source/backend/adapters/storage/run_poc014_evaluation.py`,
+  `tests/unit/test_scoring_evaluation.py`, `document/prompts_plans/plan_POC-014.md`,
+  `document/prompts_plans/prompt_POC-015.md`.
+- Fichiers modifiés : `config/scoring_rules.json`, `tests/unit/test_profile_scoring.py`,
+  `document/Backlog.md`, `document/claude_code/task_list.md`, `document/claude_code/handoff.md`,
+  `CLAUDE.md`. `profile_scoring.py` et `profile_store.py` **non touchés**.
+- Tests : **172 passed, 0 failed** (143 avant ; 21 pour l'évaluateur, 8 pour les règles).
+- Lancement de l'app **non nécessaire** (pas d'UI) ; le comportement de `run_poc003` et de la
+  sélection de `run_poc004` change avec les règles, vérifié par le re-scoring réel.
+
+### Points de vigilance légués
+
+- **La v2 n'est pas validée.** Règles réglées et mesurées sur les mêmes 81 profils, issus d'une
+  seule requête ; `profil_dirigeant` repose sur 18 déclenchements. Au prochain lot annoté : lancer
+  `run_poc014_evaluation` **avant** toute retouche des règles.
+- **`profils_magasin.xlsx` n'est pas régénéré** : il porte encore les scores v1. À refaire par
+  `run_poc013` avant tout envoi — POC-015 le fera de toute façon en ajoutant la colonne.
+- **Test d'acceptation de POC-003 modifié** : les 2 titres « en formation », validés en bloc le
+  08/07/2026 puis jugés mauvais le 11/09/2026, sont passés de « conservés » à « exclus ».
+- **Chiffres à porter au rendez-vous client** : 40 % → 43 % au seuil, tranche haute à 76 % avec les
+  6 excellents, et le bloc de 28 profils que seul le parcours départage — c'est l'argument pour la
+  décision « Expérience » / « Infos » qui leur a été soumise le 19/09.
+- **Sélection de l'enrichissement web** : 60 profils au-dessus du seuil au lieu de 65 ; POC-017
+  pourra s'appuyer sur la tranche ≥ 80 plutôt que sur le seuil.
+- Points antérieurs toujours ouverts : ménage des copies hors poste principal (étape 6 de la
+  réconciliation), engagement « fin septembre » dépassé.
+
+### Prochain ticket
+
+- **POC-015** — colonne département dans l'export. Prompt dans
+  `document/prompts_plans/prompt_POC-015.md`.
+

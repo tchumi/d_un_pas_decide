@@ -1851,8 +1851,109 @@ catégorie reste dans la colonne `categorie` existante.
 **Faisable en itinérance** : oui — hors-ligne, magasin lu, puis re-scoring par `run_poc003` après
 sauvegarde.
 
+### Résultats (05/10/2026) — le chiffre du « titre seul »
+
+**Outil de mesure** : `run_poc014_evaluation` — évaluateur **en lecture seule** (connexion SQLite
+`mode=ro`, jamais `ouvrir_magasin`). Il rescore les titres en mémoire avec le ou les fichiers de
+règles passés en argument, ce qui permet de mesurer un jeu de règles candidat **avant** toute
+écriture. Il parse le verdict par son préfixe et **signale** tout commentaire hors grille (aucun
+sur les 81). Mesure v1 reproduite à l'identique avant de toucher une règle.
+
+**v1 et v2 côte à côte, sur les 81 profils annotés** (taux de base 32 %, 26 bons ou excellents) :
+
+| | v1 | v2 |
+|---|---|---|
+| Retenus au seuil 60 | 65 | 60 |
+| Bons ou excellents retenus | 26 | 26 |
+| **Précision au seuil** | **40 %** | **43 %** |
+| **Rappel** | **100 %** | **100 %** |
+| Tranche haute | score 85 : 18 profils, 10 bons ou excellents (**56 %**), 3 excellents sur 6 | score ≥ 80 : 21 profils, 16 bons ou excellents (**76 %**), **6 excellents sur 6** |
+| Reste des retenus | 75 à 60 : 47 profils, 16 bons (34 %) | 75 à 60 : 39 profils, 10 bons (**26 %**), 0 excellent |
+| Sous le seuil | 16 profils, 0 bon | 21 profils, 0 bon |
+
+Matrice v2 (score × verdict) :
+
+| Score | Excellent | Bon | Mauvais | Rien à voir |
+|---|---|---|---|---|
+| 100 | 2 | 3 | 2 | 0 |
+| 85 | 1 | 2 | 1 | 0 |
+| 80 | 3 | 5 | 2 | 0 |
+| 75 | 0 | 1 | 4 | 1 |
+| 70 | 0 | 0 | 1 | 0 |
+| **65** | 0 | **8** | **16** | **4** |
+| 60 | 0 | 1 | 2 | 1 |
+| < 60 | 0 | 0 | 18 | 3 |
+
+**Le chiffre honnête** : au seuil, le titre seul fait passer la précision de **40 % à 43 %** sans
+perte de rappel — autant dire qu'il ne la change pas. Ce que la v2 change, c'est le **classement** :
+la tranche haute contient désormais les 6 excellents et 76 % de bons profils. Mais **28 profils sur
+81 sont à 65 pile** : c'est le titre générique « Coach professionnel certifié Coaching Ways / Level 2
+ICF », porté par 8 bons, 16 mauvais et 4 rien à voir. **Aucune règle sur le titre ne peut les
+départager** — le client les a jugés sur « Expérience » et « Infos ». **POC-016 est donc
+indispensable** pour trier ce bloc, pas seulement utile ; le titre seul suffit à isoler une tranche
+haute fiable et à écarter sans risque.
+
+**Règles modifiées, chacune rattachée à la grille du client** (mesure = part de bons ou excellents
+quand la règle se déclenche, base 32 %) :
+
+| Règle | Changement | Rattachement à la grille | Mesure |
+|---|---|---|---|
+| `exclusion_hors_metier` | + « life & business coach » et variantes (anomalie A) | « Coach de vie » → mauvais | 0/1 |
+| `exclusion_en_formation` | **nouvelle** — « coach (professionnel) en formation », « en cours de certification » | pas encore coach en exercice | 0/2 |
+| `profil_dirigeant` | **nouvelle**, +20 — dirigeant, directeur, président, fondateur, CEO, VP, DRH, CODIR… | « Ancien dirigeant. Coach […] avec dirigeants et CODIRs » → excellent | 12/18 (**67 %**) |
+| `autre_pratique` | **nouvelle**, −10 — hypnose, thérapie, sophrologie, kinésiologie, numérologie… | « multicarte ou autre type de coaching ou de métier » → mauvais | 1/6 (17 %) |
+| `certification` | +15 → **+5** | absente de la grille ; aucun signal mesuré | 19/53 (36 %) |
+| `cible_business` | +10 → **+15**, mot-clé `executive` retiré | « Coach business », équipes | 11/24 (46 %) |
+
+- **Invariant qui garantit le rappel** : `base_coach` + `focus_business` = 20 + 40 = 60 = le seuil.
+  Un « coach professionnel » sans autre signal reste retenu ; seuls une exclusion ou un malus
+  peuvent faire passer sous le seuil. Inscrit dans un test.
+- **`executive` retiré de `cible_business`** : [Code] sur 5 titres touchés, 4 l'étaient par le nom de
+  l'école « Coaching Ways France Executive » — piège de sous-chaîne du type POC-007.
+  « executive coach » reste dans `focus_business`.
+- **`autre_pratique` est un malus léger, pas une exclusion** : « sophrologue » figure dans le titre
+  d'un **bon** profil. Le titre ne suffit pas à dire si la pratique annexe est le métier principal.
+- **Les 5 profils sortis de la sélection** (65 → 60 retenus) sont tous jugés mauvais par le client :
+  1 « life & business », 2 « en formation », 2 autres pratiques.
+- **Écart assumé avec la validation en bloc du 08/07/2026** : les 2 titres « en formation »
+  figuraient parmi les 23 profils validés en bloc en juillet ; le client les a jugés « mauvais
+  profil » un par un le 11/09/2026. Le verdict individuel, plus récent, prime — le test
+  d'acceptation de POC-003 porte désormais sur 21 titres conservés et 2 exclus.
+
+**Pistes instruites et non retenues** :
+- **Fonction publique** (malus sur « fonction publique », « conseil régional », « cadre de
+  santé »…) : mesuré 1/3, soit le taux de base, et le mot « fonction publique » lui-même figure dans
+  le titre d'un **bon** profil (« Expertise fonction publique »). Ne retenir que les mots-clés qui
+  tombent juste aurait été du sur-mesure. **Le critère relève du parcours → POC-016.**
+- **« coach interne », « service aux coachs », « numérologie »** (motifs libres du client) : aucun
+  n'apparaît dans le titre des profils concernés. Seul `numerolog` est inscrit, comme autre
+  pratique générique ; il ne se déclenche sur aucun des 81 titres.
+- **Catégorie à 4 niveaux** : non créée (décision du 05/10/2026). La colonne `categorie` est
+  inchangée ; la projection se lit dans la matrice ci-dessus.
+
+**Ce que ces chiffres ne prouvent pas** :
+- **Les règles sont réglées et mesurées sur les mêmes 81 profils.** Les mots-clés de
+  `profil_dirigeant` dérivent de la définition du client, mais ont été écrits après lecture des
+  titres : ses 67 % sont un chiffre **en échantillon**, sur 18 déclenchements et 6 excellents.
+- **Le lot vient d'une seule requête**, dominée par une école (Coaching Ways). Rien ne dit que la
+  tranche haute tiendra sur un lot issu d'autres requêtes (POC-008).
+- **Les effectifs sont minuscules** : 1, 2 et 6 déclenchements pour trois des règles.
+- **La v2 n'est validée qu'après mesure sur le prochain lot annoté.** Procédure : lancer
+  `run_poc014_evaluation` sur ce lot **avant** de retoucher la moindre règle.
+
+**Re-scoring du magasin (05/10/2026)** : sauvegarde `profils_avant_POC-014_20261005_173237.db`
+(`D:\Documents\Dev\_backup_prospection\`), puis `run_poc003`. Comparaison cellule par cellule contre
+la sauvegarde : même schéma, `user_version` 2, mêmes 81 URLs ; cellules modifiées **uniquement** dans
+`score` (70), `justification` (72) et `categorie` (3) ; **81 `commentaire_client` identiques**.
+Empreinte de `profils.db` : `47b767d5…` → **`7bf1cbb0fa4d015ade51ab9a942e4f41`**.
+
 **Décisions** :
 - 16/09/2026 — Ticket ouvert, itération validée par l'utilisateur.
+- 05/10/2026 — **Score seul, pas de catégorie à 4 niveaux** : afficher un « excellent » prédit sur 6
+  exemples serait prématuré. À rouvrir après le prochain lot annoté.
+- 05/10/2026 — **Seuil 60 conservé** : c'est lui qui garantit le rappel de 100 %.
+- 05/10/2026 — Règles v2 appliquées au magasin. **Validation suspendue au prochain lot annoté.**
+- 05/10/2026 — **POC-016 jugé indispensable** pour départager le bloc à titre générique (28 profils).
 
 ---
 

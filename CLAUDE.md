@@ -35,8 +35,8 @@ document/
 ## État actuel
 
 - Branche active : `master` (base `master`)
-- **Dernière session** : réconciliation au retour d'itinérance, base du laptop rapatriée sur le poste principal (05/10/2026)
-- **Prochain ticket actif** : POC-014 — scoring v2 sur le titre, mesuré contre la grille de profilage du client
+- **Dernière session** : POC-014 — scoring v2 sur le titre, mesuré contre la grille de profilage du client (05/10/2026)
+- **Prochain ticket actif** : POC-015 — colonne département dans l'export
 
 Ces deux lignes sont les **seules** informations volatiles de ce fichier : elles se mettent à
 jour en fin de session (voir « Obligation de fin de session »). Tout le reste — statuts,
