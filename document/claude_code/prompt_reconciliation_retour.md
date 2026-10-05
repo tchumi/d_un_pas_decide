@@ -149,25 +149,27 @@ circulent par Git (étape 1). Tout ce qui suit n'y est **pas** et ne se rapatrie
 > Il contient `RAPATRIEMENT.txt`, qui redonne pour chaque fichier **sa destination et son
 > empreinte MD5**. Les tableaux ci-dessous restent la référence ; le lot n'en est que l'emballage.
 > **Ne pas recopier ce dossier tel quel dans le dépôt** : `compte_rendu\` va dans
-> `document\compte_rendu\`, et `_backup_prospection\` dans `D:\Documents\Dev\_backup_prospection\`.
+> `d_un_pas_decide\document\compte_rendu\` — **sous `document\`, pas à la racine du dépôt** — et
+> `_backup_prospection\` dans `D:\Documents\Dev\_backup_prospection\`, hors dépôt.
 
 ### A. Irremplaçable — à rapatrier impérativement
 
 | Source (laptop) | Destination (poste principal) | Pourquoi |
 |---|---|---|
 | `profils.db` à la racine du dépôt — MD5 `47b767d5acca659a29511933dfa8352f` | racine du dépôt, même nom | **Les 81 verdicts client.** Ne se reconstruit pas, sauf à ré-importer le classeur ci-dessous. |
-| `compte_rendu\2026 09 11 - mail Christophe.pdf` | `document\compte_rendu\` | La réponse du client : la grille de profilage à 4 niveaux, en version originale. |
-| `compte_rendu\profils_magasin_2026_09_11.xlsx` | `document\compte_rendu\` | **Le classeur annoté par le client** — la seule copie des 81 verdicts hors de la base. |
-| `compte_rendu\2026 09 04 - CR call.pdf` | `document\compte_rendu\` | Le compte rendu du call qui a ouvert POC-013 et mandaté POC-008. |
-| `compte_rendu\2026 09 08 - brouillon mail Michel - livraison tableau Excel.md` | `document\compte_rendu\` | Brouillon de la livraison. |
-| `compte_rendu\2026 09 09 - mail Michel - livraison tableau Excel (a coller dans Outlook).txt` et `.html` | `document\compte_rendu\` | Le mail **effectivement envoyé** le 09/09/2026. |
-| `compte_rendu\2026 09 19 - brouillon mail Michel - reponse retour du 11-09 (a coller dans Outlook).txt` | `document\compte_rendu\` | **Réponse rédigée, non envoyée** — à relire et envoyer. |
-| `compte_rendu\profils_magasin_2026_09_11.reimport.csv` | `document\compte_rendu\` | Trace de conversion du ré-import ; utile si le ré-import doit être rejoué. |
+| `compte_rendu\2026 09 11 - mail Christophe.pdf` | `d_un_pas_decide\document\compte_rendu\` | La réponse du client : la grille de profilage à 4 niveaux, en version originale. |
+| `compte_rendu\profils_magasin_2026_09_11.xlsx` | `d_un_pas_decide\document\compte_rendu\` | **Le classeur annoté par le client** — la seule copie des 81 verdicts hors de la base. |
+| `compte_rendu\2026 09 04 - CR call.pdf` | `d_un_pas_decide\document\compte_rendu\` | Le compte rendu du call qui a ouvert POC-013 et mandaté POC-008. |
+| `compte_rendu\2026 09 08 - brouillon mail Michel - livraison tableau Excel.md` | `d_un_pas_decide\document\compte_rendu\` | Brouillon de la livraison. |
+| `compte_rendu\2026 09 09 - mail Michel - livraison tableau Excel (a coller dans Outlook).txt` et `.html` | `d_un_pas_decide\document\compte_rendu\` | Le mail **effectivement envoyé** le 09/09/2026. |
+| `compte_rendu\2026 09 19 - brouillon mail Michel - reponse retour du 11-09 (a coller dans Outlook).txt` | `d_un_pas_decide\document\compte_rendu\` | **Réponse rédigée, non envoyée** — à relire et envoyer. |
+| `compte_rendu\profils_magasin_2026_09_11.reimport.csv` | `d_un_pas_decide\document\compte_rendu\` | Trace de conversion du ré-import ; utile si le ré-import doit être rejoué. |
 | `C:\Users\HP\Documents\_backup_prospection\profils_avant_retour_client_20260916_180620.db` (+ le `.csv` du même horodatage) | `D:\Documents\Dev\_backup_prospection\` | **Point de retour arrière** : l'état juste avant le ré-import des verdicts. |
 
 > ⚠ **Piège de chemin** : sur le laptop, les comptes rendus ne sont **pas** dans le dépôt. Ils sont
 > dans `C:\Users\HP\Downloads\d_un_pas_decide-20260829T165329Z-1-001\d_un_pas_decide\compte_rendu\`.
-> Sur le poste principal, leur place est `document\compte_rendu\` (gitignoré). Les quatre pièces
+> Sur le poste principal, leur place est `d_un_pas_decide\document\compte_rendu\` (gitignoré),
+> **sous `document\`** — confirmé par l'utilisateur le 05/10/2026. Les quatre pièces
 > antérieures au départ (les 3 PDF de juillet et le brouillon du 28/08) y sont déjà : **ne pas les
 > écraser par mégarde**, seules les pièces listées ci-dessus sont nouvelles.
 
