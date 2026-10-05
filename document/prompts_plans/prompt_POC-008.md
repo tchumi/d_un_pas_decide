@@ -5,6 +5,11 @@ documentation projet, mais sans relire tout le repository.
 
 > Contexte de rédaction : prompt écrit le 05/10/2026 sur le **poste principal**, à la clôture de
 > POC-015. Les sauvegardes vont dans `D:\Documents\Dev\_backup_prospection\`.
+>
+> Il **remplace** la version du 28/08/2026 (mise à jour le 08/09/2026 pour l'itinérance), devenue
+> contradictoire avec les décisions du 11/09, du 19/09 et du 05/10/2026. L'ancienne version reste
+> lisible dans l'historique Git (`git show bc49646:document/prompts_plans/prompt_POC-008.md`) ; ce
+> qu'elle contenait de toujours valable est repris ci-dessous.
 
 ## Ticket à traiter
 
@@ -21,7 +26,16 @@ Critère d'acceptation :
 
 - Les requêtes sont **décrites en configuration** (dans `config/`, à l'image de
   `scoring_rules.json`) et non plus en dur dans `run_poc001.py` ; en ajouter une ne demande pas de
-  toucher au code.
+  toucher au code. Le fichier est **validé au chargement**, avec une erreur explicite s'il est
+  absent ou malformé.
+- La requête actuelle est reprise **à l'identique** comme première entrée (chaîne vérifiée dans le
+  code, pas recopiée de mémoire) ; un run sans nouvelle requête se comporte comme avant.
+- **Plusieurs requêtes sont parcourues en séquence**, chacune avec un libellé lisible. La sortie
+  dit **par requête** combien de profils nouveaux elle a ramenés et pourquoi elle s'est arrêtée.
+- **`urls_connues` est passé et enrichi d'une requête à la suivante** : la déduplication vaut
+  *entre* les requêtes, sinon deux requêtes qui se recouvrent ramènent deux fois le même profil.
+- Le parcours des requêtes se teste avec une **fonction de recherche injectée**, comme la boucle
+  de pagination.
 - Le filtre géographique est une **facette native LinkedIn**, pas le texte `AND (France)` dans
   `keywords`. Le paramètre d'URL correspondant est **vérifié sur un run réel**, pas supposé.
 - Un run réel, plafonné et validé avant lancement, ramène un lot de profils **nouveaux**
@@ -83,6 +97,15 @@ Ne lis pas tout le repo.
   paramètre `keywords` : c'est une correspondance textuelle, pas un filtre géographique.
 * **[Code]** La requête actuelle est en dur dans `run_poc001.py` :
   `("coach business" OR "coach professionnel" OR "coach entreprise") AND (France) NOT ("life coach" OR "sportif")`.
+* **[Code]** `search_and_extract` n'est que le câblage Playwright autour d'une **boucle pure
+  injectable** ; `collecter_profils_inconnus` s'arrête sur `quota_atteint`, `gisement_epuise` ou
+  `plafond_pages` (plafond 10 pages). C'est le point d'entrée à étendre, pas à réécrire.
+* **[Documentation, POC-009]** Deux recherches sur la même requête à deux moments différents n'ont
+  pas ramené le même lot (recouvrement 19/25) : à garder en tête pour juger la stabilité d'un
+  gisement.
+* **[Documentation]** Les 5 mots-clés outdoor du client (08/07/2026 : *coach nature*, *coach qui
+  marche*, *coach outdoor*, *coach hors-les-murs*, *coaching en itinérance*) n'ont jamais été
+  interrogés ; la catégorie `coach_outdoor` n'a jamais été observée sur données réelles.
 * **[Documentation, run réel du 26/08/2026]** ~10 profils par page, page 8 atteinte sur un plafond
   **estimé** à 10 pages. Le plafond exact n'a jamais été mesuré.
 * **[Documentation]** Le brainstorming de requêtes dû par le client (point d'action n°3 du call du
@@ -103,6 +126,18 @@ de détection : le rapport bénéfice/risque fait partie du ticket. **Aucun run 
 explicite de son plafond** (nombre de requêtes, de pages, de profils), et le premier est petit.
 Second risque : croire qu'une facette filtre alors que le paramètre d'URL est ignoré — d'où la
 vérification sur DOM réel avant de s'appuyer dessus.
+
+## Points d'attention
+
+* **N'invente pas de requêtes métier à la place du client.** Sans son brainstorming, amorce avec
+  la requête actuelle et des requêtes clairement étiquetées comme provisoires, à me faire valider.
+* **Mesurer au lieu d'estimer** : profiter d'un run réel pour relever le sélecteur de la barre de
+  pagination numérotée et journaliser la taille réelle du gisement par requête. Le « ~10 pages »
+  est une estimation.
+* [Inférence] Un profil outdoor authentique peut ne pas contenir le mot `coach` dans son titre et
+  se faire exclure par `exclusion_non_coach`. Si le cas se présente, le **signaler** : le scoring
+  est hors périmètre.
+* Les sélecteurs CSS LinkedIn restent centralisés dans `selectors.py` (AGENTS.md §4).
 
 ## Branche et sécurité Git
 
