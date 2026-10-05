@@ -1,6 +1,6 @@
 """XLSX conversion for the client deliverable and its return trip (POC-013).
 
-This module converts the CSV export *without modifying it*: same 16 columns of
+This module converts the CSV export *without modifying it*: same columns as
 PROFILE_CSV_FIELDS, same order, same values. It adds a format, not a view.
 
 Why it exists (call of 04/09/2026, action item no 1): the client must be able
@@ -26,6 +26,11 @@ A header that no longer matches the export is reported and blocking, never
 guessed - same requirement as the statuts_refuses of POC-009: business data is
 expensive, we do not fix it silently.
 
+POC-015 added a derived column (departement) to the export. A workbook sent
+before it lacks that column and is still accepted on the way back: no
+re-import path reads a derived column, so nothing is lost. The exception is
+that one exact header - anything else stays blocking.
+
 No Streamlit import here (see CLAUDE.md / ARCHITECTURE.md).
 """
 
@@ -36,7 +41,10 @@ from pathlib import Path
 from openpyxl import Workbook, load_workbook
 from openpyxl.utils import get_column_letter
 
-from source.backend.adapters.storage.csv_export import PROFILE_CSV_FIELDS
+from source.backend.adapters.storage.csv_export import (
+    DERIVED_CSV_FIELDS,
+    PROFILE_CSV_FIELDS,
+)
 
 # Client deliverable, sibling of EXPORT_CSV. Gitignored like every data file.
 EXPORT_XLSX = Path("./profils_magasin.xlsx")
@@ -44,6 +52,10 @@ EXPORT_XLSX = Path("./profils_magasin.xlsx")
 # Excel's "Text" number format. Applied to every data cell so that a value the
 # client retypes stays a string instead of becoming a date or a number.
 _FORMAT_TEXTE = "@"
+
+# Header of the workbooks delivered before POC-015: the export minus its
+# derived columns.
+_ENTETE_SANS_DERIVEES = [c for c in PROFILE_CSV_FIELDS if c not in DERIVED_CSV_FIELDS]
 
 
 class EnteteXlsxInvalide(ValueError):
@@ -82,9 +94,17 @@ def _cellule_en_texte(valeur: object) -> str:
     return str(valeur)
 
 
-def _valider_entete(entete: list[str], source: Path) -> None:
-    """Reject a header that is not exactly PROFILE_CSV_FIELDS, in order."""
+def _valider_entete(
+    entete: list[str], source: Path, accepter_sans_derivees: bool = False
+) -> None:
+    """Reject a header that is not exactly PROFILE_CSV_FIELDS, in order.
+
+    accepter_sans_derivees also lets through the pre-POC-015 header, on the
+    return trip only: what we export ourselves must carry every column.
+    """
     if entete == PROFILE_CSV_FIELDS:
+        return
+    if accepter_sans_derivees and entete == _ENTETE_SANS_DERIVEES:
         return
 
     manquantes = [c for c in PROFILE_CSV_FIELDS if c not in entete]
@@ -108,12 +128,28 @@ def _valider_entete(entete: list[str], source: Path) -> None:
     )
 
 
+def colonnes_derivees_absentes(xlsx_path: Path) -> list[str]:
+    """Derived columns a workbook's header lacks (non-empty on a pre-POC-015 file).
+
+    Lets the caller announce that an old-format workbook was recognised rather
+    than accept it without a word.
+    """
+    classeur = load_workbook(xlsx_path, read_only=True, data_only=True)
+    try:
+        brute = next(classeur.worksheets[0].iter_rows(values_only=True), ())
+    finally:
+        classeur.close()
+    entete = {_cellule_en_texte(v).strip() for v in brute}
+    return [c for c in DERIVED_CSV_FIELDS if c not in entete]
+
+
 def lire_xlsx(xlsx_path: Path) -> list[dict[str, str]]:
     """Read an annotated workbook as csv.DictReader would read the CSV.
 
     Every value is a str and every empty cell is "". The header must match
-    PROFILE_CSV_FIELDS exactly, otherwise EnteteXlsxInvalide is raised and
-    nothing is returned.
+    PROFILE_CSV_FIELDS exactly - or be the pre-POC-015 one, without the derived
+    columns, whose keys are then absent from the rows - otherwise
+    EnteteXlsxInvalide is raised and nothing is returned.
     """
     classeur = load_workbook(xlsx_path, read_only=True, data_only=True)
     try:
@@ -131,7 +167,7 @@ def lire_xlsx(xlsx_path: Path) -> list[dict[str, str]]:
         # Excel commonly reports trailing empty columns; they carry no name.
         while entete and not entete[-1]:
             entete.pop()
-        _valider_entete(entete, xlsx_path)
+        _valider_entete(entete, xlsx_path, accepter_sans_derivees=True)
 
         profils: list[dict[str, str]] = []
         for brute in lignes:

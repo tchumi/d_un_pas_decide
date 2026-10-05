@@ -111,7 +111,7 @@ def test_aller_retour_rend_les_memes_dictionnaires_que_le_csv(tmp_path):
     assert lire_xlsx(xlsx) == _lire_csv(csv_source)
 
 
-def test_entete_du_xlsx_est_les_16_colonnes_dans_l_ordre(tmp_path):
+def test_entete_du_xlsx_est_les_17_colonnes_dans_l_ordre(tmp_path):
     csv_source = _ecrire_csv(tmp_path)
     xlsx = tmp_path / "profils_magasin.xlsx"
 
@@ -120,7 +120,7 @@ def test_entete_du_xlsx_est_les_16_colonnes_dans_l_ordre(tmp_path):
     feuille = load_workbook(xlsx, read_only=True).worksheets[0]
     entete = [c.value for c in next(feuille.iter_rows(max_row=1))]
     assert entete == PROFILE_CSV_FIELDS
-    assert len(entete) == 16
+    assert len(entete) == 17
 
 
 # --- 3-4. What Excel does to the values ----------------------------------
@@ -128,7 +128,7 @@ def test_entete_du_xlsx_est_les_16_colonnes_dans_l_ordre(tmp_path):
 
 def test_cellule_vide_est_relue_en_chaine_vide_jamais_none(tmp_path):
     """_importer_statut_coordonnees calls .strip().lower(): None would raise."""
-    xlsx = _forger_xlsx(tmp_path / "vide.xlsx", [[None] * 16])
+    xlsx = _forger_xlsx(tmp_path / "vide.xlsx", [[None] * len(PROFILE_CSV_FIELDS)])
     # Give the row one non-empty cell, otherwise it is a blank row.
     classeur = load_workbook(xlsx)
     classeur.worksheets[0]["B2"] = "https://www.linkedin.com/in/x"
@@ -148,6 +148,7 @@ def test_types_natifs_excel_sont_ramenes_en_texte(tmp_path):
         "Marie Dupont",                      # nom
         "https://www.linkedin.com/in/marie", # url
         "Remiremont",                        # localisation
+        None,                                # departement
         "Coach",                             # titre
         None,                                # email
         None,                                # email_web
@@ -179,9 +180,9 @@ def test_types_natifs_excel_sont_ramenes_en_texte(tmp_path):
 
 def test_booleen_excel_est_relu_en_minuscules_pour_ne_plus_traiter(tmp_path):
     """Excel writes TRUE; _VALEURS_OPPOSITION accepts the lowercase form."""
-    ligne = [""] * 16
-    ligne[1] = "https://www.linkedin.com/in/marie"
-    ligne[12] = True
+    ligne = [""] * len(PROFILE_CSV_FIELDS)
+    ligne[PROFILE_CSV_FIELDS.index("url")] = "https://www.linkedin.com/in/marie"
+    ligne[PROFILE_CSV_FIELDS.index("ne_plus_traiter")] = True
     xlsx = _forger_xlsx(tmp_path / "bool.xlsx", [ligne])
 
     assert lire_xlsx(xlsx)[0]["ne_plus_traiter"] == "true"
@@ -222,7 +223,7 @@ def test_url_reste_du_texte_et_une_valeur_en_egal_n_est_pas_une_formule(tmp_path
 
     feuille = load_workbook(xlsx).worksheets[0]
     assert feuille["B2"].data_type == "s"
-    assert feuille["K2"].data_type == "s"  # commentaire_client, not a formula
+    assert feuille["L2"].data_type == "s"  # commentaire_client, not a formula
     relue = lire_xlsx(xlsx)[0]
     assert relue["url"] == profil["url"]
     assert relue["commentaire_client"] == profil["commentaire_client"]
@@ -241,16 +242,16 @@ def test_colonne_inseree_par_le_client_bloque_la_relecture(tmp_path):
 
 def test_colonne_supprimee_par_le_client_bloque_la_relecture(tmp_path):
     entete = [c for c in PROFILE_CSV_FIELDS if c != "justification"]
-    xlsx = _forger_xlsx(tmp_path / "supprime.xlsx", [["x"] * 15], entete=entete)
+    xlsx = _forger_xlsx(tmp_path / "supprime.xlsx", [["x"] * len(entete)], entete=entete)
 
     with pytest.raises(EnteteXlsxInvalide, match="justification"):
         lire_xlsx(xlsx)
 
 
 def test_colonnes_reordonnees_par_le_client_bloquent_la_relecture(tmp_path):
-    """The dangerous case: same 16 names, so nothing is missing or unknown."""
+    """The dangerous case: same names, so nothing is missing or unknown."""
     entete = list(reversed(PROFILE_CSV_FIELDS))
-    xlsx = _forger_xlsx(tmp_path / "reordonne.xlsx", [["x"] * 16], entete=entete)
+    xlsx = _forger_xlsx(tmp_path / "reordonne.xlsx", [["x"] * len(entete)], entete=entete)
 
     with pytest.raises(EnteteXlsxInvalide, match="reordonnees"):
         lire_xlsx(xlsx)
@@ -288,8 +289,8 @@ def test_lignes_vides_ajoutees_par_excel_sont_ignorees(tmp_path):
 
     classeur = load_workbook(xlsx)
     feuille = classeur.worksheets[0]
-    feuille.append([None] * 16)
-    feuille.append([None] * 16)
+    feuille.append([None] * len(PROFILE_CSV_FIELDS))
+    feuille.append([None] * len(PROFILE_CSV_FIELDS))
     classeur.save(xlsx)
 
     assert len(lire_xlsx(xlsx)) == len(PROFILS_REELS)
@@ -396,3 +397,132 @@ def test_le_rapport_annonce_les_statuts_tranches_et_refuses(capsys):
     assert "REFUSES" in sortie
     assert "https://www.linkedin.com/in/marie" in sortie
     assert "'ok'" in sortie
+
+
+# --- POC-015: the derived departement column and the return trip ---------
+
+
+def _profils_localises():
+    """PROFILS_REELS with locations in the three-part form LinkedIn mostly gives."""
+    strasbourg = dict(PROFILS_REELS[0], localisation="Strasbourg, Grand Est, France")
+    peripherie = dict(PROFILS_REELS[1], localisation="Paris et périphérie")
+    return [strasbourg, peripherie]
+
+
+def _etat_du_magasin(conn):
+    return {p["url"]: dict(p) for p in lister_profils(conn)}
+
+
+def test_departement_est_une_cellule_texte_du_classeur(tmp_path):
+    csv_source = _ecrire_csv(tmp_path, _profils_localises())
+    xlsx = tmp_path / "departement.xlsx"
+
+    convertir_csv_en_xlsx(csv_source, xlsx)
+
+    feuille = load_workbook(xlsx).worksheets[0]
+    assert feuille["D1"].value == "departement"
+    assert feuille["D2"].value == "67 - Bas-Rhin"
+    assert feuille["D2"].number_format == "@"
+    # Not attachable: an empty cell, not a guessed "75 - Paris".
+    assert lire_xlsx(xlsx)[1]["departement"] == ""
+
+
+def test_classeur_annote_ne_modifie_que_commentaire_et_statut(tmp_path):
+    """The POC-013 loop still holds with the 17th column, even if it was edited."""
+    profils = _profils_localises()
+    conn = ouvrir_magasin(tmp_path / "profils.db")
+    try:
+        enregistrer_profils(conn, profils)
+        conn.execute("UPDATE profils SET statut_coordonnees = 'candidat'")
+        conn.commit()
+        avant = _etat_du_magasin(conn)
+
+        csv_source = _ecrire_csv(tmp_path, lister_profils(conn))
+        xlsx = tmp_path / "retour_client.xlsx"
+        convertir_csv_en_xlsx(csv_source, xlsx)
+
+        # The client annotates, and also retypes the derived cell.
+        classeur = load_workbook(xlsx)
+        feuille = classeur.worksheets[0]
+        colonne = {c.value: c.column for c in feuille[1]}
+        url_annotee = feuille.cell(row=2, column=colonne["url"]).value
+        feuille.cell(row=2, column=colonne["commentaire_client"], value="bon profil")
+        feuille.cell(row=2, column=colonne["statut_coordonnees"], value="valide")
+        feuille.cell(row=2, column=colonne["departement"], value="88 - Vosges")
+        feuille.cell(row=3, column=colonne["departement"], value="75 - Paris")
+        classeur.save(xlsx)
+
+        _rejouer_reimport(conn, _resoudre_source(xlsx))
+        apres = _etat_du_magasin(conn)
+    finally:
+        conn.close()
+
+    ecarts = {
+        (url, champ)
+        for url in avant
+        for champ in avant[url]
+        if avant[url][champ] != apres[url][champ]
+    }
+    assert ecarts == {(url_annotee, "commentaire_client"), (url_annotee, "statut_coordonnees")}
+    assert all("departement" not in profil for profil in apres.values())
+
+
+def test_ancien_classeur_sans_departement_est_accepte_et_signale(tmp_path, capsys):
+    """A workbook delivered before POC-015 must come back: accepted, and said so."""
+    profils = _profils_localises()
+    ancien_entete = [c for c in PROFILE_CSV_FIELDS if c != "departement"]
+    lignes = [
+        [dict(p, commentaire_client="mauvais profil")[c] for c in ancien_entete] for p in profils
+    ]
+    xlsx = _forger_xlsx(tmp_path / "envoi_septembre.xlsx", lignes, entete=ancien_entete)
+
+    conn = ouvrir_magasin(tmp_path / "profils.db")
+    try:
+        enregistrer_profils(conn, [dict(p, commentaire_client="") for p in profils])
+        trace = _resoudre_source(xlsx)
+        sortie = capsys.readouterr().out
+        rapport = _rejouer_reimport(conn, trace)
+        commentaires = {p["commentaire_client"] for p in lister_profils(conn)}
+    finally:
+        conn.close()
+
+    assert "Ancien format reconnu" in sortie
+    assert "departement" in sortie
+    assert len(rapport.commentaires_ajoutes) == len(profils)
+    assert commentaires == {"mauvais profil"}
+    # The trace carries the current header, the missing column left blank.
+    assert list(_lire_csv(trace)[0]) == PROFILE_CSV_FIELDS
+    assert {ligne["departement"] for ligne in _lire_csv(trace)} == {""}
+
+
+def test_classeur_au_format_courant_n_est_pas_annonce_comme_ancien(tmp_path, capsys):
+    csv_source = _ecrire_csv(tmp_path, _profils_localises())
+    xlsx = tmp_path / "courant.xlsx"
+    convertir_csv_en_xlsx(csv_source, xlsx)
+
+    _resoudre_source(xlsx)
+
+    assert "Ancien format" not in capsys.readouterr().out
+
+
+def test_ancien_format_amoindri_reste_refuse(tmp_path):
+    """The tolerance is one exact header, not "any column may be missing"."""
+    entete = [c for c in PROFILE_CSV_FIELDS if c not in ("departement", "justification")]
+    xlsx = _forger_xlsx(tmp_path / "ampute.xlsx", [["x"] * len(entete)], entete=entete)
+
+    with pytest.raises(EnteteXlsxInvalide, match="justification"):
+        lire_xlsx(xlsx)
+
+
+def test_export_d_un_csv_sans_departement_est_refuse(tmp_path):
+    """Strict on the way out: a stale CSV must not become a 16-column deliverable."""
+    ancien_entete = [c for c in PROFILE_CSV_FIELDS if c != "departement"]
+    csv_perime = tmp_path / "perime.csv"
+    with open(csv_perime, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=ancien_entete, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(PROFILS_REELS)
+
+    with pytest.raises(EnteteXlsxInvalide, match="departement"):
+        convertir_csv_en_xlsx(csv_perime, tmp_path / "perime.xlsx")
+    assert not (tmp_path / "perime.xlsx").exists()

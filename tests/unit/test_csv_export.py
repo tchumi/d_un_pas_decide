@@ -269,3 +269,74 @@ def test_export_preserves_emoji_in_names(tmp_path):
         rows = list(csv.DictReader(f))
 
     assert rows[0]["nom"] == "Charlotte Leveque🔥Coaching Professionnel"
+
+
+# --- POC-015: departement, derived at export time ------------------------
+
+
+def test_export_derive_le_departement_juste_apres_la_localisation(tmp_path):
+    profiles = [
+        {
+            "nom": "Marie Dupont",
+            "url": "https://www.linkedin.com/in/marie-dupont",
+            "localisation": "Strasbourg, Grand Est, France",
+            "titre": "Coach business",
+        }
+    ]
+    output_path = tmp_path / "profils.csv"
+
+    export_profiles_to_csv(profiles, output_path)
+
+    with open(output_path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    position = reader.fieldnames.index("localisation")
+    assert reader.fieldnames[position + 1] == "departement"
+    assert rows[0]["departement"] == "67 - Bas-Rhin"
+    # The source column is exported untouched.
+    assert rows[0]["localisation"] == "Strasbourg, Grand Est, France"
+
+
+def test_export_laisse_vide_un_departement_non_rattachable(tmp_path):
+    profiles = [
+        {"nom": "A", "url": "https://www.linkedin.com/in/a", "localisation": "Paris et périphérie"},
+        {"nom": "B", "url": "https://www.linkedin.com/in/b", "localisation": "France"},
+        {"nom": "C", "url": "https://www.linkedin.com/in/c"},
+    ]
+    output_path = tmp_path / "profils.csv"
+
+    export_profiles_to_csv(profiles, output_path)
+
+    with open(output_path, newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+
+    assert [row["departement"] for row in rows] == ["", "", ""]
+
+
+def test_export_recalcule_le_departement_meme_s_il_est_fourni(tmp_path):
+    """A value typed in a returned workbook must not be re-exported as derived."""
+    profiles = [
+        {
+            "nom": "Marie Dupont",
+            "url": "https://www.linkedin.com/in/marie-dupont",
+            "localisation": "Strasbourg, Grand Est, France",
+            "departement": "88 - Vosges",
+        },
+        {
+            "nom": "Jean Martin",
+            "url": "https://www.linkedin.com/in/jean-martin",
+            "localisation": "Paris et périphérie",
+            "departement": "75 - Paris",
+        },
+    ]
+    output_path = tmp_path / "profils.csv"
+
+    export_profiles_to_csv(profiles, output_path)
+
+    with open(output_path, newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+
+    assert [row["departement"] for row in rows] == ["67 - Bas-Rhin", ""]
+    # The caller's dicts are left as they were.
+    assert profiles[0]["departement"] == "88 - Vosges"

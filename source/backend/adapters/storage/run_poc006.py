@@ -39,7 +39,11 @@ from source.backend.adapters.storage.profile_store import (
     importer_commentaires_csv,
     ouvrir_magasin,
 )
-from source.backend.adapters.storage.xlsx_export import EnteteXlsxInvalide, xlsx_vers_csv
+from source.backend.adapters.storage.xlsx_export import (
+    EnteteXlsxInvalide,
+    colonnes_derivees_absentes,
+    xlsx_vers_csv,
+)
 
 # The file the client annotates: the scored export of POC-003.
 DEFAULT_INPUT_CSV = Path("./profils_extraits_scores.csv")
@@ -125,6 +129,14 @@ def _resoudre_source(chemin: Path) -> Path | None:
         return None
 
     print(f"{lignes} lignes converties depuis le classeur {chemin}")
+    # POC-015: a workbook delivered before the derived columns existed is
+    # accepted, but said to be - never a silent tolerance.
+    absentes = colonnes_derivees_absentes(chemin)
+    if absentes:
+        print(
+            f"Ancien format reconnu : classeur sans la colonne {', '.join(absentes)} "
+            f"(derivee a l'export, jamais re-importee) - accepte, rien n'est perdu."
+        )
     print(f"Trace de la conversion ecrite dans {trace} (relue ci-dessous)")
     return trace
 

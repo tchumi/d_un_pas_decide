@@ -7,6 +7,8 @@ stay usable standalone, independently of the UI.
 import csv
 from pathlib import Path
 
+from source.backend.core.departement import deriver_departement
+
 # Email added in POC-002 (visited from the individual profile page); blank
 # when the profile doesn't display it publicly.
 # email_web/site_web added in POC-004 (deterministic web enrichment pipeline,
@@ -25,10 +27,17 @@ from pathlib import Path
 # attempted yet", and statut_coordonnees carries the human ruling on the web
 # contact details. The status is exported because that is how the review comes
 # back into the store, exactly like commentaire_client.
+# departement added in POC-015 (client suggestion of 11/09/2026, to sort the
+# workbook): unlike every other column it is not read from the store, it is
+# derived from localisation at export time - blank when the location cannot be
+# tied to exactly one departement. No re-import path reads it back.
+DERIVED_CSV_FIELDS = ["departement"]
+
 PROFILE_CSV_FIELDS = [
     "nom",
     "url",
     "localisation",
+    "departement",
     "titre",
     "email",
     "email_web",
@@ -54,9 +63,18 @@ EXPORT_CSV = Path("./profils_magasin.csv")
 
 
 def export_profiles_to_csv(profiles: list[dict[str, str]], output_path: Path) -> None:
-    """Write extracted profiles to a CSV file with the expected field set."""
+    """Write extracted profiles to a CSV file with the expected field set.
+
+    departement is always recomputed from localisation, whatever the incoming
+    dict carries: a value edited in a returned workbook must not survive a
+    re-export as if it were derived.
+    """
+    lignes = [
+        {**profil, "departement": deriver_departement(profil.get("localisation"))}
+        for profil in profiles
+    ]
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=PROFILE_CSV_FIELDS, restval="")
         writer.writeheader()
-        writer.writerows(profiles)
+        writer.writerows(lignes)

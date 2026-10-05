@@ -4,6 +4,7 @@ import sqlite3
 import pytest
 
 from source.backend.adapters.storage.csv_export import (
+    DERIVED_CSV_FIELDS,
     PROFILE_CSV_FIELDS,
     export_profiles_to_csv,
 )
@@ -57,8 +58,10 @@ def lire_csv(chemin):
 
 def test_colonnes_du_magasin_alignees_sur_l_export_csv():
     # The CSV is a view of the store: a column added on one side without the
-    # other would silently drop data at export time.
-    assert PROFILE_COLUMNS == PROFILE_CSV_FIELDS
+    # other would silently drop data at export time. The derived columns
+    # (POC-015) are computed at export and deliberately absent from the store.
+    stockees = [c for c in PROFILE_CSV_FIELDS if c not in DERIVED_CSV_FIELDS]
+    assert PROFILE_COLUMNS == stockees
 
 
 def test_ouvrir_magasin_est_idempotent(tmp_path):
