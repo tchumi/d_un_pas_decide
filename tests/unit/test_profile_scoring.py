@@ -57,6 +57,28 @@ def test_life_coach_est_exclu(regles):
     assert scorer_titre("Coach de vie et bien-être", regles).categorie == "exclu"
 
 
+def test_titre_mixte_life_et_business_est_exclu(regles):
+    # POC-014, anomaly A: the ampersand used to split "life" from "coach".
+    # Client grid of 11/09/2026: a life coach is a bad profile.
+    assert scorer_titre("Certified Life & Business Coach", regles).categorie == "exclu"
+    assert scorer_titre("Business and life coach", regles).categorie == "exclu"
+
+
+def test_coach_en_formation_est_exclu(regles):
+    # POC-014: not a practising coach yet.
+    resultat = scorer_titre("Chef de projet / Coach professionnel en formation", regles)
+
+    assert resultat.categorie == "exclu"
+    assert "exclusion_en_formation" in resultat.justification
+
+
+def test_formateur_n_est_pas_un_coach_en_formation(regles):
+    # "en formation" alone must not exclude: trainers and training consultants
+    # are legitimate business coach profiles.
+    assert scorer_titre("Coach professionnel, consultant en formation", regles).categorie != "exclu"
+    assert scorer_titre("Coach professionnel & Formateur", regles).categorie != "exclu"
+
+
 # --- règles de score -------------------------------------------------------
 
 
@@ -69,18 +91,49 @@ def test_marqueur_coach_seul_donne_le_score_de_base(regles):
 
 def test_focus_business_ajoute_quarante_points(regles):
     # base_coach (+20) + focus_business (+40), aucune certification ni cible.
-    assert scorer_titre("Coach d'entreprise", regles).score == 70
+    assert scorer_titre("Coach professionnel", regles).score == 60
 
 
-def test_certification_ajoute_quinze_points(regles):
-    # base_coach (+20) + certification (+15).
-    assert scorer_titre("Coach certifié", regles).score == 35
+def test_coach_professionnel_sans_autre_signal_atteint_le_seuil(regles):
+    # POC-014 invariant: base_coach + focus_business alone reach the threshold.
+    # That is what keeps every good profile of the 11/09/2026 batch selected.
+    assert scorer_titre("Coach professionnel", regles).score >= regles.seuil_profil_interessant
 
 
-def test_cible_business_ajoute_dix_points(regles):
-    # base_coach (+20) + cible_business (+10) via "entrepreneur", sans
+def test_certification_ajoute_cinq_points(regles):
+    # base_coach (+20) + certification (+5) : la grille client n'en parle pas.
+    assert scorer_titre("Coach certifié", regles).score == 25
+
+
+def test_cible_business_ajoute_quinze_points(regles):
+    # base_coach (+20) + cible_business (+15) via "entrepreneur", sans
     # déclencher focus_business (aucune formule "coach professionnel/business").
-    assert scorer_titre("Coach pour entrepreneurs", regles).score == 30
+    assert scorer_titre("Coach pour entrepreneurs", regles).score == 35
+
+
+def test_nom_d_ecole_executive_ne_declenche_pas_la_cible_business(regles):
+    # "executive" used to match the name of a coaching school by substring.
+    resultat = scorer_titre("Coach professionnel certifié par Ecole Executive", regles)
+
+    assert "cible_business" not in resultat.justification
+
+
+def test_profil_dirigeant_ajoute_vingt_points(regles):
+    # Client grid: "ancien dirigeant" defines the excellent profile.
+    resultat = scorer_titre("Coach professionnel, ancien directeur d'usine", regles)
+
+    assert resultat.score == 80  # 20 + 40 + 20
+    assert "profil_dirigeant +20" in resultat.justification
+
+
+def test_autre_pratique_est_un_malus_leger_sans_exclusion(regles):
+    # Client grid: "multicarte" is a bad profile, but the title alone cannot
+    # tell, so the profile is ranked lower rather than dropped.
+    resultat = scorer_titre("Coach professionnel et hypnothérapeute", regles)
+
+    assert resultat.categorie != "exclu"
+    assert resultat.score == 50  # 20 + 40 - 10
+    assert "autre_pratique -10" in resultat.justification
 
 
 def test_malus_hors_cible_sans_exclusion(regles):
@@ -93,10 +146,10 @@ def test_malus_hors_cible_sans_exclusion(regles):
 
 def test_regle_appliquee_une_seule_fois_malgre_plusieurs_mots_cles(regles):
     # "dirigeant" et "entreprise" appartiennent tous deux à cible_business :
-    # la règle ne doit compter qu'une fois (+10, pas +20).
+    # la règle ne doit compter qu'une fois (+15, pas +30).
     resultat = scorer_titre("Coach de dirigeants en entreprise", regles)
 
-    assert resultat.score == 70  # 20 + 40 (coach d'entreprise) + 10
+    assert resultat.score == 95  # 20 + 40 (coach de dirigeant) + 15 + 20 (profil_dirigeant)
     assert resultat.justification.count("cible_business") == 1
 
 
@@ -187,11 +240,14 @@ def test_regles_chargees_depuis_le_json_par_defaut(regles):
     assert {r.id for r in regles.regles} == {
         "exclusion_non_coach",
         "exclusion_hors_metier",
+        "exclusion_en_formation",
         "base_coach",
         "focus_business",
         "certification",
         "cible_business",
+        "profil_dirigeant",
         "hors_cible",
+        "autre_pratique",
     }
 
 
@@ -224,8 +280,8 @@ def test_poids_compte_par_mot_cle_si_regle_non_limitee_a_une_fois(regles, tmp_pa
 
     titre = "Coach pour entrepreneurs et managers"
 
-    assert scorer_titre(titre, regles).score == 30  # 20 + 10 (règle une fois)
-    assert scorer_titre(titre, regles_cumulatives).score == 40  # 20 + 10 + 10
+    assert scorer_titre(titre, regles).score == 35  # 20 + 15 (règle une fois)
+    assert scorer_titre(titre, regles_cumulatives).score == 50  # 20 + 15 + 15
 
 
 def test_sauvegarder_puis_recharger_conserve_les_regles(regles, tmp_path):
@@ -257,7 +313,6 @@ TITRES_VALIDES_PAR_LE_CLIENT = [
     "Coach d’intégration professionnelle en France | Français professionnel & communication",
     "Coach d’entreprise - AUTODOC PRO FRANCE",
     "Directeur dans le monde industriel | Coach professionnel certifié ICF Level 2",
-    "Product Data & Certification Manager / Coach professionnel en formation / MERSEN",
     "Co-Dirigeant de TREMPLIN France & Coach Professionnel ICF   Engagée par nature",
     "Senior Business Advisor |, Business Unit Management, Coach professionnel",
     "Coach professionnel certifié | ex-Dir. marketing CoachingWays France",
@@ -266,10 +321,15 @@ TITRES_VALIDES_PAR_LE_CLIENT = [
     "International Business Coach, Trainer & Consultant ICF PCC",
     "Directeur associé de Coachingways France - formation de coach-professionnel",
     "Executive Coach (HEC) | Transformation & performance | Fondateur HPES France",
-    "Coach professionnel en formation chez Coaching Ways France",
     "Coach Professionnelle, Equicoach - Consultante & Formatrice - ex DRH",
     "Personnel Navigant Commercial (PNC) - 25 ans Air France | Coach certifié RNCP 7",
     "Coach professionnelle certifié par COACHING WAYS FRANCE / COACHING WAYS EXECUTIVE",
+]
+# Validated in bulk on 08/07/2026, then judged "mauvais profil" one by one by
+# the client on 11/09/2026: the later, individual verdict prevails (POC-014).
+TITRES_EN_FORMATION_REJUGES_LE_11_09 = [
+    "Product Data & Certification Manager / Coach professionnel en formation / MERSEN",
+    "Coach professionnel en formation chez Coaching Ways France",
 ]
 
 
@@ -278,12 +338,19 @@ def test_acceptation_cecile_pollin_est_exclue(regles):
     assert scorer_titre(TITRE_CECILE_POLLIN, regles).categorie == "exclu"
 
 
-def test_acceptation_les_23_profils_valides_sont_conserves(regles):
+def test_acceptation_les_21_profils_valides_sont_conserves(regles):
     """Le client a validé ces profils en bloc comme de bons coachs business (08/07/2026)."""
-    assert len(TITRES_VALIDES_PAR_LE_CLIENT) == 23
+    assert len(TITRES_VALIDES_PAR_LE_CLIENT) == 21
     categories = [scorer_titre(t, regles).categorie for t in TITRES_VALIDES_PAR_LE_CLIENT]
 
     assert "exclu" not in categories
+
+
+def test_acceptation_les_2_coachs_en_formation_sont_exclus(regles):
+    """Jugés « mauvais profil » par le client le 11/09/2026 : ils sortent de la sélection."""
+    categories = [scorer_titre(t, regles).categorie for t in TITRES_EN_FORMATION_REJUGES_LE_11_09]
+
+    assert categories == ["exclu", "exclu"]
 
 
 def test_acceptation_anne_laure_conservee_mais_sous_la_mediane(regles):

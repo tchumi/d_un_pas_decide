@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "commentaire": "Regles de scoring POC-003. Editables a la main ou depuis le futur menu configuration (charger_regles/sauvegarder_regles). Les mots-cles sont normalises au chargement : casse, accents et ponctuation sont ignores, ecrivez-les naturellement.",
+  "version": 2,
+  "commentaire": "Regles de scoring v2 (POC-014), derivees de la grille de profilage du client du 11/09/2026 (excellent : ancien dirigeant, coach de dirigeants et CODIR ; bon : carriere privee, coach business ; mauvais : fonction publique, coach de vie, multicarte ou autre metier ; rien a voir : pas coach). Mesurees sur les 81 profils annotes par run_poc014_evaluation ; a revalider sur le prochain lot annote avant de s'y fier. Le seuil repose sur base_coach + focus_business (20 + 40 = 60) : c'est ce qui garantit qu'aucun bon profil n'est ecarte. Editables a la main ou depuis le futur menu configuration (charger_regles/sauvegarder_regles). Les mots-cles sont normalises au chargement : casse, accents et ponctuation sont ignores, ecrivez-les naturellement. Ils sont apparies par sous-chaine : verifier tout mot-cle court contre les titres reels.",
   "score_min": 0,
   "score_max": 100,
   "seuil_profil_interessant": 60,
@@ -16,21 +16,44 @@
       "id": "exclusion_non_coach",
       "type": "exclusion_absence",
       "poids": 0,
-      "mots_cles": ["coach"],
+      "mots_cles": [
+        "coach"
+      ],
       "libelle": "aucun marqueur 'coach' dans le titre"
     },
     {
       "id": "exclusion_hors_metier",
       "type": "exclusion_presence",
       "poids": 0,
-      "mots_cles": ["coach de vie", "life coach"],
-      "libelle": "coaching hors cible business"
+      "mots_cles": [
+        "coach de vie",
+        "life coach",
+        "life & business coach",
+        "business & life coach",
+        "life and business coach",
+        "business and life coach"
+      ],
+      "libelle": "coaching hors cible business (grille client : coach de vie, y compris en titre mixte)"
+    },
+    {
+      "id": "exclusion_en_formation",
+      "type": "exclusion_presence",
+      "poids": 0,
+      "mots_cles": [
+        "coach en formation",
+        "coach professionnel en formation",
+        "coach professionnelle en formation",
+        "en cours de certification"
+      ],
+      "libelle": "coach encore en formation (grille client : pas encore coach en exercice)"
     },
     {
       "id": "base_coach",
       "type": "bonus",
       "poids": 20,
-      "mots_cles": ["coach"],
+      "mots_cles": [
+        "coach"
+      ],
       "libelle": "profil de coach"
     },
     {
@@ -53,34 +76,82 @@
     {
       "id": "certification",
       "type": "bonus",
-      "poids": 15,
-      "mots_cles": ["icf", "rncp", "certifi", "accredit", "level 2", "pcc", "mcc"],
-      "libelle": "certification ou accreditation"
+      "poids": 5,
+      "mots_cles": [
+        "icf",
+        "rncp",
+        "certifi",
+        "accredit",
+        "level 2",
+        "pcc",
+        "mcc"
+      ],
+      "libelle": "certification ou accreditation (absente de la grille client, aucun signal mesure : simple departage)"
     },
     {
       "id": "cible_business",
       "type": "bonus",
-      "poids": 10,
+      "poids": 15,
       "mots_cles": [
         "dirigeant",
         "entrepreneur",
         "manager",
         "management",
         "leadership",
-        "executive",
         "business",
         "entreprise",
         "equipe",
         "commercial"
       ],
-      "libelle": "public cible entreprise"
+      "libelle": "public cible entreprise (grille client : coach business, equipes ; 'executive' retire, il captait le nom d'une ecole)"
+    },
+    {
+      "id": "profil_dirigeant",
+      "type": "bonus",
+      "poids": 20,
+      "mots_cles": [
+        "dirigeant",
+        "directeur",
+        "directrice",
+        "president",
+        "fondateur",
+        "fondatrice",
+        "founder",
+        "ceo",
+        "pdg",
+        "vp",
+        "gerant",
+        "codir",
+        "comex",
+        "drh"
+      ],
+      "libelle": "fonction de direction affichee ou public de dirigeants (grille client : ancien dirigeant, coach de dirigeants et CODIR)"
     },
     {
       "id": "hors_cible",
       "type": "malus",
       "poids": -25,
-      "mots_cles": ["developpement personnel", "scolaire"],
+      "mots_cles": [
+        "developpement personnel",
+        "scolaire"
+      ],
       "libelle": "orientation hors cible business (sans exclusion)"
+    },
+    {
+      "id": "autre_pratique",
+      "type": "malus",
+      "poids": -10,
+      "mots_cles": [
+        "therap",
+        "hypno",
+        "sophrolog",
+        "kinesiolog",
+        "numerolog",
+        "naturopath",
+        "reiki",
+        "psychopraticien"
+      ],
+      "libelle": "autre pratique affichee a cote du coaching (grille client : multicarte ou autre metier ; malus leger, le titre ne suffit pas a trancher)"
     }
   ],
   "categories": [
