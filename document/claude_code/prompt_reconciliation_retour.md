@@ -5,6 +5,11 @@
 > terminée, l'inventaire de l'étape 0 est **figé et vérifié**, il n'y a plus de session de
 > déplacement à attendre.
 > Pendant de `prompt_onboarding_travel.md`, qui gère le départ.
+>
+> **✅ EXÉCUTÉ le 05/10/2026 sur le poste principal — étapes 0 à 5 faites et vérifiées** (détail dans
+> `handoff.md`, section 14). **Ne pas rejouer** : la base du poste porte désormais l'empreinte
+> `47b767d5…` et les 81 commentaires. Seule l'**étape 6** (effacement des copies du laptop, du drive
+> et du lot dans `Downloads`) reste à faire, par l'utilisateur.
 
 Tu reprends le projet ProspectionLinkedIn sur le **poste principal**, au retour d'une période
 d'itinérance pendant laquelle le travail s'est fait sur le laptop. Ce n'est pas une session de

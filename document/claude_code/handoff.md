@@ -572,3 +572,50 @@ Format de chaque section :
 
 - **POC-014**, inchangé. Prompt dans `document/prompts_plans/prompt_POC-014.md`.
 
+## 14. Réconciliation au retour d'itinérance — du laptop vers le poste principal (05/10/2026)
+
+- **Opération de données, pas de ticket.** Procédure `prompt_reconciliation_retour.md` déroulée sur
+  le **poste principal**. Aucun fichier de `source/`, `config/` ou `tests/` modifié.
+- **Étape 1** : `git pull` déjà à jour (`8d69a6e`), arbre propre. `uv sync --extra test` a installé
+  `openpyxl` 3.1.5 et `et-xmlfile`. Tests : **143 passed**.
+- **Hypothèse « poste éteint » vérifiée, pas supposée** : avant toute écriture, la base du poste
+  portait l'empreinte de départ `df1a7427c0db5aae23353ac0ad5a467f` et **0 commentaire client**.
+- **Lot de transfert** reçu par le drive, dans
+  `C:\Users\miche\Downloads\d_un_pas_decide-20260829T165329Z-1-001\d_un_pas_decide\`. La base du lot
+  portait l'empreinte attendue `47b767d5acca659a29511933dfa8352f`.
+- **Comparaison avant remplacement (lecture seule)** : poste et lot identiques sur toutes les mesures
+  (81 profils, collecte 2026-08-26, 20 statuts, 0 opposition, `user_version` 2) sauf
+  `commentaire_client` (0 contre 81). Diff cellule par cellule : même schéma, mêmes 81 URLs,
+  **exactement 81 cellules différentes, toutes dans `commentaire_client`**.
+- **Sauvegarde puis remplacement** : `profils_AVANT_retour_20261005.db` et
+  `profils_magasin_AVANT_retour_20261005.csv` dans `D:\Documents\Dev\_backup_prospection\`, puis
+  `profils.db` remplacé. **Vérifié après coup** : empreinte `47b767d5…`, 81 commentaires, toutes les
+  autres mesures inchangées.
+- **Rapatriés et vérifiés par empreinte source/destination** : `profils_magasin.csv` (`78377abe…`),
+  `profils_magasin.xlsx` (`f84325f9…`), `profils_magasin.reimport.csv` à la racine ; les **8 pièces
+  nouvelles** dans `document/compte_rendu/` (les 4 pièces antérieures au départ, identiques dans le
+  lot, n'ont pas été touchées) ; les 2 fichiers `profils_*avant_retour_client_20260916_180620.*` dans
+  `_backup_prospection\`.
+- **Non copié, volontairement** : `.env.local` du lot (empreinte identique à celle du poste, donc
+  rien à gagner) et les `profils_extraits*.csv`, déjà présents.
+- Fichiers modifiés (suivis par Git) : `document/claude_code/handoff.md`,
+  `document/claude_code/task_list.md`, `document/claude_code/prompt_reconciliation_retour.md`,
+  `CLAUDE.md`. `Backlog.md` inchangé : aucun ticket créé, aucune décision de périmètre.
+- Lancement de l'app **non nécessaire**.
+
+### Points de vigilance légués
+
+- **Étape 6 non faite — elle revient à l'utilisateur.** Des copies de données personnelles et de la
+  clé Brave subsistent hors du poste principal : le lot dans `C:\Users\miche\Downloads\…` (il
+  contient `.env.local`), sa copie sur le **drive**, et sur le **laptop** la base, les exports,
+  `C:\Users\HP\Documents\_backup_prospection\` et le dossier de comptes rendus. La copie du poste
+  principal étant vérifiée, ce ménage peut être fait.
+- **Le mail du 19/09/2026 n'est toujours pas envoyé** ; le brouillon est maintenant dans
+  `document/compte_rendu/`.
+- Les tickets à run LinkedIn réel (**POC-016**, **POC-008**, **POC-010**) redeviennent possibles ;
+  `browser_profile/` n'a pas bougé. Priorité de POC-008 à réexaminer (voir section 13).
+
+### Prochain ticket
+
+- **POC-014**, inchangé. Prompt dans `document/prompts_plans/prompt_POC-014.md`.
+

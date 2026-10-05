@@ -10,6 +10,11 @@
 
 ## 2. Backlog courant
 
+> **Itinérance terminée le 05/10/2026** — base réconciliée sur le poste principal (81 profils,
+> 81 commentaires client, empreinte `47b767d5acca659a29511933dfa8352f`), tests **143 passed**. Les
+> mentions « au retour d'itinérance » ci-dessous ne sont plus un blocage : les tickets à run
+> LinkedIn réel (POC-008, POC-010, POC-016) redeviennent possibles. Aucun statut modifié.
+
 | ID | Statut | Priorité | Module | Tâche | Critère d'acceptation |
 |---|---|---|---|---|---|
 | POC-006 | DONE | P1 | scraping/storage | Renouvellement du gisement de profils (mémoire des profils déjà vus) | **Deux runs réels du 26/08/2026, lots strictement disjoints** : magasin amorcé à 25 profils (lot de juillet ré-importé), run 1 → **25 nouveaux en 5 pages**, run 2 → **25 nouveaux en 8 pages**, soit **75 profils / 75 URLs distinctes**, 0 nom ni titre vide. Magasin SQLite `profils.db` dédupliqué sur l'URL normalisée par `clean_profile_url`, porteur de `date_collecte` (figée à la première insertion) et `ne_plus_traiter` (un profil opposé reste dans `urls_connues` donc n'est jamais réextrait, mais sort de l'export). Pagination « jusqu'à N inconnus » par boucle pure injectable, raison d'arrêt explicite (`quota_atteint` / `gisement_epuise` / `plafond_pages`, plafond 10 pages) + message associé. Le CSV devient une vue du magasin : 2 colonnes RGPD ajoutées aux 11 existantes, les 4 colonnes POC-003 conservées. **Aller-retour du retour client vérifié de bout en bout sur données réelles** (export → annotation → ré-import → nouveau scoring, commentaires intacts) — exactement ce que POC-003 ne pouvait pas vérifier. Règle de conflit : le retour client prime sur une valeur stockée et la substitution est signalée, jamais silencieuse ; un blanc n'efface jamais un commentaire. Re-scoring des 25 profils de juillet depuis le magasin : **0 ligne de scoring modifiée** vs POC-003. Gisement mesuré : ~10 profils/page, page 8 atteinte sur ~10 → [Inférence] ~1 run d'avance restant sur cette requête. Tests : **102 passed, 0 failed, 0 skipped** (67 avant POC-006). |
