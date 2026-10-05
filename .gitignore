@@ -50,6 +50,9 @@ document/compte_rendu/
 
 # IDE
 .idea/
+# Workspace VS Code : chemins locaux a la machine (dossier compte_rendu hors depot).
+# Les reglages partageables vivent dans .vscode/settings.json, lui versionne.
+*.code-workspace
 
 # Claude Code — mémoire utilisateur (locale, ne pas versionner)
 .claude/memory/*.md
