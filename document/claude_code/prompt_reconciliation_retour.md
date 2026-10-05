@@ -143,14 +143,23 @@ lancé pendant le déplacement.
 **Inventaire établi et vérifié sur le laptop le 05/10/2026.** Le code et la documentation
 circulent par Git (étape 1). Tout ce qui suit n'y est **pas** et ne se rapatrie que physiquement.
 
-> **Un lot de transfert a été préparé le 05/10/2026**, rassemblant tout ce qui suit dans un seul
-> dossier, destiné à passer par le drive :
-> `C:\Users\HP\Downloads\d_un_pas_decide-20260829T165329Z-1-001\d_un_pas_decide\`
-> Il contient `RAPATRIEMENT.txt`, qui redonne pour chaque fichier **sa destination et son
-> empreinte MD5**. Les tableaux ci-dessous restent la référence ; le lot n'en est que l'emballage.
+> **Un lot de transfert a été préparé le 05/10/2026** et rassemble tout ce qui suit dans un seul
+> dossier. Il a été constitué sur le laptop, dans
+> `C:\Users\HP\Downloads\d_un_pas_decide-20260829T165329Z-1-001\d_un_pas_decide\`, puis **copié sur
+> le drive** pour arriver ici : **demander à l'utilisateur le chemin du lot sur cette machine**
+> (dossier du drive synchronisé, ou copie locale) avant de commencer, et ne rien supposer.
+>
+> **Première chose à lire, dans le lot : `RAPATRIEMENT.txt`.** Il redonne pour chaque fichier sa
+> destination et son empreinte MD5. Les tableaux ci-dessous restent la référence ; le lot n'en est
+> que l'emballage.
+>
 > **Ne pas recopier ce dossier tel quel dans le dépôt** : `compte_rendu\` va dans
 > `d_un_pas_decide\document\compte_rendu\` — **sous `document\`, pas à la racine du dépôt** — et
 > `_backup_prospection\` dans `D:\Documents\Dev\_backup_prospection\`, hors dépôt.
+>
+> **Si `.env.local` se trouve encore dans le lot** (il y était au 05/10/2026, identique à celui du
+> poste principal) : **ne pas le copier dans le dépôt** — celui du poste principal fait foi — et
+> signaler à l'utilisateur qu'une copie de la clé Brave traîne sur le drive, à effacer.
 
 ### A. Irremplaçable — à rapatrier impérativement
 
