@@ -14,11 +14,13 @@ aujourd'hui piloté par des scripts `run_pocXXX.py` lancés en ligne de commande
 ```
 config/
   scoring_rules.json         # règles de scoring POC-003, éditables (chargées par core/)
+  departements.csv           # référentiel INSEE 2025 : département → région (POC-015)
+  communes_departements.csv  # référentiel INSEE 2025 : commune → département (POC-015)
 source/
   main.py                    # (à créer) point d'entrée Streamlit (streamlit run)
   frontend_streamlit/        # (à créer) pages/composants Streamlit (présentation uniquement)
   backend/
-    core/                    # scoring, catégorisation, modèles métier — zéro import Streamlit
+    core/                    # scoring, catégorisation, dérivation du département — zéro import Streamlit
     adapters/
       scraping/               # Playwright, sélecteurs CSS LinkedIn centralisés, session
       storage/                # magasin SQLite persistant (POC-006) + export CSV + livrable xlsx (POC-013)
@@ -35,8 +37,8 @@ document/
 ## État actuel
 
 - Branche active : `master` (base `master`)
-- **Dernière session** : POC-014 — scoring v2 sur le titre, mesuré contre la grille de profilage du client (05/10/2026)
-- **Prochain ticket actif** : POC-015 — colonne département dans l'export
+- **Dernière session** : POC-015 — colonne département dans l'export (05/10/2026)
+- **Prochain ticket actif** : POC-008 — diversification des requêtes (découpage géographique, run LinkedIn réel)
 
 Ces deux lignes sont les **seules** informations volatiles de ce fichier : elles se mettent à
 jour en fin de session (voir « Obligation de fin de session »). Tout le reste — statuts,

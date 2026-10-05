@@ -687,3 +687,73 @@ Format de chaque section :
 - **POC-015** — colonne département dans l'export. Prompt dans
   `document/prompts_plans/prompt_POC-015.md`.
 
+## 16. POC-015 — Colonne département dans l'export (05/10/2026)
+
+- **Livré** : l'export (CSV et classeur) porte une 17ᵉ colonne `departement`, juste après
+  `localisation`, au format « 67 - Bas-Rhin ». Elle est **dérivée à l'export, jamais stockée** :
+  aucune migration, `profile_store.py` non touché, **magasin non écrit** (empreinte
+  `7bf1cbb0fa4d015ade51ab9a942e4f41` avant et après).
+- **Dérivation** : fonction pure `deriver_departement` dans `source/backend/core/departement.py`,
+  sur deux tables statiques réduites du Code officiel géographique INSEE **2025**
+  (`config/departements.csv`, `config/communes_departements.csv`). Téléchargement fait une fois
+  pendant le développement, **aucun appel réseau à l'exécution**. Seule la forme « Commune, Région,
+  France » est dérivable, et seulement si un seul département de la région porte ce nom de commune.
+- **Couverture mesurée sur les 81 profils : 50 rattachés (32 départements), 31 vides** — 20 « X et
+  périphérie », 8 pays seuls, 1 région seule, 2 homonymes réels (Floirac en Nouvelle-Aquitaine,
+  Vougy en Auvergne-Rhône-Alpes). Prévision du plan retrouvée à l'unité.
+- **Boucle de POC-013 tenue.** Un classeur annoté dont le client a aussi retapé la cellule
+  département ne modifie que `commentaire_client` et `statut_coordonnees` (test). **L'ancien classeur
+  à 16 colonnes est accepté au ré-import et annoncé** par `run_poc006` ; tout autre écart d'en-tête
+  reste bloquant, et l'export CSV → xlsx reste strict.
+- **Aller-retour dans le vrai Excel** (16.0, par COM) sur une copie : ouverture, **tri sur la
+  colonne département**, enregistrement, relecture — **0 cellule divergente sur 81 × 17**. Le tri
+  place « 14 - Calvados » en tête et les cellules vides en fin.
+- **Régénération** par le nouveau `run_poc015`, en lecture seule (`mode=ro`) : `profils_magasin.csv`
+  et `profils_magasin.xlsx` réécrits dans l'ordre de `run_poc003` (score décroissant). Contrôle
+  contre le CSV d'avant, apparié sur l'URL : **0 cellule divergente hors la nouvelle colonne**, même
+  ordre de lignes. **Le classeur porte désormais les scores v2** — le point de vigilance de la
+  section 15 est levé.
+- **Sauvegardes** (exports seulement, le magasin n'étant pas écrit) :
+  `profils_magasin_avant_POC-015_20261005_175749.csv` et `.xlsx` dans
+  `D:\Documents\Dev\_backup_prospection\`.
+- **Écarts au prompt, validés au plan** : `tests/unit/test_profile_store.py` modifié (le garde-fou
+  `PROFILE_COLUMNS == PROFILE_CSV_FIELDS` devient « égal hors colonnes dérivées ») ;
+  `run_poc015.py` créé ; `run_poc006.py` touché de 8 lignes pour annoncer l'ancien format.
+- Fichiers créés : `source/backend/core/departement.py`,
+  `source/backend/adapters/storage/run_poc015.py`, `config/departements.csv`,
+  `config/communes_departements.csv`, `tests/unit/test_departement.py`,
+  `document/prompts_plans/plan_POC-015.md`, `document/prompts_plans/prompt_POC-008.md`.
+- Fichiers modifiés : `source/backend/adapters/storage/csv_export.py`,
+  `source/backend/adapters/storage/xlsx_export.py`, `source/backend/adapters/storage/run_poc006.py`,
+  `tests/unit/test_csv_export.py`, `tests/unit/test_xlsx_export.py`,
+  `tests/unit/test_profile_store.py`, `document/Backlog.md`, `document/claude_code/task_list.md`,
+  `document/claude_code/handoff.md`, `CLAUDE.md`.
+- Tests : **214 passed, 0 failed** (172 avant ; 33 pour la dérivation, 3 pour l'export CSV, 6 pour
+  l'aller-retour xlsx).
+- Lancement de l'app **non nécessaire** (pas d'UI). Des modules existants ont changé de
+  comportement — `export_profiles_to_csv`, appelé par `run_poc001` à `run_poc004`, écrit désormais
+  17 colonnes — et c'est vérifié par la régénération réelle, pas seulement par les tests.
+
+### Points de vigilance légués
+
+- **Tout CSV ou classeur exporté avant ce ticket est à 16 colonnes.** Au ré-import il passe (et
+  c'est annoncé) ; en revanche `run_poc013` **refuse** de convertir un `profils_magasin.csv` périmé.
+  En cas de refus : relancer `run_poc015` (ou `run_poc003`) pour régénérer le CSV.
+- **`run_poc015` et `run_poc003` écrivent le même CSV.** Le premier ne touche pas au magasin, le
+  second réécrit le scoring. Pour seulement régénérer le livrable, préférer `run_poc015`.
+- **Une correction du département saisie par le client est ignorée sans message** au ré-import : la
+  colonne est dérivée. Si le client s'en sert pour corriger, il faudra le lui dire ou le signaler.
+- **Référentiel 2025** : une commune nouvelle ou renommée depuis donne une cellule vide, jamais une
+  valeur fausse. La liste des localisations vides imprimée par `run_poc015` est à relire à chaque
+  nouveau lot — POC-008 en apportera un, avec d'autres communes.
+- **38 % du lot sans département**, surtout des aires urbaines (« Paris et périphérie » : 12). À
+  dire au client à l'envoi, pour qu'une cellule vide ne soit pas lue comme un oubli.
+- **Le livrable est régénéré, il n'est pas envoyé** : l'ordre retenu place l'envoi après POC-008.
+- `document/ARCHITECTURE.md` n'a pas été mis à jour (hors des quatre fichiers de fin de session).
+- Points antérieurs toujours ouverts : v2 du scoring non validée hors échantillon, ménage des copies
+  hors poste principal, engagement « fin septembre » dépassé.
+
+### Prochain ticket
+
+- **POC-008** — diversification des requêtes par découpage géographique. **Run LinkedIn réel
+  requis.** Prompt dans `document/prompts_plans/prompt_POC-008.md`.

@@ -1985,6 +1985,80 @@ dérivation ; `csv_export.py` ; tests. **Hors périmètre** : tout filtrage géo
 - 11/09/2026 — Suggestion client.
 - 16/09/2026 — Ticket ouvert, **après** le ré-import du retour du 11/09/2026.
 
+### Réalisation du 05/10/2026
+
+**Ce qui est livré** : l'export (CSV et classeur) porte une 17ᵉ colonne `departement`, placée
+juste après `localisation`, au format **« 67 - Bas-Rhin »**. Elle est calculée à l'export par la
+fonction pure `deriver_departement` (`source/backend/core/departement.py`) et **n'existe pas dans
+le magasin** : aucune migration, aucune écriture en base.
+
+**Décisions du 05/10/2026 (validées par l'utilisateur)** :
+- **Une seule colonne, numéro et nom ensemble.** Écrite en texte comme toutes les cellules du
+  classeur, elle se trie correctement (zéro initial conservé, « 2A »/« 2B » compris).
+- **Dérivée à l'export, jamais stockée.** `export_profiles_to_csv` la recalcule toujours depuis
+  `localisation`, même si le dictionnaire reçu porte déjà une valeur : une cellule retapée dans un
+  classeur de retour ne peut pas ressortir comme si elle était dérivée.
+- **Position** : après `localisation`.
+- **Ancien classeur à 16 colonnes : accepté au ré-import et annoncé** (« Ancien format reconnu »
+  dans la sortie de `run_poc006`). La tolérance porte sur **cet en-tête exact** ; toute autre
+  colonne manquante, ajoutée ou déplacée reste bloquante. À l'export (CSV → xlsx) le contrôle reste
+  strict : un CSV périmé ne peut pas devenir un livrable à 16 colonnes.
+- **Table de correspondance** : Code officiel géographique de l'INSEE, **édition 2025** (Licence
+  Ouverte), téléchargé une fois pendant le développement et réduit à deux fichiers versionnés —
+  `config/departements.csv` (101 départements, avec leur région) et
+  `config/communes_departements.csv` (37 426 couples commune → département, communes actuelles,
+  déléguées et associées). **Aucun appel réseau à l'exécution.**
+- **« X et périphérie » reste vide dans tous les cas**, y compris quand l'aire urbaine semble tenir
+  dans un seul département : une aire urbaine LinkedIn n'est pas un département.
+
+**Règle de dérivation** : seule la forme « Commune, Région, France » est dérivable. La clé est le
+couple (commune, région) après normalisation (casse, accents, tirets, apostrophes) ; la fonction ne
+répond que si **un seul** département de cette région porte une commune de ce nom. « Ville de
+Paris » est lu comme Paris. Tout le reste donne une cellule vide.
+
+**Couverture mesurée sur les 81 profils (05/10/2026)** : **50 rattachés** (32 départements, dont
+Paris 10 et Nord 4) et **31 vides**, soit exactement la prévision du plan.
+
+| Cause de la cellule vide | Profils |
+|---|---|
+| « X et périphérie » (Paris 12, Lille 2, Lyon 2, Angers, Clermont-Ferrand, Nice, Toulon) | 20 |
+| Pays seul (France 6, Espagne 1, Suisse 1) | 8 |
+| Région seule (« Pays de la Loire, France ») | 1 |
+| Commune homonyme dans la même région | 2 |
+
+Les deux homonymes sont réels et confirmés par la table : **Floirac** (Gironde et
+Charente-Maritime, toutes deux en Nouvelle-Aquitaine) et **Vougy** (Loire et Haute-Savoie, toutes
+deux en Auvergne-Rhône-Alpes).
+
+**Boucle de retour vérifiée** : [Code] ni `enregistrer_profils` (qui ne lit que
+`_CHAMPS_COMPLETABLES`) ni `importer_commentaires_csv` ne lisent `departement` ; un test verrouille
+qu'un classeur annoté dont le client a aussi retapé la cellule département ne modifie que
+`commentaire_client` et `statut_coordonnees`. Sur données réelles : le classeur régénéré, ouvert,
+**trié sur la colonne département** puis enregistré dans le vrai Excel (16.0, par COM), est relu
+avec **0 cellule divergente sur 81 × 17**.
+
+**Régénération** : `run_poc015` (nouveau) lit le magasin **en lecture seule** (`mode=ro`), écrit
+`profils_magasin.csv` et `profils_magasin.xlsx` dans l'ordre de `run_poc003` (score décroissant) et
+publie le décompte des rattachés et des localisations laissées vides. Le magasin n'a pas été
+écrit : empreinte `7bf1cbb0fa4d015ade51ab9a942e4f41` avant et après.
+
+**Limites** :
+- **38 % des profils du lot actuel restent sans département**, pour l'essentiel parce que LinkedIn
+  n'affiche qu'une aire urbaine. Aucune règle sur le texte ne lèvera cette limite sans deviner.
+- **Édition 2025 du référentiel**, pas 2026 : une commune créée ou renommée depuis donnera une
+  cellule vide (jamais une valeur fausse). La liste des localisations vides imprimée par
+  `run_poc015` est l'endroit où le voir.
+- **Une correction du département saisie par le client dans le classeur est ignorée au ré-import,
+  sans message.** C'est voulu (la colonne est dérivée) mais ce n'est pas signalé ligne à ligne.
+- La dérivation suppose la forme française de LinkedIn (« Commune, Région, France ») ; un profil
+  collecté avec une interface en anglais donnerait une cellule vide.
+- Les collectivités d'outre-mer hors départements (Saint-Pierre-et-Miquelon, Polynésie…) ne sont
+  pas dans la table.
+
+**Décisions** (suite) :
+- 05/10/2026 — Colonne unique « NN - Nom », dérivée à l'export, après `localisation` ; ancien
+  classeur accepté et annoncé ; table INSEE 2025 versionnée ; « périphérie » toujours vide.
+
 ---
 
 ## POC-016 — Extraction des rubriques « Expérience » et « Infos » du profil LinkedIn
