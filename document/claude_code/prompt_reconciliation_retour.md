@@ -1,7 +1,9 @@
 # Prompt de réconciliation au retour — du laptop vers le poste principal
 
 > À coller sur le **poste principal**, au retour d'itinérance, **avant tout autre travail**.
-> Rédigé le 08/09/2026 depuis le laptop, au départ de l'itinérance.
+> Rédigé le 08/09/2026 au départ, **complété le 05/10/2026 au retour** : l'itinérance est
+> terminée, l'inventaire de l'étape 0 est **figé et vérifié**, il n'y a plus de session de
+> déplacement à attendre.
 > Pendant de `prompt_onboarding_travel.md`, qui gère le départ.
 
 Tu reprends le projet ProspectionLinkedIn sur le **poste principal**, au retour d'une période
@@ -62,6 +64,7 @@ côté données, et seules les étapes 1, 5 et 6 restent à faire.
 | 08/09/2026 | POC-013 — livrable xlsx et ré-import | **Oui, puis annulée par restauration** | **aucun** — voir ci-dessous |
 | 16/09/2026 | Ré-import du retour client du 11/09/2026 | **Oui — écriture réelle, conservée** | `commentaire_client` non vides : **0 → 81** ; tout le reste inchangé — voir ci-dessous |
 | 19/09/2026 | Réponse au client (brouillon) + analyse du découpage géographique | **Non** — lecture seule | aucun — empreinte toujours `47b767d5…` |
+| 05/10/2026 | **Fin d'itinérance** — inventaire de rapatriement | **Non** — lecture seule | aucun — **journal clos**, voir étape 0 |
 
 **POC-013, détail de l'écriture et de son annulation.** Le critère d'acceptation du ticket
 imposait un aller-retour sur le magasin réel : le livrable a été ouvert et annoté dans le **vrai
@@ -75,10 +78,10 @@ verdict humain factice dans une colonne qui, depuis POC-009, ne doit contenir qu
 humaines réelles. **La base a donc été restaurée** depuis la sauvegarde
 `profils_avant_POC013_20260908_090426.db` (décision utilisateur du 08/09/2026).
 
-**Conséquence pour la réconciliation : `profils.db` vaut de nouveau
-`df1a7427c0db5aae23353ac0ad5a467f`, l'empreinte de départ.** Si elle est toujours celle-là au
-retour, **il n'y a rien à réconcilier côté données** — seuls le code et la documentation ont
-changé, et ils circulent par Git.
+**Conséquence pour la réconciliation — ⚠ PÉRIMÉ, ne pas appliquer.** Ce paragraphe disait qu'après
+POC-013 la base avait retrouvé son empreinte de départ, donc qu'il n'y avait rien à réconcilier.
+C'était vrai le 08/09/2026 ; **ce n'est plus vrai depuis le ré-import du 16/09/2026**. Il reste ici
+pour la traçabilité de POC-013. L'état qui fait foi est celui du **05/10/2026**, plus bas.
 
 **Sauvegardes ajoutées pendant le déplacement**, dans
 `C:\Users\HP\Documents\_backup_prospection\` :
@@ -130,12 +133,74 @@ affiche autre chose que 0 commentaire, **arrêter** — l'hypothèse « poste é
 `profils_magasin_2026_09_11.reimport.csv`, écrite à côté du classeur client dans `compte_rendu/`.
 Même traitement que les autres copies de données personnelles à l'étape 6.
 
-**Mettre à jour cette section et l'empreinte à chaque nouvelle écriture** (re-scoring de POC-014,
-en particulier).
+**Vérifié de nouveau le 05/10/2026, en lecture seule, avant rapatriement** : 81 profils,
+collecte 2026-08-26, 20 statuts, **81 commentaires**, 0 opposition, `user_version` 2, empreinte
+`47b767d5acca659a29511933dfa8352f`. **Rien n'a bougé depuis le 16/09/2026** — POC-014 n'a pas été
+lancé pendant le déplacement.
+
+## Étape 0 — Les fichiers à rapatrier à la main (hors Git)
+
+**Inventaire établi et vérifié sur le laptop le 05/10/2026.** Le code et la documentation
+circulent par Git (étape 1). Tout ce qui suit n'y est **pas** et ne se rapatrie que physiquement
+(clé USB, partage réseau — les deux machines sont côte à côte).
+
+### A. Irremplaçable — à rapatrier impérativement
+
+| Source (laptop) | Destination (poste principal) | Pourquoi |
+|---|---|---|
+| `profils.db` à la racine du dépôt — MD5 `47b767d5acca659a29511933dfa8352f` | racine du dépôt, même nom | **Les 81 verdicts client.** Ne se reconstruit pas, sauf à ré-importer le classeur ci-dessous. |
+| `compte_rendu\2026 09 11 - mail Christophe.pdf` | `document\compte_rendu\` | La réponse du client : la grille de profilage à 4 niveaux, en version originale. |
+| `compte_rendu\profils_magasin_2026_09_11.xlsx` | `document\compte_rendu\` | **Le classeur annoté par le client** — la seule copie des 81 verdicts hors de la base. |
+| `compte_rendu\2026 09 04 - CR call.pdf` | `document\compte_rendu\` | Le compte rendu du call qui a ouvert POC-013 et mandaté POC-008. |
+| `compte_rendu\2026 09 08 - brouillon mail Michel - livraison tableau Excel.md` | `document\compte_rendu\` | Brouillon de la livraison. |
+| `compte_rendu\2026 09 09 - mail Michel - livraison tableau Excel (a coller dans Outlook).txt` et `.html` | `document\compte_rendu\` | Le mail **effectivement envoyé** le 09/09/2026. |
+| `compte_rendu\2026 09 19 - brouillon mail Michel - reponse retour du 11-09 (a coller dans Outlook).txt` | `document\compte_rendu\` | **Réponse rédigée, non envoyée** — à relire et envoyer. |
+| `compte_rendu\profils_magasin_2026_09_11.reimport.csv` | `document\compte_rendu\` | Trace de conversion du ré-import ; utile si le ré-import doit être rejoué. |
+| `C:\Users\HP\Documents\_backup_prospection\profils_avant_retour_client_20260916_180620.db` (+ le `.csv` du même horodatage) | `D:\Documents\Dev\_backup_prospection\` | **Point de retour arrière** : l'état juste avant le ré-import des verdicts. |
+
+> ⚠ **Piège de chemin** : sur le laptop, les comptes rendus ne sont **pas** dans le dépôt. Ils sont
+> dans `C:\Users\HP\Downloads\d_un_pas_decide-20260829T165329Z-1-001\d_un_pas_decide\compte_rendu\`.
+> Sur le poste principal, leur place est `document\compte_rendu\` (gitignoré). Les quatre pièces
+> antérieures au départ (les 3 PDF de juillet et le brouillon du 28/08) y sont déjà : **ne pas les
+> écraser par mégarde**, seules les pièces listées ci-dessus sont nouvelles.
+
+### B. Utile mais régénérable — copier si pratique, sinon reconstruire
+
+| Fichier (racine du dépôt laptop) | Comment le reconstruire |
+|---|---|
+| `profils_magasin.csv` — MD5 `78377abefc59593adccc13585e70e62f` | export depuis la base |
+| `profils_magasin.xlsx` — MD5 `f84325f91255c24550dc1b974f7102eb` | `python -m source.backend.adapters.storage.run_poc013` |
+| `profils_magasin.reimport.csv` | trace du dernier ré-import, recréée au prochain |
+| les autres sauvegardes de `_backup_prospection\` (POC-013, départ) | conservées comme preuves, aucune à restaurer |
+
+**Les reconstruire suppose que la base soit déjà en place** : rapatrier `profils.db` d'abord.
+
+### C. À ne surtout PAS rapatrier
+
+- **`.env.local`** — contient la clé Brave. Le poste principal a déjà le sien ; recopier un secret
+  d'une machine à l'autre n'apporte rien et multiplie les copies.
+- **`.venv\`, `__pycache__\`, `.pytest_cache\`** — reconstruits par `uv sync` (étape 1).
+- **`browser_profile\`** — n'a **jamais** été copié sur le laptop, et ne devait pas l'être. La
+  session LinkedIn du poste principal est intacte.
+- **`profils_extraits*.csv` et le `.bak`** — venus du poste principal au départ, **plus jamais
+  écrits depuis POC-009**. Les originaux sont déjà là-bas.
+
+### Contrôle avant de passer à la suite
+
+Après copie, vérifier l'empreinte de la base **sur le poste principal** :
+
+```powershell
+Get-FileHash profils.db -Algorithm MD5
+```
+
+Elle doit valoir `47B767D5ACCA659A29511933DFA8352F`. Si elle diffère, **s'arrêter** : la copie a
+échoué ou le fichier a été ouvert entre-temps.
 
 ## Étape 1 — Récupérer le code et la documentation
 
-Le code et les documents ont circulé par Git, pas à la main.
+Le code et les documents ont circulé par Git, pas à la main. **Vérifié le 05/10/2026 : tout le
+travail d'itinérance est poussé sur `origin/master`, jusqu'au commit `a926989` inclus.** Un
+`git pull` suffit donc, il n'y a rien à récupérer autrement.
 
 ```powershell
 git status --short
@@ -152,7 +217,8 @@ uv sync --extra test
 uv run --extra test pytest tests/ -q
 ```
 
-Le nombre de tests attendu est dans `task_list.md`, ligne du dernier ticket DONE.
+Le nombre de tests attendu est **143** (dernier ticket DONE : POC-013 ; `task_list.md` fait foi).
+`uv sync` est **nécessaire** : POC-013 a ajouté `openpyxl`, absent du poste principal.
 
 ## Étape 2 — Comparer les deux bases AVANT de toucher à quoi que ce soit
 
@@ -204,17 +270,24 @@ Rejouer ensuite **la requête de comparaison de l'étape 2** sur le seul poste p
 vérifier qu'il affiche désormais **les chiffres du laptop**. Une copie qui échoue
 silencieusement est un scénario réel : le magasin n'aurait aucun moyen de le signaler.
 
-Rapatrier aussi les CSV du laptop (`profils_magasin.csv` en particulier), et se souvenir que
-**la base fait foi, pas le CSV** : un export figé au milieu d'une relecture a déjà annoncé
-1 contact validé au lieu de 7 (28/08/2026).
+Rapatrier ensuite le reste de l'**étape 0** — les comptes rendus et le classeur annoté avant tout,
+puis les exports si on ne veut pas les régénérer. Se souvenir que **la base fait foi, pas le CSV** :
+un export figé au milieu d'une relecture a déjà annoncé 1 contact validé au lieu de 7 (28/08/2026).
 
 ## Étape 5 — Reprendre le rythme normal
 
 - `browser_profile/` : **n'a jamais été copié sur le laptop**, et ne devait pas l'être. La
   session LinkedIn du poste principal est intacte, il n'y a rien à restaurer ni à nettoyer.
-- Les tickets qui exigent un run LinkedIn réel redeviennent possibles : **POC-008** (requêtes
-  ciblées et filtre géographique, désormais mandaté par le client — points d'action 2 et 4 du
-  call du 04/09/2026) et **POC-010**.
+- **Prochain ticket : POC-014** (scoring v2 sur le titre, mesuré contre la grille client). Il est
+  hors-ligne, il peut démarrer dès que la base est en place. Prompt prêt dans
+  `document/prompts_plans/prompt_POC-014.md`.
+- Les tickets qui exigent un run LinkedIn réel redeviennent possibles : **POC-016** (extraction
+  « Expérience » et « Infos », le levier identifié par le retour client), **POC-008** et **POC-010**.
+  Attention : le mandat **géographique** de POC-008 est tombé le 11/09/2026 (le client juge la
+  géographie accessoire) ; ce qui reste est le **découpage** par région comme moyen d'accès au
+  gisement, et sa priorité est à réexaminer (voir `Backlog.md`, POC-008).
+- **Un mail attend d'être envoyé** : la réponse du 19/09/2026 au retour client, rapatriée à
+  l'étape 0.
 - Vérifier `playwright install chromium` si le navigateur a bougé.
 
 ## Étape 6 — Effacer les données personnelles du laptop
@@ -222,9 +295,13 @@ Rapatrier aussi les CSV du laptop (`profils_magasin.csv` en particulier), et se 
 Le magasin et les CSV contiennent des **profils réels**. Une fois la réconciliation vérifiée —
 et seulement à ce moment — supprimer du laptop :
 
-- `profils.db` et les CSV de profils à la racine du dépôt ;
-- `C:\Users\HP\Documents\_backup_prospection\` (sauvegardes du déplacement) ;
-- la copie des comptes rendus client si elle n'a plus lieu d'être.
+- `profils.db`, `profils_magasin.csv`, `profils_magasin.xlsx`, `profils_magasin.reimport.csv` et
+  les `profils_extraits*.csv` à la racine du dépôt laptop ;
+- `C:\Users\HP\Documents\_backup_prospection\` en entier (7 fichiers, sauvegardes du déplacement) ;
+- le dossier de comptes rendus du laptop,
+  `C:\Users\HP\Downloads\d_un_pas_decide-20260829T165329Z-1-001\` — il contient le classeur
+  annoté et la correspondance client ;
+- `.env.local` si le laptop ne doit plus servir au projet (il porte la clé Brave).
 
 Ne pas faire ce ménage avant que l'étape 4 soit vérifiée : tant que la copie du poste principal
 n'est pas confirmée bonne, celle du laptop reste la seule qui vaille.
