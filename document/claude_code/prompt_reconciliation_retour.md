@@ -141,8 +141,15 @@ lancé pendant le déplacement.
 ## Étape 0 — Les fichiers à rapatrier à la main (hors Git)
 
 **Inventaire établi et vérifié sur le laptop le 05/10/2026.** Le code et la documentation
-circulent par Git (étape 1). Tout ce qui suit n'y est **pas** et ne se rapatrie que physiquement
-(clé USB, partage réseau — les deux machines sont côte à côte).
+circulent par Git (étape 1). Tout ce qui suit n'y est **pas** et ne se rapatrie que physiquement.
+
+> **Un lot de transfert a été préparé le 05/10/2026**, rassemblant tout ce qui suit dans un seul
+> dossier, destiné à passer par le drive :
+> `C:\Users\HP\Downloads\d_un_pas_decide-20260829T165329Z-1-001\d_un_pas_decide\`
+> Il contient `RAPATRIEMENT.txt`, qui redonne pour chaque fichier **sa destination et son
+> empreinte MD5**. Les tableaux ci-dessous restent la référence ; le lot n'en est que l'emballage.
+> **Ne pas recopier ce dossier tel quel dans le dépôt** : `compte_rendu\` va dans
+> `document\compte_rendu\`, et `_backup_prospection\` dans `D:\Documents\Dev\_backup_prospection\`.
 
 ### A. Irremplaçable — à rapatrier impérativement
 
