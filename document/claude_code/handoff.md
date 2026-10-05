@@ -616,10 +616,13 @@ Format de chaque section :
 - **Engagement daté, dépassé** : le texte envoyé promet le prochain lot **« au plus tard fin
   septembre »** (le brouillon disait « à mon retour », d'où le « aucune date » de la section 13). Ce
   lot doit porter la colonne département (POC-015), et les chiffres du « titre seul » (POC-014) sont
-  attendus au rendez-vous de fin septembre ou début octobre. Au 05/10/2026, rien de cela n'est livré :
-  **à arbitrer avec l'utilisateur avant de démarrer POC-014** (prévenir le client, ordre des tickets).
+  attendus au rendez-vous de fin septembre ou début octobre. Au 05/10/2026, rien de cela n'est livré.
+- **Arbitré le 05/10/2026 avec l'utilisateur** : client **non prévenu** du décalage, sans pression de
+  sa part — pas de mail dédié, le décalage se dira dans le message qui fixera le rendez-vous, une
+  fois POC-014 mesuré. **Ordre des tickets : POC-014 → POC-015 → POC-008 (repassé P1) → envoi du lot
+  → POC-016 (après le rendez-vous) → POC-017.** Motifs dans `Backlog.md`, section POC-008.
 - Les tickets à run LinkedIn réel (**POC-016**, **POC-008**, **POC-010**) redeviennent possibles ;
-  `browser_profile/` n'a pas bougé. Priorité de POC-008 à réexaminer (voir section 13).
+  `browser_profile/` n'a pas bougé.
 
 ### Prochain ticket
 

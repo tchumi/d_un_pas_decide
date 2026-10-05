@@ -1235,6 +1235,16 @@ phrases — découpage par région pour des raisons techniques, toutes les régi
 **Décisions** :
 - 19/09/2026 — Découpage géographique retenu comme **moyen technique d'accès au gisement**,
   distinct du critère de sélection client. Priorité à réexaminer au retour.
+- 05/10/2026 — Priorité **P2 → P1** (réexamen au retour d'itinérance, validé par l'utilisateur).
+  C'est ce ticket qui fournit le prochain lot promis au client dans le mail du 19/09/2026 : la
+  requête actuelle n'a plus qu'environ un run d'avance et donne des profils trop homogènes pour
+  éprouver le scoring v2. **Ordre retenu : POC-014 → POC-015 → POC-008 → envoi du lot → POC-016 →
+  POC-017.** POC-014 d'abord, pour que ses règles soient figées avant le retour du lot annoté
+  (validation hors échantillon) ; POC-015 avant l'envoi, parce qu'il change le format du classeur ;
+  POC-016 après le rendez-vous, le choix revenant au client sur les chiffres de POC-014. Le lot
+  était promis « au plus tard fin septembre » : **client non prévenu du décalage, sans pression de
+  sa part** — à glisser dans le message qui fixera le rendez-vous, une fois POC-014 mesuré, plutôt
+  que dans un mail dédié.
 
 
 
