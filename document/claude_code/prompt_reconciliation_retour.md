@@ -176,7 +176,7 @@ circulent par Git (étape 1). Tout ce qui suit n'y est **pas** et ne se rapatrie
 | `compte_rendu\2026 09 04 - CR call.pdf` | `d_un_pas_decide\document\compte_rendu\` | Le compte rendu du call qui a ouvert POC-013 et mandaté POC-008. |
 | `compte_rendu\2026 09 08 - brouillon mail Michel - livraison tableau Excel.md` | `d_un_pas_decide\document\compte_rendu\` | Brouillon de la livraison. |
 | `compte_rendu\2026 09 09 - mail Michel - livraison tableau Excel (a coller dans Outlook).txt` et `.html` | `d_un_pas_decide\document\compte_rendu\` | Le mail **effectivement envoyé** le 09/09/2026. |
-| `compte_rendu\2026 09 19 - brouillon mail Michel - reponse retour du 11-09 (a coller dans Outlook).txt` | `d_un_pas_decide\document\compte_rendu\` | **Réponse rédigée, non envoyée** — à relire et envoyer. |
+| `compte_rendu\2026 09 19 - brouillon mail Michel - reponse retour du 11-09 (a coller dans Outlook).txt` | `d_un_pas_decide\document\compte_rendu\` | Brouillon de la réponse. ~~Non envoyée~~ — **envoyée le 19/09/2026** (correction du 05/10/2026, PDF du mail envoyé dans le même dossier). |
 | `compte_rendu\profils_magasin_2026_09_11.reimport.csv` | `d_un_pas_decide\document\compte_rendu\` | Trace de conversion du ré-import ; utile si le ré-import doit être rejoué. |
 | `C:\Users\HP\Documents\_backup_prospection\profils_avant_retour_client_20260916_180620.db` (+ le `.csv` du même horodatage) | `D:\Documents\Dev\_backup_prospection\` | **Point de retour arrière** : l'état juste avant le ré-import des verdicts. |
 
@@ -309,8 +309,8 @@ un export figé au milieu d'une relecture a déjà annoncé 1 contact validé au
   Attention : le mandat **géographique** de POC-008 est tombé le 11/09/2026 (le client juge la
   géographie accessoire) ; ce qui reste est le **découpage** par région comme moyen d'accès au
   gisement, et sa priorité est à réexaminer (voir `Backlog.md`, POC-008).
-- **Un mail attend d'être envoyé** : la réponse du 19/09/2026 au retour client, rapatriée à
-  l'étape 0.
+- ~~Un mail attend d'être envoyé~~ — **faux, corrigé le 05/10/2026** : la réponse au retour client
+  a été envoyée le 19/09/2026. Elle promet le prochain lot « au plus tard fin septembre ».
 - Vérifier `playwright install chromium` si le navigateur a bougé.
 
 ## Étape 6 — Effacer les données personnelles du laptop

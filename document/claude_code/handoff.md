@@ -610,8 +610,14 @@ Format de chaque section :
   contient `.env.local`), sa copie sur le **drive**, et sur le **laptop** la base, les exports,
   `C:\Users\HP\Documents\_backup_prospection\` et le dossier de comptes rendus. La copie du poste
   principal étant vérifiée, ce ménage peut être fait.
-- **Le mail du 19/09/2026 n'est toujours pas envoyé** ; le brouillon est maintenant dans
-  `document/compte_rendu/`.
+- **Le mail du 19/09/2026 a été envoyé le jour même (09:39)** — correction de la section 13 et du
+  prompt de réconciliation, qui le donnaient non envoyé. Le PDF du mail envoyé est dans
+  `document/compte_rendu/` (`2026 09 19 - mail MK - RE_ Prospection LinkedIn…pdf`), à côté du brouillon.
+- **Engagement daté, dépassé** : le texte envoyé promet le prochain lot **« au plus tard fin
+  septembre »** (le brouillon disait « à mon retour », d'où le « aucune date » de la section 13). Ce
+  lot doit porter la colonne département (POC-015), et les chiffres du « titre seul » (POC-014) sont
+  attendus au rendez-vous de fin septembre ou début octobre. Au 05/10/2026, rien de cela n'est livré :
+  **à arbitrer avec l'utilisateur avant de démarrer POC-014** (prévenir le client, ordre des tickets).
 - Les tickets à run LinkedIn réel (**POC-016**, **POC-008**, **POC-010**) redeviennent possibles ;
   `browser_profile/` n'a pas bougé. Priorité de POC-008 à réexaminer (voir section 13).
 

@@ -465,6 +465,14 @@ privée ou publique — relèvent du parcours, pas du titre.
   colonne département confirmée ; relance sur l'usage réel (contacts pris ?) ; demande d'annoter le
   prochain lot de la même façon — c'est la validation hors échantillon de POC-014. **Pas de date** de
   livraison. Le brainstorming de requêtes n'est pas relancé (décision utilisateur : en attente).
+- 05/10/2026 — **Correction : la réponse a bien été envoyée, le 19/09/2026 à 09:39**, à Christophe et
+  Henri-Pierre (`document/compte_rendu/2026 09 19 - mail MK - RE_ Prospection LinkedIn - le tableau
+  Excel, 81 profils.pdf`, information utilisateur). Le texte envoyé diffère du brouillon sur un point
+  qui engage : « Pas de date » ne vaut plus, le mail dit du prochain lot **« Je vous l'enverrai au
+  plus tard fin septembre »** — échéance **dépassée** au 05/10/2026. Restent promis : la colonne
+  département dans ce prochain fichier (POC-015), les chiffres du « titre seul » au rendez-vous de
+  fin septembre ou début octobre (POC-014), le découpage régional (POC-008). Retirés à l'envoi : les
+  excuses pour le délai et la phrase « j'avais eu tort d'en faire le point faible ».
 
 
 
