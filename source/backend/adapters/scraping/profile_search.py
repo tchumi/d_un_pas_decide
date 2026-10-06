@@ -8,7 +8,7 @@ import json
 import random
 import time
 from collections.abc import Callable, Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from urllib.parse import quote
 
 from playwright.sync_api import Locator, Page
@@ -18,15 +18,19 @@ from source.backend.core.requetes_recherche import Requete
 
 LINKEDIN_PEOPLE_SEARCH_URL = "https://www.linkedin.com/search/results/people/"
 
-# URL parameter of the native "Locations" facet. [Inference] Not yet verified
-# on a real run (POC-008).
+# URL parameter of the native "Locations" facet, read off the address bar
+# after applying the filter by hand and verified on a real run (06/10/2026,
+# POC-008): 10 profiles out of 10 were located in the selected region.
 GEO_FACET_PARAM = "geoUrn"
 
 PROFILE_FIELDS = ["nom", "url", "localisation", "titre"]
 
 # [Inference] A LinkedIn people search on a free account caps out around 10
 # result pages; the ceiling is also what guarantees the collection loop always
-# terminates, even if "next page" kept answering yes.
+# terminates, even if "next page" kept answering yes. Consistent with the
+# pagination bar seen on 06/10/2026 (10 numbered pages on a search that
+# plainly had more to give), though whether the bar slides past page 10 has
+# not been observed.
 MAX_PAGES = 10
 
 RAISON_QUOTA_ATTEINT = "quota_atteint"
@@ -45,6 +49,10 @@ class ResultatRecherche:
     profils: list[dict[str, str]]
     raison_arret: str
     pages_visitees: int
+    # Pages offered by the pagination bar on the first results page (POC-008:
+    # measure the size of a search instead of estimating it). None when the
+    # bar was not read - pure loop, or a search short enough to have no bar.
+    pages_annoncees: int | None = None
 
     def __len__(self) -> int:
         return len(self.profils)
@@ -70,10 +78,9 @@ def build_search_url(boolean_query: str, geo_urns: Sequence[str] = ()) -> str:
     geographic terms, e.g. "AND (France)") is passed as-is in the
     "keywords" parameter - a textual match, not a geographic filter.
 
-    geo_urns adds the native "Locations" facet (POC-008). [Inference] The
-    parameter name and its JSON-list encoding are to be confirmed on a real
-    run before relying on them: an ignored parameter would silently return
-    the unfiltered search. Without geo_urns the URL is unchanged.
+    geo_urns adds the native "Locations" facet (POC-008), as a JSON list of
+    ids - the form LinkedIn itself writes in the address bar. Without
+    geo_urns the URL is unchanged.
     """
     url = f"{LINKEDIN_PEOPLE_SEARCH_URL}?keywords={quote(boolean_query)}"
     if geo_urns:
@@ -267,6 +274,11 @@ def message_arret(resultat: ResultatRecherche, max_profiles: int) -> str:
     )
 
 
+def compter_pages_annoncees(page: Page) -> int | None:
+    """Number of pages the pagination bar offers, or None if there is no bar."""
+    return page.locator(LinkedInSearchSelectors.PAGINATION_INDICATOR).count() or None
+
+
 def go_to_next_page(page: Page) -> bool:
     """Click the "next page" button if present and enabled.
 
@@ -296,8 +308,14 @@ def search_and_extract(
     page.goto(build_search_url(boolean_query, geo_urns), timeout=60000)
     pause_humaine(2, 4)
 
+    pages_annoncees: list[int | None] = []
+
     def extraire_page() -> list[dict[str, str]]:
         profils = extract_profiles_from_page(page)
+        if not pages_annoncees:
+            # Read once, on the first page: that is where the bar describes
+            # the search as a whole.
+            pages_annoncees.append(compter_pages_annoncees(page))
         pause_humaine(1, 2.5)
         return profils
 
@@ -307,6 +325,7 @@ def search_and_extract(
         pause_humaine(3, 6)
         return True
 
-    return collecter_profils_inconnus(
+    resultat = collecter_profils_inconnus(
         extraire_page, page_suivante, max_profiles, urls_connues, max_pages
     )
+    return replace(resultat, pages_annoncees=pages_annoncees[0] if pages_annoncees else None)

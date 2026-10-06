@@ -41,6 +41,13 @@ class LinkedInSearchSelectors:
     # language (e.g. "Suivant" in French, "Next" in English).
     NEXT_BUTTON = '[data-testid="pagination-controls-next-button-visible"]'
 
+    # Numbered page buttons of the pagination bar ("pagination-indicator-0"
+    # for page 1, and so on), verified against a live DOM dump on 06/10/2026
+    # (POC-008). Counting them gives the number of pages LinkedIn offers for
+    # a search - the only size indication on the page, which announces no
+    # result total.
+    PAGINATION_INDICATOR = '[data-testid^="pagination-indicator-"]'
+
 
 class LinkedInProfileSelectors:
     """Selectors for an individual LinkedIn profile page (contact info).

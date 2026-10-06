@@ -5,6 +5,7 @@ from source.backend.adapters.scraping.profile_search import (
     build_search_url,
     clean_profile_url,
     collecter_profils_inconnus,
+    compter_pages_annoncees,
     filtrer_profils_inconnus,
     message_arret,
     parcourir_requetes,
@@ -91,6 +92,32 @@ def test_la_facette_de_lieu_d_une_requete_arrive_dans_l_url():
     url = build_search_url(regionale.mots_cles, regionale.geo_urns)
 
     assert url.endswith("?keywords=coach&geoUrn=%5B%22123456%22%5D")
+
+
+class PageSimulee:
+    """Stands for a Playwright page whose pagination bar has n numbered buttons."""
+
+    def __init__(self, indicateurs):
+        self.indicateurs = indicateurs
+        self.selecteur = None
+
+    def locator(self, selecteur):
+        self.selecteur = selecteur
+        return self
+
+    def count(self):
+        return self.indicateurs
+
+
+def test_compter_pages_annoncees_compte_les_boutons_numerotes():
+    page = PageSimulee(10)
+
+    assert compter_pages_annoncees(page) == 10
+    assert page.selecteur == '[data-testid^="pagination-indicator-"]'
+
+
+def test_compter_pages_annoncees_sans_barre_ne_devine_rien():
+    assert compter_pages_annoncees(PageSimulee(0)) is None
 
 
 def test_clean_profile_url_strips_query_params():

@@ -9,6 +9,18 @@
       "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") AND (France) NOT (\"life coach\" OR \"sportif\")",
       "provisoire": false,
       "active": true
+    },
+    {
+      "id": "region_grand_est",
+      "libelle": "Coach business / professionnel / entreprise - Grand Est",
+      "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") NOT (\"life coach\" OR \"sportif\")",
+      "lieu": {
+        "libelle": "Grand Est",
+        "geo_urn": "101735443"
+      },
+      "max_pages": 3,
+      "provisoire": true,
+      "active": false
     }
   ]
 }

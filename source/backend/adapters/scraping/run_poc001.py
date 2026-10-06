@@ -78,6 +78,12 @@ def afficher_bilan(bilans: list[ResultatRequete], requetes: tuple[Requete, ...])
     for bilan in bilans:
         print(f"[{bilan.requete.id}] {bilan.requete.libelle}")
         print(f"    {message_arret(bilan.resultat, bilan.profils_demandes)}")
+        annoncees = bilan.resultat.pages_annoncees
+        print(
+            f"    Pagination annoncee : {annoncees} page(s)."
+            if annoncees
+            else "    Pagination annoncee : aucune barre (une seule page de resultats ?)."
+        )
     for requete in requetes[len(bilans) :]:
         print(f"[{requete.id}] {requete.libelle}")
         print("    Non lancee : plafond de profils du run deja atteint.")
