@@ -14,6 +14,7 @@ aujourd'hui piloté par des scripts `run_pocXXX.py` lancés en ligne de commande
 ```
 config/
   scoring_rules.json         # règles de scoring POC-003, éditables (chargées par core/)
+  requetes_recherche.json    # requêtes de recherche LinkedIn POC-008, éditables (chargées par core/)
   departements.csv           # référentiel INSEE 2025 : département → région (POC-015)
   communes_departements.csv  # référentiel INSEE 2025 : commune → département (POC-015)
 source/
@@ -37,8 +38,8 @@ document/
 ## État actuel
 
 - Branche active : `master` (base `master`)
-- **Dernière session** : POC-015 — colonne département dans l'export (05/10/2026)
-- **Prochain ticket actif** : POC-008 — diversification des requêtes (découpage géographique, run LinkedIn réel)
+- **Dernière session** : POC-008 — point d'étape, ticket en cours (06/10/2026)
+- **Prochain ticket actif** : POC-008 — reprise aux runs de production (voir la dernière section de `handoff.md`)
 
 Ces deux lignes sont les **seules** informations volatiles de ce fichier : elles se mettent à
 jour en fin de session (voir « Obligation de fin de session »). Tout le reste — statuts,

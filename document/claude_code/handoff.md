@@ -757,3 +757,81 @@ Format de chaque section :
 
 - **POC-008** — diversification des requêtes par découpage géographique. **Run LinkedIn réel
   requis.** Prompt dans `document/prompts_plans/prompt_POC-008.md`.
+
+## 17. POC-008 — Diversification des requêtes, point d'étape (06/10/2026)
+
+**Ticket en cours, non terminé.** Session interrompue après le run de vérification, avant tout run
+de production. Aucun profil n'a encore été collecté.
+
+- Plan validé puis sauvegardé dans `document/prompts_plans/plan_POC-008.md` (commit `858075d`).
+  Décisions A à E prises « selon les recommandations » : vocabulaire actuel découpé par région
+  (13 régions métropolitaines, sans `AND (France)`), journal à part plutôt qu'une colonne, lot visé
+  de 50 profils nouveaux.
+- **Volet hors-ligne livré** (commit `8e8b1b8`) :
+  - `config/requetes_recherche.json` : requête historique en première entrée, reprise caractère
+    pour caractère (test) ; plafond du run `max_profils_par_run` (25).
+  - `source/backend/core/requetes_recherche.py` : `charger_requetes` lève `ConfigRequetesInvalide`
+    (fichier absent, JSON malformé, liste vide, `id` en double, champ vide, lieu sans identifiant
+    numérique, plafond invalide, aucune requête active).
+  - `profile_search.py` : `build_search_url(requete, geo_urns)` — sans facette, URL strictement
+    inchangée (test) ; `parcourir_requetes`, boucle pure à recherche injectée, qui enrichit les URL
+    exclues d'une requête à la suivante et partage le plafond du run.
+  - `run_poc001.py` : charge la configuration avant d'ouvrir le navigateur, bilan par requête,
+    pause de 8 à 15 s entre deux recherches, écriture du journal.
+  - `adapters/storage/journal_collecte.py` : `journal_collecte.csv` (gitignoré), ajout seul, une
+    ligne par profil réellement ajouté au magasin (date, URL, identifiant et libellé de requête).
+- **Run réel de vérification du 06/10/2026** par `run_poc008_facette.py` (Grand Est, 1 page,
+  10 profils, **aucune écriture**), lancé par l'utilisateur dans son terminal :
+  - LinkedIn écrit `geoUrn=["101735443"]` pour Grand Est, la forme exacte que produit
+    `build_search_url` ; l'URL construite par le code est conservée après navigation.
+  - **10 localisations sur 10 en Grand Est** (Strasbourg et périphérie 7, Altkirch, Mulhouse,
+    Molsheim). La requête nationale n'en avait ramené que 5 sur 81.
+  - Barre de pagination : boutons `data-testid="pagination-indicator-0"` à `-9`, soit **10 pages
+    annoncées pour le seul Grand Est**. Sélecteur ajouté à `selectors.py` ; `run_poc001` imprime le
+    nombre de pages annoncées par requête. La page n'affiche **aucun total de résultats**.
+- Suite du run (commit `6d6d5ed`) : commentaires `[Inférence]` de la facette remplacés par le
+  constat, entrée `region_grand_est` ajoutée au fichier de requêtes, **désactivée**.
+- Fichiers créés : `config/requetes_recherche.json`, `source/backend/core/requetes_recherche.py`,
+  `source/backend/adapters/storage/journal_collecte.py`,
+  `source/backend/adapters/scraping/run_poc008_facette.py`, `tests/unit/test_requetes_recherche.py`,
+  `tests/unit/test_journal_collecte.py`, `document/prompts_plans/plan_POC-008.md`.
+- Fichiers modifiés : `source/backend/adapters/scraping/profile_search.py`,
+  `source/backend/adapters/scraping/run_poc001.py`, `source/backend/adapters/scraping/selectors.py`,
+  `tests/unit/test_profile_search.py`, `.gitignore`.
+- Tests : **268 passed, 0 failed** (214 avant).
+- Magasin **non écrit** : 81 profils, 81 commentaires, empreinte
+  `7bf1cbb0fa4d015ade51ab9a942e4f41`. Sauvegarde prise :
+  `D:\Documents\Dev\_backup_prospection\profils_avant_POC-008_20261006_184213.db`.
+- Lancement de l'app **non nécessaire** (pas d'UI). `run_poc001` a changé de comportement et n'a
+  **pas encore été relancé en réel** depuis : son premier run réel sera le run de production n° 1.
+
+### Points de vigilance
+
+- **Une région ne passe pas sous le plafond** avec ce vocabulaire : Grand Est annonce déjà 10 pages.
+  Le découpage multiplie le gisement accessible, mais on ne verra pas l'épuisement d'une région
+  comme la section POC-008 du Backlog l'espérait.
+- **Le plafond exact reste non mesuré** : il n'a pas été observé si la barre glisse au-delà de la
+  page 10.
+- **Écarts au plan** : le journal ne porte pas le numéro de page ; deux champs de requête ajoutés
+  (`active`, `max_pages`) ; `run_poc008_facette.py` créé.
+- **La session LinkedIn avait expiré** : un script qui demande la connexion manuelle ne peut pas
+  être lancé par l'agent (il attend « Entrée » dans la console). Reconnectée le 06/10/2026.
+- Les 10 profils lus par le run de vérification ne sont pas en base : ils restent « nouveaux ».
+- La requête « executive coach / coach de dirigeants » n'est **pas** ajoutée : option à confirmer.
+
+### Reprise
+
+Deux validations étaient demandées à l'utilisateur et restent **sans réponse** :
+
+1. **Run de production n° 1, Grand Est seul** : activer `region_grand_est`, désactiver
+   `france_historique` pour ce run ; 1 requête, 3 pages, 25 profils nouveaux au plus. Écrit le
+   magasin et le journal. Vérifier d'abord que l'empreinte du magasin est toujours celle de la
+   sauvegarde, sinon en reprendre une.
+2. **Identifiants des 12 autres régions** : mode « relevé » à ajouter à `run_poc008_facette.py`
+   (l'utilisateur applique le filtre région après région, le script note chaque `geoUrn` sans rien
+   enregistrer), ou 12 lancements du script actuel.
+
+Puis : runs de production (au plus 5 requêtes, 3 pages par requête et 50 profils par session),
+`run_poc003`, `run_poc015`, comptages par requête, région et tranche de score, contrôle des 81
+commentaires contre la sauvegarde, fin de session complète et prompt POC-016.
+

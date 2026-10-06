@@ -1246,6 +1246,29 @@ phrases — découpage par région pour des raisons techniques, toutes les régi
   sa part** — à glisser dans le message qui fixera le rendez-vous, une fois POC-014 mesuré, plutôt
   que dans un mail dédié.
 
+### Mise en œuvre et première mesure réelle (06/10/2026)
+
+- **Requêtes en configuration** : `config/requetes_recherche.json`, validé au chargement. Champs
+  d'une requête : `id`, `libelle`, `mots_cles`, `lieu` (libellé + `geo_urn`) optionnel, `max_pages`
+  optionnel, `provisoire`, `active`. Le plafond de profils du run y vit aussi.
+- **La facette native de lieu est vérifiée.** Run réel sans écriture sur Grand Est : LinkedIn écrit
+  `geoUrn=["101735443"]`, et **10 profils lus sur 10 sont dans la région**. Les identifiants des
+  12 autres régions restent à lire de la même façon ; aucun n'est supposé.
+- **Mesure de la pagination** : boutons numérotés `pagination-indicator-N`, **10 pages annoncées
+  pour le seul Grand Est**, aucun total de résultats affiché sur la page.
+- **Limite révélée** : une région ne passe pas sous le plafond avec le vocabulaire actuel. Les
+  tranches restent disjointes et multiplient le gisement accessible, mais leur épuisement ne sera
+  pas visible. Le plafond exact n'est toujours pas mesuré (glissement de la barre non observé).
+
+**Décisions** :
+- 06/10/2026 — Découpage par **région seule** (13 régions métropolitaines, DROM exclus), sur le
+  vocabulaire actuel sans `AND (France)` ; entrées étiquetées `provisoire` faute de brainstorming
+  client. Pas de requête outdoor dans ce lot ; requête « dirigeants » laissée en option.
+- 06/10/2026 — Origine d'un profil tracée par un **journal à part** (`journal_collecte.csv`,
+  gitignoré), pas par une colonne : aucune migration, export inchangé à 17 colonnes.
+- 06/10/2026 — Plafonds : au plus 5 requêtes, 3 pages par requête et 50 profils nouveaux par
+  session ; lot visé de 50 profils.
+
 
 
 ---
