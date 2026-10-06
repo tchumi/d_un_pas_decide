@@ -4,17 +4,23 @@ No Streamlit import here (see CLAUDE.md / ARCHITECTURE.md): this module must
 stay usable standalone, independently of the UI.
 """
 
+import json
 import random
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from urllib.parse import quote
 
 from playwright.sync_api import Locator, Page
 
 from source.backend.adapters.scraping.selectors import LinkedInSearchSelectors
+from source.backend.core.requetes_recherche import Requete
 
 LINKEDIN_PEOPLE_SEARCH_URL = "https://www.linkedin.com/search/results/people/"
+
+# URL parameter of the native "Locations" facet. [Inference] Not yet verified
+# on a real run (POC-008).
+GEO_FACET_PARAM = "geoUrn"
 
 PROFILE_FIELDS = ["nom", "url", "localisation", "titre"]
 
@@ -44,14 +50,36 @@ class ResultatRecherche:
         return len(self.profils)
 
 
-def build_search_url(boolean_query: str) -> str:
+@dataclass(frozen=True)
+class ResultatRequete:
+    """What one configured query brought back (POC-008).
+
+    profils_demandes is the quota the query was given - what was left of the
+    run ceiling when its turn came - so message_arret can be phrased per query.
+    """
+
+    requete: Requete
+    resultat: ResultatRecherche
+    profils_demandes: int
+
+
+def build_search_url(boolean_query: str, geo_urns: Sequence[str] = ()) -> str:
     """Build a LinkedIn people-search URL from a boolean query string.
 
     Pure function, no browser needed: the boolean query text (including any
     geographic terms, e.g. "AND (France)") is passed as-is in the
-    "keywords" parameter.
+    "keywords" parameter - a textual match, not a geographic filter.
+
+    geo_urns adds the native "Locations" facet (POC-008). [Inference] The
+    parameter name and its JSON-list encoding are to be confirmed on a real
+    run before relying on them: an ignored parameter would silently return
+    the unfiltered search. Without geo_urns the URL is unchanged.
     """
-    return f"{LINKEDIN_PEOPLE_SEARCH_URL}?keywords={quote(boolean_query)}"
+    url = f"{LINKEDIN_PEOPLE_SEARCH_URL}?keywords={quote(boolean_query)}"
+    if geo_urns:
+        facette = json.dumps(list(geo_urns), separators=(",", ":"))
+        url += f"&{GEO_FACET_PARAM}={quote(facette)}"
+    return url
 
 
 def clean_profile_url(raw_url: str | None) -> str:
@@ -188,6 +216,36 @@ def collecter_profils_inconnus(
             return ResultatRecherche(retenus, RAISON_GISEMENT_EPUISE, pages_visitees)
 
 
+def parcourir_requetes(
+    requetes: Iterable[Requete],
+    rechercher: Callable[[Requete, int, frozenset[str]], ResultatRecherche],
+    max_profiles: int,
+    urls_connues: set[str] | frozenset[str] = frozenset(),
+) -> list[ResultatRequete]:
+    """Run the configured queries in sequence, deduplicating across them.
+
+    Pure orchestration, like collecter_profils_inconnus: the search itself is
+    injected, so the whole sequence is testable without a browser. Every
+    profile a query brings back joins the excluded set handed to the next
+    one - otherwise two overlapping queries would return the same profile
+    twice. max_profiles caps the run as a whole; a query whose turn comes
+    once the ceiling is reached is not run and is absent from the result.
+    """
+    bilans: list[ResultatRequete] = []
+    exclues = set(urls_connues)
+    restant = max_profiles
+
+    for requete in requetes:
+        if restant <= 0:
+            break
+        resultat = rechercher(requete, restant, frozenset(exclues))
+        exclues.update(clean_profile_url(p.get("url")) for p in resultat.profils)
+        bilans.append(ResultatRequete(requete, resultat, restant))
+        restant -= len(resultat.profils)
+
+    return bilans
+
+
 def message_arret(resultat: ResultatRecherche, max_profiles: int) -> str:
     """Human-readable explanation of why a collection stopped."""
     if resultat.raison_arret == RAISON_QUOTA_ATTEINT:
@@ -227,6 +285,7 @@ def search_and_extract(
     max_profiles: int,
     urls_connues: set[str] | frozenset[str] = frozenset(),
     max_pages: int = MAX_PAGES,
+    geo_urns: Sequence[str] = (),
 ) -> ResultatRecherche:
     """Run the full search + paginated extraction flow for a boolean query.
 
@@ -234,7 +293,7 @@ def search_and_extract(
     Playwright page to the pure collection loop. urls_connues defaults to an
     empty set, so a caller with no store behaves as before POC-006.
     """
-    page.goto(build_search_url(boolean_query), timeout=60000)
+    page.goto(build_search_url(boolean_query, geo_urns), timeout=60000)
     pause_humaine(2, 4)
 
     def extraire_page() -> list[dict[str, str]]:

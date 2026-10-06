@@ -36,6 +36,10 @@ profils_magasin.xlsx
 *.xlsx
 *.reimport.csv
 
+# Journal de collecte (POC-008) : URL de profils et requete d'origine — memes
+# donnees personnelles, et hors du magasin : a sauvegarder avec lui.
+journal_collecte.csv
+
 # Sauvegardes locales des CSV de profils (memes donnees personnelles)
 *.csv.bak
 

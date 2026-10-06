@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "commentaire": "Requetes de recherche LinkedIn (POC-008), parcourues dans l'ordre par run_poc001. Ajouter une requete ne demande pas de toucher au code. Champs d'une requete : id (unique, sert au journal de collecte), libelle (lisible, affiche dans le bilan), mots_cles (requete booleenne, passee telle quelle), lieu (optionnel : libelle + geo_urn, l'identifiant de la facette native 'Lieux' de LinkedIn, lu dans l'URL apres application du filtre dans le navigateur, jamais suppose), max_pages (optionnel, plafond de pages de cette requete), provisoire (true tant que le client n'a pas valide le vocabulaire), active (false pour garder une requete sans la lancer). max_profils_par_run plafonne le nombre de profils nouveaux du run, toutes requetes confondues : c'est un parametre de risque pour le compte LinkedIn, a valider avant chaque run reel.",
+  "max_profils_par_run": 25,
+  "requetes": [
+    {
+      "id": "france_historique",
+      "libelle": "Coach business / professionnel / entreprise - France (requete historique)",
+      "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") AND (France) NOT (\"life coach\" OR \"sportif\")",
+      "provisoire": false,
+      "active": true
+    }
+  ]
+}

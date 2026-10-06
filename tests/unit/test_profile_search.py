@@ -7,7 +7,9 @@ from source.backend.adapters.scraping.profile_search import (
     collecter_profils_inconnus,
     filtrer_profils_inconnus,
     message_arret,
+    parcourir_requetes,
 )
+from source.backend.core.requetes_recherche import Lieu, Requete
 
 
 def profil(slug):
@@ -35,6 +37,24 @@ def gisement(pages):
     return extraire_page, page_suivante
 
 
+def requete(identifiant, **champs):
+    return Requete(id=identifiant, libelle=f"Requete {identifiant}", mots_cles="coach", **champs)
+
+
+def recherche_simulee(gisements, appels=None):
+    """Fake search: each query id has its own paginated result set."""
+
+    def rechercher(requete, quota, exclues):
+        if appels is not None:
+            appels.append((requete.id, quota, exclues))
+        extraire_page, page_suivante = gisement(gisements[requete.id])
+        return collecter_profils_inconnus(
+            extraire_page, page_suivante, quota, exclues, requete.max_pages or 10
+        )
+
+    return rechercher
+
+
 def test_build_search_url_encodes_boolean_query():
     query = '("coach business") AND (France)'
 
@@ -43,6 +63,34 @@ def test_build_search_url_encodes_boolean_query():
     assert url.startswith("https://www.linkedin.com/search/results/people/?keywords=")
     assert "coach" in url
     assert " " not in url
+
+
+def test_build_search_url_sans_facette_est_inchangee():
+    """POC-008 : la requete historique doit produire exactement l'URL d'avant."""
+    url = build_search_url('("coach business") AND (France)')
+
+    assert url == (
+        "https://www.linkedin.com/search/results/people/"
+        "?keywords=%28%22coach%20business%22%29%20AND%20%28France%29"
+    )
+    assert "geoUrn" not in url
+
+
+def test_build_search_url_ajoute_la_facette_de_lieu_encodee():
+    url = build_search_url('"coach business"', ["123456"])
+
+    assert url == (
+        "https://www.linkedin.com/search/results/people/"
+        "?keywords=%22coach%20business%22&geoUrn=%5B%22123456%22%5D"
+    )
+
+
+def test_la_facette_de_lieu_d_une_requete_arrive_dans_l_url():
+    regionale = requete("grand_est", lieu=Lieu(libelle="Grand Est", geo_urn="123456"))
+
+    url = build_search_url(regionale.mots_cles, regionale.geo_urns)
+
+    assert url.endswith("?keywords=coach&geoUrn=%5B%22123456%22%5D")
 
 
 def test_clean_profile_url_strips_query_params():
@@ -178,3 +226,103 @@ def test_message_arret_du_quota_atteint_reste_neutre():
     resultat = collecter_profils_inconnus(extraire_page, page_suivante, max_profiles=1)
 
     assert message_arret(resultat, 1).startswith("1 nouveaux profils collectes")
+
+
+def test_parcours_lance_les_requetes_dans_l_ordre_avec_un_bilan_par_requete():
+    gisements = {"a": [[profil("marie")]], "b": [[profil("jean"), profil("lea")]]}
+
+    bilans = parcourir_requetes(
+        [requete("a"), requete("b")], recherche_simulee(gisements), max_profiles=10
+    )
+
+    assert [b.requete.id for b in bilans] == ["a", "b"]
+    assert [len(b.resultat) for b in bilans] == [1, 2]
+    assert [b.resultat.raison_arret for b in bilans] == [RAISON_GISEMENT_EPUISE] * 2
+
+
+def test_parcours_deduplique_entre_deux_requetes_qui_se_recouvrent():
+    """Critere d'acceptation : urls_connues est enrichi d'une requete a la suivante."""
+    gisements = {
+        "a": [[profil("marie"), profil("jean")]],
+        "b": [[profil("jean"), profil("lea")]],
+    }
+    appels = []
+
+    bilans = parcourir_requetes(
+        [requete("a"), requete("b")], recherche_simulee(gisements, appels), max_profiles=10
+    )
+
+    assert [p["nom"] for p in bilans[0].resultat.profils] == ["marie", "jean"]
+    assert [p["nom"] for p in bilans[1].resultat.profils] == ["lea"]
+    assert appels[0][2] == frozenset()
+    assert appels[1][2] == {profil("marie")["url"], profil("jean")["url"]}
+
+
+def test_parcours_exclut_les_profils_du_magasin_pour_toutes_les_requetes():
+    gisements = {"a": [[profil("marie")]], "b": [[profil("marie"), profil("jean")]]}
+
+    bilans = parcourir_requetes(
+        [requete("a"), requete("b")],
+        recherche_simulee(gisements),
+        max_profiles=10,
+        urls_connues={profil("marie")["url"]},
+    )
+
+    assert bilans[0].resultat.profils == []
+    assert [p["nom"] for p in bilans[1].resultat.profils] == ["jean"]
+
+
+def test_parcours_partage_le_plafond_du_run_entre_les_requetes():
+    gisements = {
+        "a": [[profil("marie"), profil("jean")]],
+        "b": [[profil("lea"), profil("paul"), profil("zoe")]],
+        "c": [[profil("noe")]],
+    }
+    appels = []
+
+    bilans = parcourir_requetes(
+        [requete("a"), requete("b"), requete("c")],
+        recherche_simulee(gisements, appels),
+        max_profiles=3,
+    )
+
+    assert [(b.requete.id, b.profils_demandes, len(b.resultat)) for b in bilans] == [
+        ("a", 3, 2),
+        ("b", 1, 1),
+    ]
+    assert bilans[1].resultat.raison_arret == RAISON_QUOTA_ATTEINT
+    # The third query is never run once the run ceiling is reached.
+    assert [identifiant for identifiant, _, _ in appels] == ["a", "b"]
+
+
+def test_parcours_respecte_le_plafond_de_pages_propre_a_une_requete():
+    gisements = {"a": [[profil("marie")], [profil("jean")], [profil("lea")]]}
+
+    (bilan,) = parcourir_requetes(
+        [requete("a", max_pages=2)], recherche_simulee(gisements), max_profiles=10
+    )
+
+    assert bilan.resultat.raison_arret == RAISON_PLAFOND_PAGES
+    assert bilan.resultat.pages_visitees == 2
+
+
+def test_parcours_sans_plafond_ne_lance_aucune_recherche():
+    appels = []
+
+    bilans = parcourir_requetes(
+        [requete("a")], recherche_simulee({"a": [[profil("marie")]]}, appels), max_profiles=0
+    )
+
+    assert bilans == []
+    assert appels == []
+
+
+def test_message_arret_par_requete_utilise_le_quota_qui_lui_restait():
+    gisements = {"a": [[profil("marie"), profil("jean")]], "b": [[profil("lea")]]}
+
+    bilans = parcourir_requetes(
+        [requete("a"), requete("b")], recherche_simulee(gisements), max_profiles=5
+    )
+
+    message = message_arret(bilans[1].resultat, bilans[1].profils_demandes)
+    assert "1 nouveaux profils sur 3" in message
