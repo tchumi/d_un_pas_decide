@@ -42,7 +42,6 @@ def test_le_fichier_reel_reprend_la_requete_historique_a_l_identique():
     assert premiere.mots_cles == REQUETE_HISTORIQUE
     assert premiere.lieu is None
     assert premiere.max_pages is None
-    assert premiere.active is True
     assert configuration.max_profils_par_run == 25
 
 

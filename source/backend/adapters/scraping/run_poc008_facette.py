@@ -13,8 +13,15 @@ answers three questions that must be measured, not assumed:
 
 Ceiling (validated before launch): one region, 2 pages, 10 profiles.
 
+Survey mode (--releve): reads the facet id of several regions in one session.
+The filter is applied by hand, one region at a time; for each new id the
+script prints the region most cards of the first page are located in. Nothing
+is paginated, nothing is stored. It stops when the window is closed or after
+RELEVE_MAX_S seconds.
+
 Usage:
     python -m source.backend.adapters.scraping.run_poc008_facette
+    python -m source.backend.adapters.scraping.run_poc008_facette --releve
 """
 
 import json
@@ -33,6 +40,7 @@ from source.backend.adapters.scraping.browser_session import (
 from source.backend.adapters.scraping.profile_search import (
     GEO_FACET_PARAM,
     build_search_url,
+    extract_profiles_from_page,
     message_arret,
     pause_humaine,
     search_and_extract,
@@ -53,6 +61,7 @@ DUMP_DIR = Path("./tests/temp")
 
 ATTENTE_FILTRE_S = 480
 INTERVALLE_S = 2
+RELEVE_MAX_S = 1200
 
 
 def parametres_geo(url: str) -> dict[str, list[str]]:
@@ -73,6 +82,63 @@ def attendre_filtre_lieu(page: Page) -> str | None:
         if parametres_geo(derniere):
             return derniere
     return None
+
+
+def region_majoritaire(localisations: list[str]) -> tuple[str | None, int, int]:
+    """Region named by most "Town, Region, France" locations.
+
+    Returns (region, cards naming it, cards read). Any other form ("X et
+    peripherie", a bare country) names no region and is not guessed.
+    """
+    regions: Counter[str] = Counter()
+    for localisation in localisations:
+        morceaux = [m.strip() for m in localisation.split(",")]
+        if len(morceaux) == 3 and morceaux[2] == "France":
+            regions[morceaux[1]] += 1
+    if not regions:
+        return None, 0, len(localisations)
+    region, nombre = regions.most_common(1)[0]
+    return region, nombre, len(localisations)
+
+
+def relever_regions(page: Page) -> dict[str, str]:
+    """Watch the address bar and note every new single-region facet id."""
+    releve: dict[str, str] = {}
+    derniere_valeur = None
+    echeance = time.monotonic() + RELEVE_MAX_S
+    try:
+        while time.monotonic() < echeance:
+            page.wait_for_timeout(INTERVALLE_S * 1000)
+            valeurs = parametres_geo(page.url).get(GEO_FACET_PARAM)
+            if not valeurs or valeurs[0] == derniere_valeur:
+                continue
+            derniere_valeur = valeurs[0]
+            geo_urns = [str(i) for i in json.loads(derniere_valeur)]
+            if len(geo_urns) != 1:
+                print(
+                    f"IGNORE : {len(geo_urns)} lieux coches a la fois ({geo_urns}). "
+                    f"Ne garder qu'une region.",
+                    flush=True,
+                )
+                continue
+            if geo_urns[0] in releve:
+                continue
+            # Let the filtered results render before reading the cards.
+            page.wait_for_timeout(4000)
+            localisations = [
+                p.get("localisation", "") for p in extract_profiles_from_page(page)
+            ]
+            region, nombre, lues = region_majoritaire(localisations)
+            releve[geo_urns[0]] = region or "(region non lue)"
+            print(
+                f"{geo_urns[0]} -> {releve[geo_urns[0]]} ({nombre}/{lues} cartes) "
+                f"[{len(releve)} region(s) relevee(s)]",
+                flush=True,
+            )
+    except Exception as erreur:
+        # Closing the window is the normal way to end the survey.
+        print(f"Releve interrompu ({type(erreur).__name__}).")
+    return releve
 
 
 def relever_pagination(page: Page) -> None:
@@ -99,8 +165,31 @@ def relever_pagination(page: Page) -> None:
             continue
 
 
+def main_releve() -> None:
+    releve: dict[str, str] = {}
+    try:
+        with open_browser_session(PROFILE_DIR) as (context, page):
+            ensure_logged_in(page, context)
+            page.goto(build_search_url(MOTS_CLES), timeout=60000)
+            print(
+                "\n>>> Dans la fenetre Chrome : filtre 'Lieux' -> UNE region -> 'Afficher "
+                "les resultats'. Attendre la ligne affichee ici, puis remplacer la region "
+                "par la suivante. Fermer la fenetre quand c'est fini "
+                f"(arret automatique apres {RELEVE_MAX_S} s).\n",
+                flush=True,
+            )
+            releve = relever_regions(page)
+    except Exception as erreur:
+        print(f"Session fermee ({type(erreur).__name__}).")
+    print(f"\nReleve final ({len(releve)} region(s)) :")
+    print(json.dumps(releve, indent=2, ensure_ascii=False))
+
+
 def main() -> None:
     sys.stdout.reconfigure(errors="replace")
+    if "--releve" in sys.argv[1:]:
+        main_releve()
+        return
 
     with open_browser_session(PROFILE_DIR) as (context, page):
         ensure_logged_in(page, context)

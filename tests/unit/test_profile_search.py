@@ -10,6 +10,10 @@ from source.backend.adapters.scraping.profile_search import (
     message_arret,
     parcourir_requetes,
 )
+from source.backend.adapters.scraping.run_poc008_facette import (
+    parametres_geo,
+    region_majoritaire,
+)
 from source.backend.core.requetes_recherche import Lieu, Requete
 
 
@@ -353,3 +357,29 @@ def test_message_arret_par_requete_utilise_le_quota_qui_lui_restait():
 
     message = message_arret(bilans[1].resultat, bilans[1].profils_demandes)
     assert "1 nouveaux profils sur 3" in message
+
+
+def test_parametres_geo_lit_la_facette_de_lieu_dans_une_url_reelle():
+    url = (
+        "https://www.linkedin.com/search/results/people/?keywords=coach"
+        "&origin=FACETED_SEARCH&geoUrn=%5B%22101735443%22%5D"
+    )
+
+    assert parametres_geo(url) == {"geoUrn": ['["101735443"]']}
+    assert parametres_geo("https://www.linkedin.com/search/results/people/?keywords=coach") == {}
+
+
+def test_region_majoritaire_ne_compte_que_la_forme_commune_region_france():
+    localisations = [
+        "Strasbourg, Grand Est, France",
+        "Mulhouse, Grand Est, France",
+        "Strasbourg et périphérie",
+        "Lyon, Auvergne-Rhône-Alpes, France",
+        "France",
+    ]
+
+    assert region_majoritaire(localisations) == ("Grand Est", 2, 5)
+
+
+def test_region_majoritaire_ne_devine_rien_sans_localisation_exploitable():
+    assert region_majoritaire(["Paris et périphérie", ""]) == (None, 0, 2)
