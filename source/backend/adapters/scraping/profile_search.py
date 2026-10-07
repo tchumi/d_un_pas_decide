@@ -237,6 +237,7 @@ def parcourir_requetes(
     one - otherwise two overlapping queries would return the same profile
     twice. max_profiles caps the run as a whole; a query whose turn comes
     once the ceiling is reached is not run and is absent from the result.
+    A query's own max_profils, when set, lowers its share of that ceiling.
     """
     bilans: list[ResultatRequete] = []
     exclues = set(urls_connues)
@@ -245,9 +246,10 @@ def parcourir_requetes(
     for requete in requetes:
         if restant <= 0:
             break
-        resultat = rechercher(requete, restant, frozenset(exclues))
+        quota = min(restant, requete.max_profils or restant)
+        resultat = rechercher(requete, quota, frozenset(exclues))
         exclues.update(clean_profile_url(p.get("url")) for p in resultat.profils)
-        bilans.append(ResultatRequete(requete, resultat, restant))
+        bilans.append(ResultatRequete(requete, resultat, quota))
         restant -= len(resultat.profils)
 
     return bilans

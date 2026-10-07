@@ -38,6 +38,9 @@ class Requete:
     mots_cles: str
     lieu: Lieu | None = None
     max_pages: int | None = None
+    # Ceiling of new profiles for this query alone. Without it the first
+    # query of a run may use up the whole run ceiling by itself.
+    max_profils: int | None = None
     provisoire: bool = False
     active: bool = True
 
@@ -107,6 +110,7 @@ def _lire_requete(brut: object, rang: int) -> Requete:
     identifiant = _texte_obligatoire(brut, "id", contexte)
     contexte = f"Requete '{identifiant}'"
     max_pages = brut.get("max_pages")
+    max_profils = brut.get("max_profils")
     return Requete(
         id=identifiant,
         libelle=_texte_obligatoire(brut, "libelle", contexte),
@@ -114,6 +118,11 @@ def _lire_requete(brut: object, rang: int) -> Requete:
         lieu=_lire_lieu(brut.get("lieu"), contexte),
         max_pages=(
             None if max_pages is None else _entier_positif(max_pages, "max_pages", contexte)
+        ),
+        max_profils=(
+            None
+            if max_profils is None
+            else _entier_positif(max_profils, "max_profils", contexte)
         ),
         provisoire=_booleen(brut, "provisoire", False, contexte),
         active=_booleen(brut, "active", True, contexte),

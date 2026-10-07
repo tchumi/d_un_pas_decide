@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "commentaire": "Requetes de recherche LinkedIn (POC-008), parcourues dans l'ordre par run_poc001. Ajouter une requete ne demande pas de toucher au code. Champs d'une requete : id (unique, sert au journal de collecte), libelle (lisible, affiche dans le bilan), mots_cles (requete booleenne, passee telle quelle), lieu (optionnel : libelle + geo_urn, l'identifiant de la facette native 'Lieux' de LinkedIn, lu dans l'URL apres application du filtre dans le navigateur, jamais suppose), max_pages (optionnel, plafond de pages de cette requete), provisoire (true tant que le client n'a pas valide le vocabulaire), active (false pour garder une requete sans la lancer). max_profils_par_run plafonne le nombre de profils nouveaux du run, toutes requetes confondues : c'est un parametre de risque pour le compte LinkedIn, a valider avant chaque run reel.",
+  "commentaire": "Requetes de recherche LinkedIn (POC-008), parcourues dans l'ordre par run_poc001. Ajouter une requete ne demande pas de toucher au code. Champs d'une requete : id (unique, sert au journal de collecte), libelle (lisible, affiche dans le bilan), mots_cles (requete booleenne, passee telle quelle), lieu (optionnel : libelle + geo_urn, l'identifiant de la facette native 'Lieux' de LinkedIn, lu dans l'URL apres application du filtre dans le navigateur, jamais suppose), max_pages (optionnel, plafond de pages de cette requete), max_profils (optionnel, plafond de profils nouveaux de cette requete : sans lui la premiere requete du run peut consommer seule tout le plafond du run), provisoire (true tant que le client n'a pas valide le vocabulaire), active (false pour garder une requete sans la lancer). max_profils_par_run plafonne le nombre de profils nouveaux du run, toutes requetes confondues : c'est un parametre de risque pour le compte LinkedIn, a valider avant chaque run reel.",
   "max_profils_par_run": 25,
   "requetes": [
     {
@@ -8,7 +8,7 @@
       "libelle": "Coach business / professionnel / entreprise - France (requete historique)",
       "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") AND (France) NOT (\"life coach\" OR \"sportif\")",
       "provisoire": false,
-      "active": false
+      "active": true
     },
     {
       "id": "region_grand_est",
@@ -20,7 +20,151 @@
       },
       "max_pages": 3,
       "provisoire": true,
-      "active": true
+      "active": false
+    },
+    {
+      "id": "region_auvergne_rhone_alpes",
+      "libelle": "Coach business / professionnel / entreprise - Auvergne-Rhône-Alpes",
+      "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") NOT (\"life coach\" OR \"sportif\")",
+      "lieu": {
+        "libelle": "Auvergne-Rhône-Alpes",
+        "geo_urn": "103623254"
+      },
+      "max_pages": 3,
+      "provisoire": true,
+      "active": false
+    },
+    {
+      "id": "region_bourgogne_franche_comte",
+      "libelle": "Coach business / professionnel / entreprise - Bourgogne-Franche-Comté",
+      "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") NOT (\"life coach\" OR \"sportif\")",
+      "lieu": {
+        "libelle": "Bourgogne-Franche-Comté",
+        "geo_urn": "103286073"
+      },
+      "max_pages": 3,
+      "provisoire": true,
+      "active": false
+    },
+    {
+      "id": "region_bretagne",
+      "libelle": "Coach business / professionnel / entreprise - Bretagne",
+      "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") NOT (\"life coach\" OR \"sportif\")",
+      "lieu": {
+        "libelle": "Bretagne",
+        "geo_urn": "103737322"
+      },
+      "max_pages": 3,
+      "provisoire": true,
+      "active": false
+    },
+    {
+      "id": "region_centre_val_de_loire",
+      "libelle": "Coach business / professionnel / entreprise - Centre-Val de Loire",
+      "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") NOT (\"life coach\" OR \"sportif\")",
+      "lieu": {
+        "libelle": "Centre-Val de Loire",
+        "geo_urn": "102215960"
+      },
+      "max_pages": 3,
+      "provisoire": true,
+      "active": false
+    },
+    {
+      "id": "region_corse",
+      "libelle": "Coach business / professionnel / entreprise - Corse",
+      "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") NOT (\"life coach\" OR \"sportif\")",
+      "lieu": {
+        "libelle": "Corse",
+        "geo_urn": "106926833"
+      },
+      "max_pages": 3,
+      "provisoire": true,
+      "active": false
+    },
+    {
+      "id": "region_hauts_de_france",
+      "libelle": "Coach business / professionnel / entreprise - Hauts-de-France",
+      "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") NOT (\"life coach\" OR \"sportif\")",
+      "lieu": {
+        "libelle": "Hauts-de-France",
+        "geo_urn": "105007536"
+      },
+      "max_pages": 3,
+      "provisoire": true,
+      "active": false
+    },
+    {
+      "id": "region_ile_de_france",
+      "libelle": "Coach business / professionnel / entreprise - Île-de-France",
+      "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") NOT (\"life coach\" OR \"sportif\")",
+      "lieu": {
+        "libelle": "Île-de-France",
+        "geo_urn": "104246759"
+      },
+      "max_pages": 3,
+      "provisoire": true,
+      "active": false
+    },
+    {
+      "id": "region_normandie",
+      "libelle": "Coach business / professionnel / entreprise - Normandie",
+      "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") NOT (\"life coach\" OR \"sportif\")",
+      "lieu": {
+        "libelle": "Normandie",
+        "geo_urn": "104433326"
+      },
+      "max_pages": 3,
+      "provisoire": true,
+      "active": false
+    },
+    {
+      "id": "region_nouvelle_aquitaine",
+      "libelle": "Coach business / professionnel / entreprise - Nouvelle-Aquitaine",
+      "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") NOT (\"life coach\" OR \"sportif\")",
+      "lieu": {
+        "libelle": "Nouvelle-Aquitaine",
+        "geo_urn": "105563475"
+      },
+      "max_pages": 3,
+      "provisoire": true,
+      "active": false
+    },
+    {
+      "id": "region_occitanie",
+      "libelle": "Coach business / professionnel / entreprise - Occitanie",
+      "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") NOT (\"life coach\" OR \"sportif\")",
+      "lieu": {
+        "libelle": "Occitanie",
+        "geo_urn": "103876217"
+      },
+      "max_pages": 3,
+      "provisoire": true,
+      "active": false
+    },
+    {
+      "id": "region_pays_de_la_loire",
+      "libelle": "Coach business / professionnel / entreprise - Pays de la Loire",
+      "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") NOT (\"life coach\" OR \"sportif\")",
+      "lieu": {
+        "libelle": "Pays de la Loire",
+        "geo_urn": "104731846"
+      },
+      "max_pages": 3,
+      "provisoire": true,
+      "active": false
+    },
+    {
+      "id": "region_provence_alpes_cote_d_azur",
+      "libelle": "Coach business / professionnel / entreprise - Provence-Alpes-Côte d'Azur",
+      "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") NOT (\"life coach\" OR \"sportif\")",
+      "lieu": {
+        "libelle": "Provence-Alpes-Côte d'Azur",
+        "geo_urn": "102203735"
+      },
+      "max_pages": 3,
+      "provisoire": true,
+      "active": false
     }
   ]
 }

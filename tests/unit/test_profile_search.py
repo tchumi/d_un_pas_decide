@@ -383,3 +383,22 @@ def test_region_majoritaire_ne_compte_que_la_forme_commune_region_france():
 
 def test_region_majoritaire_ne_devine_rien_sans_localisation_exploitable():
     assert region_majoritaire(["Paris et périphérie", ""]) == (None, 0, 2)
+
+
+def test_parcours_repartit_le_lot_grace_au_plafond_propre_a_chaque_requete():
+    gisements = {
+        "a": [[profil("marie"), profil("jean"), profil("lea")]],
+        "b": [[profil("paul"), profil("zoe"), profil("noe")]],
+    }
+
+    bilans = parcourir_requetes(
+        [requete("a", max_profils=2), requete("b", max_profils=2)],
+        recherche_simulee(gisements),
+        max_profiles=3,
+    )
+
+    # "a" stops at its own ceiling, "b" at what is left of the run ceiling.
+    assert [(b.requete.id, b.profils_demandes, len(b.resultat)) for b in bilans] == [
+        ("a", 2, 2),
+        ("b", 1, 1),
+    ]

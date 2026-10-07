@@ -66,6 +66,7 @@ def test_charge_une_requete_avec_facette_de_lieu_et_plafond_de_pages(tmp_path):
     assert seule.lieu == Lieu(libelle="Grand Est", geo_urn="123456")
     assert seule.geo_urns == ("123456",)
     assert seule.max_pages == 3
+    assert seule.max_profils is None
     assert seule.provisoire is True
 
 
@@ -144,3 +145,15 @@ def test_drapeau_non_booleen_refuse(tmp_path):
 def test_aucune_requete_active_refuse(tmp_path):
     with pytest.raises(ConfigRequetesInvalide, match="aucune requete active"):
         charger_requetes(ecrire(tmp_path, config(requete(active=False))))
+
+
+def test_charge_le_plafond_de_profils_propre_a_une_requete(tmp_path):
+    (seule,) = charger_requetes(ecrire(tmp_path, config(requete(max_profils=5)))).requetes
+
+    assert seule.max_profils == 5
+
+
+@pytest.mark.parametrize("max_profils", [0, -1, "5", True])
+def test_plafond_de_profils_d_une_requete_invalide_refuse(tmp_path, max_profils):
+    with pytest.raises(ConfigRequetesInvalide, match="max_profils"):
+        charger_requetes(ecrire(tmp_path, config(requete(max_profils=max_profils))))
