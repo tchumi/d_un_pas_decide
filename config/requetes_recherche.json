@@ -30,9 +30,10 @@
         "libelle": "Auvergne-Rhône-Alpes",
         "geo_urn": "103623254"
       },
-      "max_pages": 3,
+      "max_pages": 2,
       "provisoire": true,
-      "active": false
+      "active": false,
+      "max_profils": 5
     },
     {
       "id": "region_bourgogne_franche_comte",
@@ -54,9 +55,10 @@
         "libelle": "Bretagne",
         "geo_urn": "103737322"
       },
-      "max_pages": 3,
+      "max_pages": 2,
       "provisoire": true,
-      "active": false
+      "active": false,
+      "max_profils": 5
     },
     {
       "id": "region_centre_val_de_loire",
@@ -90,9 +92,10 @@
         "libelle": "Hauts-de-France",
         "geo_urn": "105007536"
       },
-      "max_pages": 3,
+      "max_pages": 2,
       "provisoire": true,
-      "active": false
+      "active": false,
+      "max_profils": 5
     },
     {
       "id": "region_ile_de_france",
@@ -102,9 +105,10 @@
         "libelle": "Île-de-France",
         "geo_urn": "104246759"
       },
-      "max_pages": 3,
+      "max_pages": 2,
       "provisoire": true,
-      "active": false
+      "active": false,
+      "max_profils": 5
     },
     {
       "id": "region_normandie",
@@ -138,9 +142,10 @@
         "libelle": "Occitanie",
         "geo_urn": "103876217"
       },
-      "max_pages": 3,
+      "max_pages": 2,
       "provisoire": true,
-      "active": false
+      "active": false,
+      "max_profils": 5
     },
     {
       "id": "region_pays_de_la_loire",
