@@ -1269,6 +1269,40 @@ phrases — découpage par région pour des raisons techniques, toutes les régi
 - 06/10/2026 — Plafonds : au plus 5 requêtes, 3 pages par requête et 50 profils nouveaux par
   session ; lot visé de 50 profils.
 
+### Lot du 07/10/2026 — mesures et limites
+
+- **Les 13 identifiants de région sont relevés sur run réel** et vivent dans
+  `config/requetes_recherche.json`. Un champ `max_profils` par requête a été ajouté : sans lui, la
+  première requête d'un run consomme seule le plafond du run.
+- **Deux runs de production** : Grand Est seul (25 nouveaux en 3 pages), puis Auvergne-Rhône-Alpes,
+  Bretagne, Hauts-de-France, Île-de-France et Occitanie (5 nouveaux chacune, en 1 page). **50
+  profils nouveaux, magasin 81 → 131**, 81 commentaires client intacts.
+- **Profils par requête (donc par région) et par tranche de score**, règles v2 inchangées :
+
+| Requête | Nouveaux | 80 et plus | 60 à 79 | 1 à 59 | Exclus |
+|---|---|---|---|---|---|
+| Grand Est | 25 | 5 | 15 | 4 | 1 |
+| Auvergne-Rhône-Alpes | 5 | 2 | 3 | 0 | 0 |
+| Bretagne | 5 | 0 | 3 | 1 | 1 |
+| Hauts-de-France | 5 | 0 | 5 | 0 | 0 |
+| Île-de-France | 5 | 0 | 4 | 1 | 0 |
+| Occitanie | 5 | 0 | 4 | 1 | 0 |
+| **Total** | **50** | **7** | **34** | **7** | **2** |
+
+- **Plafond** : 10 pages annoncées dans chacune des 6 régions interrogées. L'hypothèse du
+  19/09/2026 — des tranches régionales « dont on voit l'épuisement » — **n'est pas vérifiée** avec
+  ce vocabulaire. Le découpage donne accès à 13 têtes de liste au lieu d'une ; pour épuiser une
+  région il faudrait découper plus fin (département, ou région × vocabulaire).
+- **Homogénéité** : 29 des 50 nouveaux sont à 60 ou 65 pile. Le découpage régional ne renouvelle
+  pas le type de profil ; seul un autre vocabulaire le ferait, et il attend le client.
+- **Non fait** : 7 régions non interrogées, requête « dirigeants » et vocabulaire outdoor non
+  lancés, `coach_outdoor` toujours jamais observée.
+
+**Décisions** :
+- 07/10/2026 — Lot bouclé à 50 par 5 régions × 5 profils plutôt que par le balayage des 12 régions
+  restantes (choix utilisateur : ne pas retarder davantage l'envoi).
+- 07/10/2026 — Les runs LinkedIn réels sont lancés par l'utilisateur dans son terminal.
+
 
 
 ---

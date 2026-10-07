@@ -835,3 +835,83 @@ Puis : runs de production (au plus 5 requêtes, 3 pages par requête et 50 profi
 `run_poc003`, `run_poc015`, comptages par requête, région et tranche de score, contrôle des 81
 commentaires contre la sauvegarde, fin de session complète et prompt POC-016.
 
+## 18. POC-008 — Diversification des requêtes, clôture (07/10/2026)
+
+Suite de la section 17 (point d'étape du 06/10/2026). **POC-008 → DONE.**
+
+- **Mode relevé** ajouté à `run_poc008_facette.py` (`--releve`, commit `7860b41`) : l'utilisateur
+  applique le filtre « Lieux » région après région, le script note chaque `geoUrn` et la région
+  majoritaire lue sur les cartes, sans rien enregistrer. **12 identifiants relevés**, chacun
+  confirmé par les cartes (de 5/9 à 10/10).
+- **Les 13 régions métropolitaines sont dans `config/requetes_recherche.json`**, étiquetées
+  `provisoire`, **désactivées** ; la requête historique est la seule active par défaut.
+- **Champ `max_profils` par requête** ajouté (commit `e8d5671`) : sans lui la première requête d'un
+  run consomme seule tout le plafond du run — constaté au run n° 1.
+- **Run de production n° 1** (Grand Est seul, 3 pages, plafond 25) : **25 nouveaux en 3 pages**.
+  18 des 25 sont à Strasbourg ou dans sa périphérie.
+- **Run de production n° 2** (Auvergne-Rhône-Alpes, Bretagne, Hauts-de-France, Île-de-France,
+  Occitanie ; 5 profils et 2 pages au plus chacune) : **5 nouveaux par région, en 1 page chacune**.
+- **10 pages annoncées dans chacune des 6 régions interrogées.**
+- **Magasin : 81 → 131 profils.** Journal `journal_collecte.csv` : 50 lignes, mêmes URL que les 50
+  nouveaux, chacune rattachée à sa requête.
+- **Scoring** par `run_poc003`, règles v2 inchangées (`config/scoring_rules.json` non modifié),
+  puis `run_poc015` : `profils_magasin.csv` et `.xlsx` à 131 lignes et 17 colonnes.
+
+| Requête | Nouveaux | 80 et plus | 60 à 79 | 1 à 59 | Exclus |
+|---|---|---|---|---|---|
+| Grand Est | 25 | 5 | 15 | 4 | 1 |
+| Auvergne-Rhône-Alpes | 5 | 2 | 3 | 0 | 0 |
+| Bretagne | 5 | 0 | 3 | 1 | 1 |
+| Hauts-de-France | 5 | 0 | 5 | 0 | 0 |
+| Île-de-France | 5 | 0 | 4 | 1 | 0 |
+| Occitanie | 5 | 0 | 4 | 1 | 0 |
+| **Total** | **50** | **7** | **34** | **7** | **2** |
+
+  Chaque requête étant une région, le décompte par requête est aussi le décompte par région.
+  **41 profils sur 50 au seuil 60 ou plus.** Département renseigné pour 36 des 50.
+- **Contrôle contre la sauvegarde d'avant run** (`profils_avant_POC-008_20261006_184213.db`),
+  après chaque run puis après le scoring : 0 profil disparu, **0 cellule divergente sur les 81
+  profils d'avant**, **81 `commentaire_client` identiques**.
+- Sauvegardes dans `D:\Documents\Dev\_backup_prospection\` : `profils_avant_POC-008_…184213.db`,
+  `profils_apres_POC-008_run1_20261007_090606.db`, `profils_apres_POC-008_run2_20261007_092251.db`,
+  `profils_apres_POC-008_score_20261007_092330.db`, et le journal après chaque run.
+- Empreinte finale du magasin : `8b1498e84e30c87b2964a84471a1fa38`.
+- Fichiers modifiés depuis la section 17 : `config/requetes_recherche.json`,
+  `source/backend/core/requetes_recherche.py`, `source/backend/adapters/scraping/profile_search.py`,
+  `source/backend/adapters/scraping/run_poc008_facette.py`, `tests/unit/test_profile_search.py`,
+  `tests/unit/test_requetes_recherche.py`, les quatre fichiers de fin de session ; créé :
+  `document/prompts_plans/prompt_POC-016.md`.
+- Tests : **277 passed, 0 failed** (214 avant POC-008).
+- Lancement de l'app **non nécessaire** (pas d'UI). `run_poc001` a changé de comportement et a été
+  vérifié par deux runs réels.
+
+### Points de vigilance légués
+
+- **Les runs LinkedIn réels sont lancés par l'utilisateur dans son terminal** (décision du
+  07/10/2026). `ensure_logged_in` a redemandé la connexion à chacun des quatre lancements ;
+  [Inférence] soit la session ne persiste pas d'un lancement à l'autre, soit le test de l'URL
+  arrive avant la redirection vers `/feed/`. Non instruit, `browser_session.py` non touché.
+- **Le lot n'apporte pas la variété attendue pour éprouver le scoring v2** : même vocabulaire,
+  donc mêmes titres — **29 des 50 nouveaux sont à 60 ou 65 pile**. Le découpage régional règle le
+  volume, pas l'homogénéité ; cela renforce POC-016.
+- **Une région ne passe pas sous le plafond** : 10 pages annoncées partout. On prend la tête de
+  liste de LinkedIn (Strasbourg pour Grand Est), pas un échantillon de la région. Le plafond exact
+  et le glissement de la barre au-delà de la page 10 ne sont toujours pas mesurés.
+- **7 régions n'ont pas été interrogées** (Bourgogne-Franche-Comté, Centre-Val de Loire, Corse,
+  Normandie, Nouvelle-Aquitaine, Pays de la Loire, Provence-Alpes-Côte d'Azur) : leurs requêtes
+  sont prêtes, désactivées. Le lot est très inégal : 25 en Grand Est, 5 dans cinq autres régions.
+- **Le journal vit hors du magasin** : le sauvegarder avec lui. Il ne porte pas le numéro de page.
+- **2 nouveaux profils exclus par `exclusion_non_coach`** (titres sans le mot « coach ») ; aucun
+  n'est un profil outdoor, le cas redouté par le prompt ne s'est pas présenté.
+- **Localisations sans département à relire** (liste imprimée par `run_poc015`) : nouveau cas
+  d'homonymie « Bailleul, Hauts-de-France », et toujours les aires urbaines.
+- Requête « dirigeants » et vocabulaire outdoor : **non lancés**, brainstorming client toujours
+  non reçu.
+- **Le classeur est régénéré, il n'est pas envoyé.** Engagement « fin septembre » dépassé.
+- `document/ARCHITECTURE.md` n'a pas été mis à jour.
+
+### Prochain ticket
+
+- **Envoi du lot au client** (hors ticket), puis **POC-016** après le rendez-vous client. Prompt
+  dans `document/prompts_plans/prompt_POC-016.md`.
+

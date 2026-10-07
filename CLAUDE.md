@@ -38,8 +38,8 @@ document/
 ## État actuel
 
 - Branche active : `master` (base `master`)
-- **Dernière session** : POC-008 — point d'étape, ticket en cours (06/10/2026)
-- **Prochain ticket actif** : POC-008 — reprise aux runs de production (voir la dernière section de `handoff.md`)
+- **Dernière session** : POC-008 — diversification des requêtes par découpage régional (07/10/2026)
+- **Prochain ticket actif** : POC-016 — extraction des rubriques « Expérience » et « Infos » (après l'envoi du lot et le rendez-vous client)
 
 Ces deux lignes sont les **seules** informations volatiles de ce fichier : elles se mettent à
 jour en fin de session (voir « Obligation de fin de session »). Tout le reste — statuts,
