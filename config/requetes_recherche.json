@@ -8,7 +8,7 @@
       "libelle": "Coach business / professionnel / entreprise - France (requete historique)",
       "mots_cles": "(\"coach business\" OR \"coach professionnel\" OR \"coach entreprise\") AND (France) NOT (\"life coach\" OR \"sportif\")",
       "provisoire": false,
-      "active": true
+      "active": false
     },
     {
       "id": "region_grand_est",
@@ -20,7 +20,7 @@
       },
       "max_pages": 3,
       "provisoire": true,
-      "active": false
+      "active": true
     }
   ]
 }
