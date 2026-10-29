@@ -37,6 +37,11 @@ from source.backend.adapters.storage.profile_store import (
     ouvrir_magasin,
     profils_a_visiter,
 )
+from source.backend.core.profile_scoring import (
+    ReglesScoring,
+    charger_regles,
+    selectionner_profils_interessants,
+)
 
 # Back down to 5 for the first run on the store (POC-009): the backlog is the
 # whole store, and one profile page visit is one extra LinkedIn request. Same
@@ -47,18 +52,37 @@ MAX_PROFILES = 5
 PROFILE_DIR = Path("./browser_profile")
 
 
+def selectionner_reliquat(
+    profils: list[dict[str, str]], regles: ReglesScoring
+) -> list[dict[str, str]]:
+    """Profiles worth a profile-page visit: interesting and never visited.
+
+    POC-016: until 29/10/2026 every never-visited profile was visited, whatever
+    its score - one of the five visited on 28/08/2026 was under the threshold.
+    A page visit is the riskiest step of the pipeline for the LinkedIn account,
+    so it now follows the same conditional selection as run_poc004 (client
+    decision, 13/07/2026). Feeding it lister_profils() output means
+    ne_plus_traiter profiles are already excluded.
+    """
+    return profils_a_visiter(selectionner_profils_interessants(profils, regles=regles))
+
+
 def main() -> None:
     # LinkedIn names carry emoji (observed 28/08/2026: two real profiles in
     # the store). Printing one raw on a cp1252 Windows console raises
     # UnicodeEncodeError and kills the run before a single profile is
     # processed - the store data itself is UTF-8 and unaffected.
     sys.stdout.reconfigure(errors="replace")
+    regles = charger_regles()
     conn = ouvrir_magasin(DEFAULT_DB_PATH)
     try:
-        reliquat = profils_a_visiter(lister_profils(conn))
-        print(f"{len(reliquat)} profils jamais visites pour leur email")
+        reliquat = selectionner_reliquat(lister_profils(conn), regles)
+        print(
+            f"{len(reliquat)} profils interessants "
+            f"(score >= {regles.seuil_profil_interessant}) jamais visites"
+        )
         if not reliquat:
-            print("Rien a traiter : tous les profils du magasin ont deja ete visites.")
+            print("Rien a traiter : tous les profils interessants ont deja ete visites.")
             return
 
         lot = reliquat[:MAX_PROFILES]
