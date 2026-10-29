@@ -3,12 +3,16 @@ Tu travailles dans le repo ProspectionLinkedIn avec Claude Code dans VS Code.
 Je viens de faire un /clear pour réduire le contexte. Tu dois reprendre proprement à partir de la
 documentation projet, mais sans relire tout le repository.
 
-> Contexte de rédaction : prompt écrit le 07/10/2026 sur le poste principal, à la clôture de
-> POC-008. Les sauvegardes vont dans `D:\Documents\Dev\_backup_prospection\`.
+> Contexte de rédaction : prompt écrit le 07/10/2026 à la clôture de POC-008, **mis à jour le
+> 29/10/2026** après le retour client du 22/10/2026. Les sauvegardes vont dans
+> `D:\Documents\Dev\_backup_prospection\`.
 >
-> **À ne lancer qu'après l'envoi du lot au client et le rendez-vous client** : le choix de faire ce
-> ticket lui revient, sur les chiffres de POC-014. Si le rendez-vous a modifié le périmètre, ou si
-> le lot du 07/10/2026 est revenu annoté, mettre ce prompt à jour avant de l'utiliser.
+> **Session préparatoire, avant le call client du 05/11/2026 (après-midi).** Le choix de faire ce
+> ticket revient au client, qui en connaît les coûts (risque pour le compte LinkedIn, données
+> personnelles conservées, moins de profils par semaine). D'ici le call : diagnostic, plan avec
+> options et questions pour le client, éventuellement un relevé de DOM sans stockage. **Aucune
+> migration de schéma, aucune collecte de texte stockée et aucune modification des règles avant la
+> décision du call.**
 
 ## Ticket à traiter
 
@@ -87,11 +91,26 @@ Ne lis pas tout le repo.
   profils testés.
 * **[Documentation, POC-014]** Sur les 81 premiers profils annotés, précision au seuil 60 de 43 %,
   rappel 100 % ; 28 profils à 65 pile, portés par 8 bons, 16 mauvais et 4 « rien à voir ».
-* **[Documentation, POC-008]** Lot du 07/10/2026 : 50 profils nouveaux, collectés par région, **non
-  annotés** par le client à la date de rédaction ; 41 au seuil 60 ou plus.
-* **État du magasin au 07/10/2026** : 131 profils, 81 commentaires client, `user_version` 2,
-  empreinte MD5 `8b1498e84e30c87b2964a84471a1fa38`. Le journal `journal_collecte.csv` (hors
-  magasin, gitignoré) trace la requête d'origine des 50 derniers.
+* **[Documentation, retour client du 22/10/2026]** Les 50 profils du lot du 07/10/2026 sont
+  annotés : 3 excellents, 16 bons, 31 mauvais dont 13 « mauvais profil, multi fonction ». Le client
+  écrit : *« de nombreux profils indiquent "coach certifié" dans leur en-tête mais ne pratiquent en
+  fait pas […] On détecte ça en balayant le champ expérience. »*
+* **[Mesure du 29/10/2026, hors échantillon]** Sur ces 50 profils jamais vus par les règles v2 :
+  rappel au seuil 60 **100 %** (19/19), précision 46 % pour un taux de base de 38 % ; **tranche 80
+  et plus : 7 profils, 29 % de bons, 0 excellent** (contre 76 % et 6/6 sur les 81 de réglage) ; les
+  3 excellents sont à 60 ou 65. Le bonus `profil_dirigeant` passe de 12/18 positifs à **1/6** : il
+  récompense les titres multi-fonctions que le client rejette.
+* **[Mesure du 29/10/2026]** Le « multi-fonction » ne se lit pas dans le titre : une détection par
+  séparateurs et mots de fonction signale 14 des 16 profils « multi fonction », mais aussi 33 des
+  45 bons ou excellents.
+* **État du magasin au 29/10/2026** : 131 profils, **131 commentaires client** (annotations du
+  22/10 importées par `run_poc006`), `user_version` 2, empreinte MD5
+  `189e64e0f6c1aa234851422686103ff5`. Le journal `journal_collecte.csv` (hors magasin, gitignoré)
+  trace la requête d'origine des 50 derniers.
+* **[Documentation]** Le client a fourni ses mots-clés de recherche le 22/10/2026 (coach business,
+  coach professionnel, coach entreprise, coach executive, executive coaching, coach dirigeant,
+  coach équipe(s), et les variantes « coaching ») : ils concernent la collecte (configuration de
+  POC-008), **pas ce ticket**.
 * **[Documentation, POC-008]** `ensure_logged_in` a redemandé la connexion manuelle à chaque
   lancement des 06 et 07/10/2026. Cause non instruite.
 
@@ -112,8 +131,9 @@ ce qui est stocké, et pour combien de temps, se décide au plan.
   déterministe.
 * Les sélecteurs de la page profil n'ont pas d'identifiant stable (voir
   `LinkedInProfileSelectors`) : prévoir un relevé de DOM réel avant d'écrire l'extraction.
-* Les profils sans verdict client (les 50 du 07/10/2026 tant qu'ils ne sont pas annotés) ne
-  peuvent pas servir à mesurer l'apport.
+* Les 131 profils sont annotés : la mesure de l'apport peut porter sur tout le magasin, à
+  condition de ne pas régler et mesurer sur les mêmes profils (POC-014 a montré le sur-apprentissage).
+* Le sort de `profil_dirigeant` est à trancher dans le plan, pas avant.
 
 ## Branche et sécurité Git
 
@@ -149,7 +169,8 @@ Réponds d'abord avec :
 5. plan en 3 à 5 étapes, **en séparant le volet hors-ligne du volet à run réel** ;
 6. questions bloquantes éventuelles, dont : texte brut ou signaux dérivés ; durée de conservation ;
    colonnes et migration ; plafond du premier run et des suivants ; sur quels profils mesurer
-   l'apport.
+   l'apport. **Sépare les questions qui reviennent au client (à poser au call du 05/11) de celles
+   qui me reviennent.**
 
 Attends ma validation avant toute modification. Puis sauvegarde le plan dans
 `document/prompts_plans/plan_POC-016.md` et committe

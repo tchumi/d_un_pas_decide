@@ -915,3 +915,51 @@ Suite de la section 17 (point d'étape du 06/10/2026). **POC-008 → DONE.**
 - **Envoi du lot au client** (hors ticket), puis **POC-016** après le rendez-vous client. Prompt
   dans `document/prompts_plans/prompt_POC-016.md`.
 
+## 19. Retour client du 22/10/2026 — import et mesure hors échantillon (29/10/2026)
+
+**Session de suivi, pas de ticket.** Aucun fichier de `source/`, `config/` ou `tests/` modifié.
+
+- **Retour d'Henri-Pierre du 22/10/2026** (`document/compte_rendu/2026 10 22 - échange mail - …pdf`) :
+  les 50 nouveaux profils annotés ; constat « coach certifié mais ne pratique pas », détecté en
+  lisant « Expérience », annoté « mauvais profil, multi fonction » ; un titre qui empile plusieurs
+  fonctions est mauvais signe ; **mots-clés de recherche fournis** ; call proposé.
+- **Classeur contrôlé avant import** : 131 lignes, 17 colonnes, seules 50 cellules de
+  `commentaire_client` modifiées, 50 verdicts sur 50 reconnus par `parser_verdict`.
+- **Import par `run_poc006`** après sauvegarde
+  `profils_avant_reimport_2026_10_22_20261029_104503.db` : **50 commentaires ajoutés, 81
+  inchangés, 0 écrasé** ; contrôle contre la sauvegarde : 50 cellules modifiées, toutes dans
+  `commentaire_client`. Les 18 statuts de coordonnées listés par le rapport sont des valeurs déjà
+  en base (0 cellule `statut_coordonnees` modifiée). Empreinte : `8b1498e8…` →
+  `189e64e0f6c1aa234851422686103ff5`. Trace de conversion :
+  `document/compte_rendu/profils_magasin_2026_10_22.reimport.csv` (gitignoré).
+- **Mesure hors échantillon des règles v2** (en mémoire, notes du 07/10 contre verdicts du 22/10) :
+
+| | 81 de réglage | 50 nouveaux |
+|---|---|---|
+| Taux de base (bons + excellents) | 32 % | 38 % |
+| Rappel au seuil 60 | 100 % (26/26) | **100 % (19/19)** |
+| Précision au seuil 60 | 43 % | 46 % |
+| Tranche 80 et plus | 21 profils, 76 % de bons, 6/6 excellents | **7 profils, 29 % de bons, 0/3 excellent** |
+
+  **Le seuil tient, le classement ne tient pas.** `profil_dirigeant` : 12/18 positifs au réglage,
+  **1/6** hors échantillon. Le « multi-fonction » n'est pas lisible dans le titre (détection
+  simple : 14/16 « multi fonction » mais aussi 33/45 positifs signalés).
+- **Call client fixé au 05/11/2026, après-midi.**
+- `document/prompts_plans/prompt_POC-016.md` mis à jour : session préparatoire avant le call,
+  nouveaux faits, aucune migration ni règle modifiée avant la décision.
+- Tests : **277 passed** — inchangé.
+- Lancement de l'app **non nécessaire**.
+
+### Points de vigilance
+
+- **Règles v2 non modifiées malgré la mesure** : le sort de `profil_dirigeant` se tranche dans le
+  plan de POC-016.
+- Les mots-clés du client ne sont **pas encore** dans `config/requetes_recherche.json` : à ajouter
+  pour le prochain lot, après le call.
+- Le client n'a pas répondu à la question sur les contacts déjà pris.
+
+### Prochain ticket
+
+- **POC-016**, en session préparatoire avant le call du 05/11 (diagnostic et plan avec options) ;
+  implémentation après la décision du client. Prompt dans `document/prompts_plans/prompt_POC-016.md`.
+

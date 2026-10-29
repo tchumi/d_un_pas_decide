@@ -2151,6 +2151,33 @@ aux profils au seuil 60 ou plus, la visite n'aurait écarté **aucun** bon profi
 - 16/09/2026 — Ticket ouvert, itération validée par l'utilisateur. Réalisation au retour
   d'itinérance.
 
+### Retour client du 22/10/2026 et mesure hors échantillon (29/10/2026)
+
+- **Constat du client** : *« de nombreux profils indiquent "coach certifié" dans leur en-tête mais
+  ne pratiquent en fait pas. C'est la différence entre être formé et pratiquer le métier. On
+  détecte ça en balayant le champ expérience. »* Annoté « mauvais profil, multi fonction » (13 des
+  50 nouveaux profils).
+- **Mesure des règles v2 sur les 50 profils jamais vus** : rappel au seuil 60 de 100 % (19/19),
+  précision 46 % pour un taux de base de 38 % ; tranche 80 et plus : 7 profils, 29 % de bons,
+  0 excellent sur 3 — contre 76 % et 6/6 sur les 81 de réglage. **Le seuil tient, le classement ne
+  tient pas** : la réserve de POC-014 (« réglées et mesurées sur les mêmes 81 profils ») se
+  vérifie.
+- **`profil_dirigeant` sur-apprend** : 12/18 positifs au réglage, 1/6 hors échantillon. Il
+  récompense des titres multi-fonctions (« DRH / coach », « Dirigeant… DAF externalisé, Formateur,
+  Coach ») que le client rejette.
+- **Le « multi-fonction » n'est pas lisible dans le titre** : une détection par séparateurs et mots
+  de fonction signale 14 des 16 profils concernés, mais aussi 33 des 45 bons ou excellents.
+- **Mots-clés de recherche fournis par le client** (point d'action n°3 du 04/09, enfin reçu) :
+  coach business, coach professionnel, coach entreprise, coach executive, executive coaching,
+  coach dirigeant, coach équipe(s), variantes « coaching ». Ils relèvent de la collecte
+  (POC-008), pas de ce ticket.
+
+**Décisions** :
+- 29/10/2026 — Pas de nouvel ajustement des règles sur le titre : la mesure montre que le réglage
+  sur 81 profils sur-apprend. Le sort de `profil_dirigeant` se tranche dans le plan de ce ticket.
+- 29/10/2026 — Décision de faire le ticket au **call du 05/11/2026** ; session préparatoire
+  (diagnostic, plan avec options, questions client) autorisée avant, sans migration ni stockage.
+
 ---
 
 ## POC-017 — Recherche de coordonnées déclenchée par le verdict, pas par le seuil

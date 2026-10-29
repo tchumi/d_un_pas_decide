@@ -38,8 +38,8 @@ document/
 ## État actuel
 
 - Branche active : `master` (base `master`)
-- **Dernière session** : POC-008 — diversification des requêtes par découpage régional (07/10/2026)
-- **Prochain ticket actif** : POC-016 — extraction des rubriques « Expérience » et « Infos » (après l'envoi du lot et le rendez-vous client)
+- **Dernière session** : suivi — import du retour client du 22/10 et mesure hors échantillon (29/10/2026)
+- **Prochain ticket actif** : POC-016 — extraction des rubriques « Expérience » et « Infos » (session préparatoire avant le call du 05/11)
 
 Ces deux lignes sont les **seules** informations volatiles de ce fichier : elles se mettent à
 jour en fin de session (voir « Obligation de fin de session »). Tout le reste — statuts,
