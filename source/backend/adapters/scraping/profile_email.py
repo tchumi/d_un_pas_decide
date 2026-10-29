@@ -68,6 +68,45 @@ def visit_profile_and_extract_email(page: Page, profile_url: str) -> str:
     return extract_email_from_profile_page(page)
 
 
+def scroll_profile_page(page: Page, steps: int = 6) -> None:
+    """Scroll down the profile page step by step so lazy sections render.
+
+    Experience and About are only rendered once scrolled into view; a reader
+    called right after goto() would find them missing.
+    """
+    for _ in range(steps):
+        try:
+            page.mouse.wheel(0, 900)
+        except Exception:
+            return
+        pause_humaine(0.6, 1.4)
+
+
+def extract_section_text(page: Page, section_xpath: str) -> str:
+    """Visible text of the first section matching section_xpath, or "".
+
+    Never raises: a missing or unreadable section reads as empty, never as a
+    run failure nor as a guessed value (POC-016 acceptance criterion).
+    """
+    try:
+        section = page.locator(f"xpath={section_xpath}")
+        if section.count() == 0:
+            return ""
+        return section.first.inner_text(timeout=3000).strip()
+    except Exception:
+        return ""
+
+
+def extract_rubriques_from_profile_page(page: Page) -> dict[str, str]:
+    """Experience and About text of an already-loaded, already-scrolled profile page."""
+    return {
+        "experience": extract_section_text(
+            page, LinkedInProfileSelectors.EXPERIENCE_SECTION_XPATH
+        ),
+        "infos": extract_section_text(page, LinkedInProfileSelectors.ABOUT_SECTION_XPATH),
+    }
+
+
 def enrich_profiles_with_email(
     page: Page, profiles: list[dict[str, str]]
 ) -> list[dict[str, str]]:
