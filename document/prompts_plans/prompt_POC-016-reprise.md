@@ -1,126 +1,154 @@
 Tu travailles dans le repo ProspectionLinkedIn avec Claude Code dans VS Code.
 
-Je viens de faire un /clear. Tu reprends **POC-016 en cours de session**, interrompue le
-29/10/2026 juste avant le relevé de DOM. Ne relis pas tout le repository.
+Je viens de faire un /clear. Tu reprends **POC-016 en cours de session**, mise en pause le
+30/10/2026 après le relevé de DOM et la rédaction du mail au client. Ne relis pas tout le
+repository.
 
-> Contexte : session préparatoire avant le call client du **05/11/2026 (après-midi)**. Les
-> sauvegardes vont dans `D:\Documents\Dev\_backup_prospection\`. **Ce n'est pas une fin de
-> session** : `task_list.md`, `handoff.md`, `Backlog.md` et `CLAUDE.md` n'ont pas encore été mis
-> à jour pour POC-016 — ce sera fait à la clôture.
+> Contexte : session préparatoire avant le call client (**05/11/2026 après-midi d'après le plan**,
+> Henri-Pierre proposait aussi le 03/11 au matin : confirmation non vue). Les sauvegardes vont dans
+> `D:\Documents\Dev\_backup_prospection\`. **Ce n'est pas une fin de session** : `task_list.md`,
+> `handoff.md`, `Backlog.md` et `CLAUDE.md` n'ont pas encore été mis à jour pour POC-016 — ce sera
+> fait à la clôture.
 
 ## Documents à lire en premier
 
 1. `CLAUDE.md`
 2. `document/prompts_plans/plan_POC-016.md` — **le plan validé**, avec les décisions de
-   l'utilisateur, les réponses proposées au client et le tableau hors ligne / run réel
+   l'utilisateur et les réponses proposées au client (questions 1 et 4 à actualiser, voir plus bas)
 3. `document/prompts_plans/prompt_POC-016.md` — le prompt d'origine (périmètre, critères
    d'acceptation, risques)
+4. `document/compte_rendu/2026 10 30 - brouillon mail Michel - test lecture Experience avant call (a coller dans Outlook).txt`
+   — le brouillon du mail au client, à jour (dossier hors suivi Git)
 
-Puis le code produit par la session :
+Puis le code :
 
 * `source/backend/core/parcours.py` — en entier
 * `source/backend/adapters/scraping/run_poc002.py` — en entier
-* `source/backend/adapters/scraping/profile_email.py` — les fonctions ajoutées
-  (`scroll_profile_page`, `extract_section_text`, `extract_rubriques_from_profile_page`)
+* `source/backend/adapters/scraping/profile_email.py` — `scroll_profile_page`,
+  `extract_section_text`, `extract_rubriques_from_profile_page`
 * `source/backend/adapters/scraping/selectors.py` — `LinkedInProfileSelectors`
 
-## Ce qui est fait (commits sur `master`)
+## Ce qui est fait
+
+### Commits sur `master`
 
 | Commit | Contenu |
 |---|---|
 | `1a26fc3` | `docs:` plan POC-016 |
-| `c42a30a` | `fix:` `run_poc002` ne visite plus que les profils au seuil — `selectionner_reliquat` (sélection au seuil puis reliquat, comme `run_poc004`). Reliquat réel : **97 profils** |
-| `f0f8001` | `feat:` signaux de parcours (`core/parcours.py`), lecture des rubriques, mode `--releve` de `run_poc002` |
+| `c42a30a` | `fix:` `run_poc002` ne visite plus que les profils au seuil. Reliquat réel : **97 profils** |
+| `f0f8001` | `feat:` signaux de parcours (`core/parcours.py`), lecture des rubriques, mode `--releve` |
+| `ba01cf4` | `docs:` ancienne version de ce prompt |
 
-* **Signaux** lus dans la **structure** du texte « Expérience » (lignes de dates), pas dans des
-  mots-clés : nombre de postes, postes en cours, coach en cours et ancienneté, **autre poste en
-  cours** (piste du « multi-fonction »), ancien dirigeant (poste de direction terminé), liste
-  tronquée (« Afficher les N expériences »), longueur de « Infos ». Texte vide → signaux vides,
-  jamais d'erreur.
-* **Sélecteurs** : sections trouvées par leur titre visible (« Expérience »/« Experience »,
-  « Infos »/« About »), **marqués NON VÉRIFIÉS** dans `selectors.py`.
-* **Mode `--releve`** : magasin ouvert en lecture seule, rien n'est écrit (pas même le marqueur de
-  visite), 5 URL au plus, toutes présentes dans le magasin ; en cas de section absente, titres de
-  section affichés et page écrite dans `tests/temp/poc016_releve_N.html` (gitignoré, **données
-  personnelles, à supprimer après usage**).
-* **`core/parcours.py` est hors du périmètre initial du prompt** : placé dans `core/` parce que le
-  scoring le lira. Signalé à l'utilisateur, pas encore confirmé.
-* **Mesure en mémoire de `profil_dirigeant` neutralisé** (règles candidates dans le scratchpad,
-  `config/scoring_rules.json` intact) :
+### Modifications du 30/10 **non committées** (7 fichiers, 306 tests au vert)
 
-| | Seuil 60 lot 1 / lot 2 | ≥ 80, lot 1 (81) | ≥ 80, lot 2 (50) |
-|---|---|---|---|
-| v2 actuelle | 43 % / 46 % | 21 profils, 16 bons, 6/6 excellents | 7 profils, 2 bons, 0/3 |
-| sans `profil_dirigeant` | 44 % / 46 % | 13 profils, 9 bons, **2/6** | 4 profils, 1 bon, 0/3 |
+L'utilisateur n'a pas encore demandé le commit : ne pas committer sans sa demande.
 
-  Recommandation : **garder la règle** jusqu'à ce qu'un signal de parcours la remplace ; décision
-  au call.
+`profile_email.py`, `run_poc002.py`, `selectors.py`, `core/parcours.py`, `tests/unit/test_parcours.py`,
+`tests/unit/test_profile_email.py`, `tests/unit/test_run_poc002.py`, plus ce prompt.
 
-## État vérifié au 29/10/2026
+* **Sélecteurs** : `not(.//section)` ajouté. Une section englobant tout le profil correspondait
+  aussi et venait en premier, si bien que Formation et Activité étaient lues comme des postes.
+  Vérifiés sur DOM réel, résultat consigné en commentaire dans `selectors.py`.
+* **Défilement** : souris placée au centre de la page avant la molette, crans de 600 px (9 crans)
+  au lieu de 900 px (6), plus courts que la fenêtre de 720 px.
+* **Arrêt du relevé** sur page de blocage (`page_bloquee` : titre Cloudflare observé, URL
+  `/checkpoint/`, `/authwall`, `/login`). Agit à l'ouverture des profils, **pas sur la page
+  d'accueil** : là, `ensure_logged_in` attend Entrée.
+* **Relevé** : page enregistrée pour chaque profil, plus seulement en cas de section absente.
+* **`parcours.py`** :
+  * durée calculée quand LinkedIn n'en affiche pas (dates en années seules) ;
+  * poste à date unique (« nov. 2024 ») lu comme terminé, durée 0 ;
+  * titre de statut seul (auto-entrepreneur, freelance…) : coach si la ligne de compétences le
+    dit. Réservé à ces titres, pour qu'une compétence « Coaching » ne masque pas le second poste
+    d'un DRH ;
+  * nouveau signal `fonction_publique`, lu dans le type de contrat « Fonctionnaire ».
 
-* Tests : **295 passed** (277 au départ du ticket).
+**Toujours à confirmer** : `core/parcours.py` est hors du périmètre initial du prompt. Placé dans
+`core/` parce que le scoring le lira ; signalé, non confirmé par l'utilisateur.
+
+## Résultat du relevé (30/10/2026)
+
+7 visites de profil (5 profils, 2 relus après correction), postes comparés à la main sur LinkedIn.
+
+| Profil | Note | Verdict client | Coach en cours | Autre poste en cours | Ancien dirigeant | Fonction publique |
+|---|---|---|---|---|---|---|
+| Edouard Pierre | 60 | excellent | oui, 156 mois | non | non | non |
+| Cécile Belot | 60 | bon | oui, 34 mois | non | oui | non |
+| Magali Lafaye | 60 | mauvais, multi fonction | **non** | oui | non | non |
+| Patrick Sisco | 60 | mauvais | oui, 34 mois | non | oui | **oui** |
+| Narjess Kalifa | 100 | mauvais, multi fonction | **non** | oui | non | non |
+
+* Signal le plus net : **pas de poste de coach en cours**. « Ancien dirigeant » et l'ancienneté ne
+  séparent pas ces profils.
+* **La définition proposée à la question 4 laisse passer Patrick Sisco.** La fonction publique est
+  une hypothèse à faire confirmer par le client ; le signal a été ajouté après avoir vu ce profil.
+* Illustration sur 5 profils choisis, avec une lecture ajustée en les regardant : **pas une preuve**.
+
+**Limites connues, laissées en l'état** :
+* intitulés des postes groupés mal lus (« 10 ans 1 mois », lieu du poste précédent) : rien ne
+  distingue une entreprise d'un lieu dans le texte seul. Signaux justes sur ces profils, mais un
+  mot-clé dans la ligne précédant un poste groupé pourrait en fausser un ;
+* « Afficher les N expériences » jamais observé : signal de liste tronquée non vérifié.
+
+## L'incident du 30/10/2026
+
+Au premier lancement, page Cloudflare « Sorry, you have been blocked » sur la page d'accueil, avant
+toute visite. Ray ID non noté. Compte accessible dans Firefox, pas d'exit node Tailscale. Un test de
+connexion a ensuite répondu `CONNECTE` et les 7 visites sont passées. **Cause inconnue.** Le
+changement de clé Wi-Fi de l'utilisateur est peut-être lié : avant ou après le blocage, à lui
+demander. À consigner dans `handoff.md`. Pas de contournement (masquage de l'automatisation, VPN ou
+changement d'IP pour repasser) : si le blocage revient, s'arrêter et en référer au client.
+
+## État vérifié au 30/10/2026
+
+* Tests : **306 passed** (277 au départ du ticket).
 * Magasin **non modifié** : 131 profils, 131 commentaires, `user_version` 2, empreinte MD5
   `189e64e0f6c1aa234851422686103ff5`. 101 profils au seuil, 97 jamais visités.
-* Arbre Git propre après les commits ci-dessus (plus ce prompt).
+* `config/scoring_rules.json` intact.
+* **Pages enregistrées encore présentes** : `tests/temp/poc016_releve_{1,2,3,4}.html` (gitignoré,
+  **données personnelles**). Plus utiles, à supprimer par l'utilisateur, les règles du projet
+  l'interdisant à l'agent : `Remove-Item tests\temp\poc016_releve_*.html`
 
-## Prochaine étape : le relevé de DOM (run réel, lancé par l'utilisateur)
+## Ce qui reste
 
-5 visites, aucune écriture en base. Profils choisis pour la discrimination : les quatre premiers
-ont **le même titre « Coach professionnel » et le même score 60**, verdicts opposés ; le dernier
-est un faux positif de tête.
+**Avant le call** :
+* envoi du mail par l'utilisateur (statut d'envoi inconnu : à lui demander). Il annonce la mesure
+  sur les 50 annotations pour le call ;
+* actualiser dans `plan_POC-016.md` les questions 1 (ajouter l'incident) et 4 (cas Patrick Sisco) ;
+* commit des modifications, à la demande de l'utilisateur.
 
-```powershell
-uv run python -m source.backend.adapters.scraping.run_poc002 --releve https://www.linkedin.com/in/adderusoutplacementcoaching/ https://www.linkedin.com/in/c%C3%A9cile-belot-213a92a6/ https://www.linkedin.com/in/magali-lafaye-0907b529a/ https://www.linkedin.com/in/patrick-sisco-0b4663254/ https://www.linkedin.com/in/narjess-kalifa-a633a03b0/
-```
+**Conditionné à la réponse du client** :
+* code de migration v3, écrit et testé sur base temporaire sans être appliqué : non commencé,
+  inutile si le client renonce aux visites. Colonnes selon sa réponse à la question 2.
 
-| # | Profil | Score | Verdict client |
-|---|---|---|---|
-| 1 | Edouard Pierre | 60 | excellent |
-| 2 | Cécile BELOT | 60 | bon |
-| 3 | Magali LAFAYE | 60 | mauvais, multi fonction |
-| 4 | Patrick Sisco | 60 | mauvais |
-| 5 | Narjess KALIFA | 100 | mauvais, multi fonction |
+**Après le call** : sauvegarde, migration, runs par paliers, évaluateur étendu, mesure de l'apport.
 
-L'utilisateur colle la sortie. Trois questions à y lire :
+**À la clôture** : les quatre fichiers de `CLAUDE.md`, le prompt de POC-017, commit final.
 
-1. **Les sélecteurs trouvent-ils les sections ?** Sinon, corriger `selectors.py` à partir des
-   titres affichés et de la page écrite dans `tests/temp/`, puis demander un nouveau relevé.
-2. **La lecture des postes est-elle juste ?** L'utilisateur compare les postes affichés avec la
-   page LinkedIn ; corriger `parcours.py` et ses tests sur un texte **synthétique** reproduisant le
-   cas (jamais un texte réel dans les tests).
-3. **Les signaux séparent-ils les verdicts ?** En particulier « autre poste en cours » chez les deux
-   « multi fonction » et pas chez l'excellent. Cinq profils sont une illustration pour le call, pas
-   une preuve.
-
-Après le relevé : retirer le marquage « NOT YET VERIFIED » des sélecteurs confirmés et consigner le
-résultat (date, sections trouvées, écarts) en commentaire, comme pour le lien « Coordonnées ».
-
-## Ce qui reste avant le call (hors ligne)
-
-* Code de migration v3 **écrit et testé sur base temporaire, sans être appliqué** au magasin —
-  colonnes selon la réponse du client à la question 2 (texte brut temporaire ou signaux seuls).
-* Envoi au client, par l'utilisateur, des **réponses proposées aux questions 1 à 5** (tableau du
-  plan) pour validation avant ou pendant le call. La question 4 (« qu'est-ce que pratiquer le
-  coaching ») est celle qui fera la règle.
-
-## Interdit avant l'accord du client (call du 05/11)
+## Interdit avant l'accord du client
 
 * appliquer une migration au magasin réel ;
 * écrire du texte de parcours dans le magasin ;
-* modifier `config/scoring_rules.json`.
+* modifier `config/scoring_rules.json` ;
+* lancer une collecte. L'utilisateur a évoqué un run de 50 profils ; déconseillé, et le mail annonce
+  qu'aucune collecte n'aura lieu avant la décision du client.
 
 ## Rappels
 
-* **Les runs LinkedIn réels sont lancés par l'utilisateur** : préparer, donner la commande,
-  attendre la sortie collée. Plafonds validés : 5, puis 10, puis 20 par run.
+* **Les runs LinkedIn réels sont lancés par l'utilisateur** : préparer, donner la commande, attendre
+  la sortie collée. Plafonds validés : 5, puis 10, puis 20 par run.
 * Avant tout run qui écrit le magasin : sauvegarde datée du magasin et de `journal_collecte.csv`,
   puis contrôle des `commentaire_client` contre la sauvegarde.
-* Mesure de l'apport, après le call : signaux réglés sur les profils au seuil du lot 1 (60),
-  mesurés sur ceux du lot 2 (41) — ne pas régler et mesurer sur les mêmes profils.
+* Mesure de l'apport, après le call : signaux réglés sur les profils au seuil du lot 1 (60), mesurés
+  sur ceux du lot 2 (41) — ne pas régler et mesurer sur les mêmes profils.
+* `profil_dirigeant` : recommandation de garder la règle jusqu'à ce qu'un signal de parcours la
+  remplace ; décision au call. Mesure en mémoire : à 80 et plus sur le lot 1, sa neutralisation fait
+  tomber les excellents de 6/6 à 2/6 ; sur le lot 2, 0/3 dans les deux cas.
 * Réponses en français, commentaires de code en anglais, affirmations taguées
   [Code] / [Documentation] / [Inférence].
 
 ## Première réponse attendue
 
-Ne modifie aucun fichier. Vérifie la branche, l'état Git, la suite de tests (295) et l'empreinte du
-magasin, résume en 5 lignes où en est la session, puis attends la sortie du relevé.
+Ne modifie aucun fichier. Vérifie la branche, l'état Git (7 fichiers modifiés, plus ce prompt), la
+suite de tests (306) et l'empreinte du magasin, résume en 5 lignes où en est la session, puis
+demande à l'utilisateur si le mail est parti, si le call du 05/11 est confirmé et s'il veut committer.
