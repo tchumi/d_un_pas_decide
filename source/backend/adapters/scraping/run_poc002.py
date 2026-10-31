@@ -68,8 +68,8 @@ MAX_PROFILES = 5
 PROFILE_DIR = Path("./browser_profile")
 
 # Survey dumps (personal data): tests/temp/ is gitignored, same place as the
-# POC-008 diagnostic dumps. Written only when a section is not found, so the
-# selector can be corrected from the real markup.
+# POC-008 diagnostic dumps. Written for every surveyed profile, so selectors and
+# parsing can be corrected from the real markup. To delete after use.
 DUMP_DIR = Path("./tests/temp")
 
 
@@ -150,6 +150,13 @@ def profils_du_releve(
     return trouves, inconnues
 
 
+def page_bloquee(url: str, titre: str) -> bool:
+    """Whether the page reached is a block or security page, not a profile."""
+    return LinkedInProfileSelectors.BLOCKED_TITLE_MARKER in titre or any(
+        marqueur in url for marqueur in LinkedInProfileSelectors.BLOCKED_URL_MARKERS
+    )
+
+
 def _afficher_signaux(signaux: SignauxParcours) -> None:
     tronque = f" sur {signaux.total_annonce} annonces" if signaux.total_annonce else ""
     print(
@@ -158,16 +165,21 @@ def _afficher_signaux(signaux: SignauxParcours) -> None:
         f" ({signaux.anciennete_coach_mois} mois)"
         f" | autre poste en cours : {'oui' if signaux.autre_poste_en_cours else 'non'}"
         f" | ancien dirigeant : {'oui' if signaux.ancien_dirigeant else 'non'}"
+        f" | fonction publique : {'oui' if signaux.fonction_publique else 'non'}"
         f" | Infos : {signaux.longueur_infos} car."
     )
     for poste in signaux.postes:
         etat = "en cours" if poste.en_cours else "termine "
-        marques = ("coach " if poste.coach else "") + ("direction" if poste.direction else "")
+        marques = (
+            ("coach " if poste.coach else "")
+            + ("direction " if poste.direction else "")
+            + ("fonctionnaire" if poste.fonctionnaire else "")
+        )
         print(f"      [{etat}] {poste.duree_mois:>3} mois  {poste.libelle[:60]}  {marques}")
 
 
 def _diagnostiquer_page(page, rang: int) -> None:
-    """Print the section headings found and dump the page for selector repair."""
+    """Print the section headings found and dump the page for selector and parser repair."""
     try:
         titres = page.locator(LinkedInProfileSelectors.SECTION_HEADINGS).all_inner_texts()
         print(f"    titres de section sur la page : {[t.strip() for t in titres]}")
@@ -201,6 +213,10 @@ def main_releve(urls: list[str]) -> None:
             except Exception as erreur:
                 print(f"    page non chargee ({type(erreur).__name__})")
                 continue
+            if page_bloquee(page.url, page.title()):
+                # Going on would only add requests to a session already refused.
+                print(f"    PAGE DE BLOCAGE ({page.title()}) : releve arrete, ne pas relancer.")
+                break
             pause_humaine(2, 4)
             scroll_profile_page(page)
             rubriques = extract_rubriques_from_profile_page(page)
@@ -208,8 +224,9 @@ def main_releve(urls: list[str]) -> None:
                 f"    sections trouvees : Experience {'oui' if rubriques['experience'] else 'NON'}"
                 f", Infos {'oui' if rubriques['infos'] else 'NON'}"
             )
-            if not rubriques["experience"] or not rubriques["infos"]:
-                _diagnostiquer_page(page, rang)
+            # Always dumped: a section found can still be misread, and the first
+            # survey had no page to check for the two profiles it read wrongly.
+            _diagnostiquer_page(page, rang)
             _afficher_signaux(deriver_signaux(rubriques["experience"], rubriques["infos"]))
             pause_humaine(2, 5)
 

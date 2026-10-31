@@ -1,7 +1,10 @@
+from source.backend.adapters.scraping import profile_email
 from source.backend.adapters.scraping.profile_email import (
+    SCROLL_POINTER_POSITION,
     clean_email,
     extract_rubriques_from_profile_page,
     extract_section_text,
+    scroll_profile_page,
 )
 from source.backend.adapters.scraping.selectors import LinkedInProfileSelectors
 
@@ -54,6 +57,25 @@ def test_rubriques_lues_chacune_par_son_selecteur():
         "experience": "Expérience\nCoach",
         "infos": "",
     }
+
+
+def test_defilement_place_le_pointeur_sur_la_page_avant_la_molette(monkeypatch):
+    monkeypatch.setattr(profile_email, "pause_humaine", lambda *_: None)
+    appels = []
+
+    class _FakeMouse:
+        def move(self, x, y):
+            appels.append(("move", x, y))
+
+        def wheel(self, dx, dy):
+            appels.append(("wheel", dx, dy))
+
+    class _Page:
+        mouse = _FakeMouse()
+
+    scroll_profile_page(_Page(), steps=2)
+
+    assert appels == [("move", *SCROLL_POINTER_POSITION), ("wheel", 0, 600), ("wheel", 0, 600)]
 
 
 def test_clean_email_accepts_valid_address():

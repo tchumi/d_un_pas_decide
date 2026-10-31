@@ -13,6 +13,9 @@ from source.backend.adapters.scraping.selectors import LinkedInProfileSelectors
 
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
+# Centre of Playwright's default 1280x720 viewport.
+SCROLL_POINTER_POSITION = (640, 360)
+
 
 def clean_email(raw_email: str | None) -> str:
     """Return a stripped, validated email, or "" if missing/malformed."""
@@ -68,15 +71,23 @@ def visit_profile_and_extract_email(page: Page, profile_url: str) -> str:
     return extract_email_from_profile_page(page)
 
 
-def scroll_profile_page(page: Page, steps: int = 6) -> None:
+def scroll_profile_page(page: Page, steps: int = 9) -> None:
     """Scroll down the profile page step by step so lazy sections render.
 
     Experience and About are only rendered once scrolled into view; a reader
-    called right after goto() would find them missing.
+    called right after goto() would find them missing. The pointer is moved
+    over the page first: wheel events go to what lies under it, and at its
+    initial (0, 0) that may be a header that does not scroll. Each step stays
+    shorter than the viewport, or a lazy section's trigger could be jumped over
+    without ever being in view.
     """
+    try:
+        page.mouse.move(*SCROLL_POINTER_POSITION)
+    except Exception:
+        return
     for _ in range(steps):
         try:
-            page.mouse.wheel(0, 900)
+            page.mouse.wheel(0, 600)
         except Exception:
             return
         pause_humaine(0.6, 1.4)

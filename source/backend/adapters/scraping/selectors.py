@@ -79,23 +79,32 @@ class LinkedInProfileSelectors:
     # via mailto.
     EMAIL_LINK = 'dialog[data-testid="dialog"] a[href^="mailto:"]'
 
-    # POC-016 - NOT YET VERIFIED on a live DOM (survey run pending, see
-    # document/prompts_plans/plan_POC-016.md). Same assumption as the contact
-    # link: no stable id, so each section is found by its visible heading
-    # text. The heading is matched on a whole text node, never with
-    # contains(): "Expérience" must not match "Expériences de bénévolat".
+    # POC-016 - no stable id, same as the contact link: each section is found by
+    # its visible heading text, on a whole text node, never with contains():
+    # "Expérience" must not match "Expériences de bénévolat".
+    # Verified on a live DOM, survey of 30/10/2026 (5 profiles, positions compared
+    # by hand with the page): the whole profile sits in a wrapper <section> that
+    # also matched and came first, so Experience read Education and Activity too;
+    # not(.//section) keeps the section itself. Experience found on all 5, About
+    # on the 2 that have one (the 3 others show no such heading).
     EXPERIENCE_SECTION_XPATH = (
-        "//section[.//h2[descendant-or-self::*[normalize-space(text())='Expérience' "
-        "or normalize-space(text())='Experience']]]"
+        "//section[not(.//section)][.//h2[descendant-or-self::*"
+        "[normalize-space(text())='Expérience' or normalize-space(text())='Experience']]]"
     )
     ABOUT_SECTION_XPATH = (
-        "//section[.//h2[descendant-or-self::*[normalize-space(text())='Infos' "
-        "or normalize-space(text())='About']]]"
+        "//section[not(.//section)][.//h2[descendant-or-self::*"
+        "[normalize-space(text())='Infos' or normalize-space(text())='About']]]"
     )
 
     # Survey diagnostic only: every section heading on the page, printed when
     # a section above is not found.
     SECTION_HEADINGS = "section h2"
+
+    # Pages that mean "stop visiting", not "this profile has no section". The
+    # title is the Cloudflare block page observed on 30/10/2026; the URL
+    # fragments are LinkedIn's own security and login redirects.
+    BLOCKED_TITLE_MARKER = "Attention Required"
+    BLOCKED_URL_MARKERS = ("/checkpoint/", "/authwall", "/login", "/uas/login")
 
 
 class LinkedInInviteSelectors:
