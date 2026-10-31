@@ -34,6 +34,91 @@ Industrie Exemple · CDI
 """
 
 
+EXPERIENCE_STATUT_ET_FONCTIONNAIRE = """Expérience
+Auto-entrepreneur
+Société Exemple · Indépendant
+nov. 2024 - aujourd’hui · 2 ans
+Coaching de cadres, Coaching de vie et 4 compétences de plus
+Coach professionnel
+Autre Exemple · Indépendant
+janv. 2024 - aujourd’hui · 2 ans 10 mois
+Ville Exemple · Hybride
+Directeur
+Administration Exemple · Fonctionnaire
+nov. 2024
+Finance, Droit et 1 compétence de plus
+"""
+
+
+def test_poste_a_date_unique_lu_comme_termine():
+    signaux = deriver_signaux(EXPERIENCE_STATUT_ET_FONCTIONNAIRE)
+
+    assert signaux.nb_postes == 3
+    assert signaux.postes[2].libelle == "Directeur"
+    assert not signaux.postes[2].en_cours
+    assert signaux.ancien_dirigeant
+
+
+def test_un_mot_suivi_d_une_annee_n_est_pas_une_date():
+    assert lire_postes("Formateur\nPromo 2017\nStage\nMarathon 2019") == []
+
+
+def test_statut_seul_avec_competences_de_coaching_n_est_pas_un_autre_poste():
+    signaux = deriver_signaux(EXPERIENCE_STATUT_ET_FONCTIONNAIRE)
+
+    assert signaux.postes[0].coach
+    assert not signaux.autre_poste_en_cours
+
+
+def test_statut_seul_sans_coaching_reste_un_autre_poste():
+    texte = (
+        "Auto-entrepreneur\nExemple · Indépendant\nnov. 2024 - aujourd’hui · 2 ans\n"
+        "Plomberie, Chauffage et 2 compétences de plus"
+    )
+
+    assert deriver_signaux(texte).autre_poste_en_cours
+
+
+def test_competence_de_coaching_ne_masque_pas_un_vrai_second_poste():
+    texte = (
+        "DRH\nExemple · CDI\nnov. 2024 - aujourd’hui · 2 ans\n"
+        "Coaching, Paie et 2 compétences de plus"
+    )
+
+    signaux = deriver_signaux(texte)
+
+    assert not signaux.postes[0].coach
+    assert signaux.autre_poste_en_cours
+
+
+def test_competences_du_poste_precedent_pas_attribuees_au_suivant():
+    texte = (
+        "Formateur\nExemple · CDI\n2020 - 2022 · 2 ans\n"
+        "Coaching, Paie et 2 compétences de plus\nComptable\n2018 - 2020 · 2 ans"
+    )
+
+    assert not lire_postes(texte)[1].coach
+
+
+def test_fonction_publique_lue_dans_le_type_de_contrat():
+    assert deriver_signaux(EXPERIENCE_STATUT_ET_FONCTIONNAIRE).fonction_publique
+    assert not deriver_signaux(EXPERIENCE_ANCIEN_DIRIGEANT).fonction_publique
+
+
+def test_dates_en_annees_seules_donnent_une_duree_calculee():
+    texte = "Coach\n2016 - aujourd'hui\nAssistante\n1995 – 2012\nStagiaire\n2012 - 2012"
+
+    durees = [p.duree_mois for p in lire_postes(texte, annee_courante=2026)]
+
+    assert durees == [120, 204, 0]
+
+
+def test_duree_affichee_prioritaire_sur_le_calcul():
+    postes = lire_postes("Coach\n2016 - aujourd'hui · 3 ans", annee_courante=2026)
+
+    assert postes[0].duree_mois == 36
+
+
 def test_lignes_utiles_retire_les_doublons_consecutifs_et_les_blancs():
     assert lignes_utiles("A\nA\n\n  B \nA\n") == ["A", "B", "A"]
 
