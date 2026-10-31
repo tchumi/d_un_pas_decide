@@ -34,15 +34,35 @@ Validé par l'utilisateur le 29/10/2026. Session préparatoire avant le call cli
 
 | # | Question | Proposition par défaut |
 |---|---|---|
-| 1 | Faire le ticket ? | Oui : ~100 visites de profil, au rythme actuel (pauses humaines, lots plafonnés). |
+| 1 | Faire le ticket ? | Oui : ~100 visites de profil, au rythme actuel (pauses humaines, lots de 5, 10, puis 20), **arrêt immédiat en cas de blocage**. Le client arbitre en connaissant l'incident du 30/10 (voir plus bas). |
 | 2 | Texte brut ou signaux ? | Texte brut **temporaire** pendant la mesure, puis purge ; ne restent que des signaux dérivés. |
 | 3 | Durée de conservation du texte brut | Jusqu'à la fin de la mesure, **au plus 3 mois** ; purge tracée dans `handoff.md`. |
-| 4 | Qu'est-ce que « pratiquer le coaching » ? | Un poste de coach **en cours**, en activité indépendante ou en cabinet, **depuis au moins 2 ans**, et **pas d'autre poste salarié en cours**. À corriger par le client. |
+| 4 | Qu'est-ce que « pratiquer le coaching » ? | Un poste de coach **en cours**, en activité indépendante ou en cabinet, **depuis au moins 2 ans**, et **pas d'autre poste salarié en cours**. À corriger par le client : cette définition laisse passer Patrick Sisco (voir plus bas). |
 | 5 | Capture partielle acceptable ? | Oui : on lit seulement les postes visibles sur la page principale ; on ne visite pas de seconde page. |
 
 Signaux dérivés candidats : nombre de postes en cours ; présence d'un poste de coach en cours et
 son ancienneté ; ancienne fonction de direction (parcours, plus le titre) ; employeur public ;
 longueur et présence de « Infos ».
+
+### Actualisation du 31/10/2026, après le relevé
+
+- **Question 1, incident du 30/10** : page Cloudflare sur la page d'accueil, avant toute visite,
+  signalée à 10:10 (heure locale). Accès revenu à 10:23 au plus tard, avant la première modification
+  de code du jour (10:27) ; `browser_session.py` inchangé depuis le 03/07. Clé Wi-Fi changée avant le
+  lancement et conservée, donc présente au blocage comme au retour de l'accès. **Cause inconnue.**
+  Pas de contournement : si le blocage revient, arrêt et décision du client.
+- **Question 4, Patrick Sisco** : verdict « mauvais profil », sans justification. Le parcours montre
+  un coach en cours sans autre poste, plus un poste de directeur sous contrat « Fonctionnaire ». La
+  grille du client classe « Carrière fonction publique » en mauvais profil (`Backlog.md`, retour du
+  11/09) : explication probable, à faire confirmer. Sur les titres, ce critère était resté au taux
+  de base (1/3).
+- **Le scoring reste fondé sur le seul titre à ce jour.**
+- **Proposition au client, décidée par l'utilisateur le 31/10, à faire valider au call** : lire
+  **les 131 profils**, y compris les 30 sous le seuil, et construire la note avec « Expérience »,
+  réglée sur les 81 premières annotations et contrôlée sur les 50 suivantes. Si le client accepte, cela
+  remplace la décision n°7 et le critère d'acceptation « visite restreinte au seuil » (`run_poc002`
+  reste restreint au seuil tant que ce n'est pas décidé), le découpage 60/41 et le ticket distinct
+  envisagé pour la note.
 
 ## Ce qui se fait hors ligne, ce qui exige un run réel
 

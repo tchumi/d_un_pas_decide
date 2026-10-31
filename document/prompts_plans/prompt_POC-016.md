@@ -92,7 +92,7 @@ Ne lis pas tout le repo.
 * **[Documentation, POC-014]** Sur les 81 premiers profils annotés, précision au seuil 60 de 43 %,
   rappel 100 % ; 28 profils à 65 pile, portés par 8 bons, 16 mauvais et 4 « rien à voir ».
 * **[Documentation, retour client du 22/10/2026]** Les 50 profils du lot du 07/10/2026 sont
-  annotés : 3 excellents, 16 bons, 31 mauvais dont 13 « mauvais profil, multi fonction ». Le client
+  annotés : 3 excellents, 16 bons, 31 mauvais dont 16 « mauvais profil, multi fonction ». Le client
   écrit : *« de nombreux profils indiquent "coach certifié" dans leur en-tête mais ne pratiquent en
   fait pas […] On détecte ça en balayant le champ expérience. »*
 * **[Mesure du 29/10/2026, hors échantillon]** Sur ces 50 profils jamais vus par les règles v2 :

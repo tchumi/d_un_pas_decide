@@ -1,20 +1,18 @@
 Tu travailles dans le repo ProspectionLinkedIn avec Claude Code dans VS Code.
 
-Je viens de faire un /clear. Tu reprends **POC-016 en cours de session**, mise en pause le
-30/10/2026 après le relevé de DOM et la rédaction du mail au client. Ne relis pas tout le
-repository.
+Je viens de faire un /clear. Tu reprends **POC-016, en attente de la décision du client**. Séance
+préparatoire close le 31/10/2026 après le relevé de DOM, la mesure et la rédaction du mail. Ne relis
+pas tout le repository.
 
-> Contexte : session préparatoire avant le call client (**05/11/2026 après-midi d'après le plan**,
-> Henri-Pierre proposait aussi le 03/11 au matin : confirmation non vue). Les sauvegardes vont dans
-> `D:\Documents\Dev\_backup_prospection\`. **Ce n'est pas une fin de session** : `task_list.md`,
-> `handoff.md`, `Backlog.md` et `CLAUDE.md` n'ont pas encore été mis à jour pour POC-016 — ce sera
-> fait à la clôture.
+> Contexte : call client **confirmé le 05/11/2026 après-midi**. Les sauvegardes vont dans
+> `D:\Documents\Dev\_backup_prospection\`. `task_list.md` (POC-016 `IN_PROGRESS`), `handoff.md`
+> (section 20), `Backlog.md` et `CLAUDE.md` sont à jour au 31/10 : **le ticket n'est pas terminé**.
 
 ## Documents à lire en premier
 
 1. `CLAUDE.md`
 2. `document/prompts_plans/plan_POC-016.md` — **le plan validé**, avec les décisions de
-   l'utilisateur et les réponses proposées au client (questions 1 et 4 à actualiser, voir plus bas)
+   l'utilisateur, les réponses proposées au client et l'actualisation du 31/10
 3. `document/prompts_plans/prompt_POC-016.md` — le prompt d'origine (périmètre, critères
    d'acceptation, risques)
 4. `document/compte_rendu/2026 10 30 - brouillon mail Michel - test lecture Experience avant call (a coller dans Outlook).txt`
@@ -38,13 +36,14 @@ Puis le code :
 | `c42a30a` | `fix:` `run_poc002` ne visite plus que les profils au seuil. Reliquat réel : **97 profils** |
 | `f0f8001` | `feat:` signaux de parcours (`core/parcours.py`), lecture des rubriques, mode `--releve` |
 | `ba01cf4` | `docs:` ancienne version de ce prompt |
+| `ded0226` | `feat:` corrections de `parcours.py`, signal fonction publique |
+| `177170d` | `fix:` sélecteurs vérifiés, défilement, arrêt du relevé sur page de blocage |
+| `b948281` | `docs:` version du 30/10 de ce prompt |
 
-### Modifications du 30/10 **non committées** (7 fichiers, 306 tests au vert)
-
-L'utilisateur n'a pas encore demandé le commit : ne pas committer sans sa demande.
+### Modifications du 30/10, committées le 31/10 (`ded0226`, `177170d`, 306 tests au vert)
 
 `profile_email.py`, `run_poc002.py`, `selectors.py`, `core/parcours.py`, `tests/unit/test_parcours.py`,
-`tests/unit/test_profile_email.py`, `tests/unit/test_run_poc002.py`, plus ce prompt.
+`tests/unit/test_profile_email.py`, `tests/unit/test_run_poc002.py`.
 
 * **Sélecteurs** : `not(.//section)` ajouté. Une section englobant tout le profil correspondait
   aussi et venait en premier, si bien que Formation et Activité étaient lues comme des postes.
@@ -63,8 +62,8 @@ L'utilisateur n'a pas encore demandé le commit : ne pas committer sans sa deman
     d'un DRH ;
   * nouveau signal `fonction_publique`, lu dans le type de contrat « Fonctionnaire ».
 
-**Toujours à confirmer** : `core/parcours.py` est hors du périmètre initial du prompt. Placé dans
-`core/` parce que le scoring le lira ; signalé, non confirmé par l'utilisateur.
+`core/parcours.py` est hors du périmètre initial du prompt ; placé dans `core/` parce que le scoring
+le lira, confirmé par l'utilisateur le 31/10.
 
 ## Résultat du relevé (30/10/2026)
 
@@ -94,9 +93,12 @@ L'utilisateur n'a pas encore demandé le commit : ne pas committer sans sa deman
 
 Au premier lancement, page Cloudflare « Sorry, you have been blocked » sur la page d'accueil, avant
 toute visite. Ray ID non noté. Compte accessible dans Firefox, pas d'exit node Tailscale. Un test de
-connexion a ensuite répondu `CONNECTE` et les 7 visites sont passées. **Cause inconnue.** Le
-changement de clé Wi-Fi de l'utilisateur est peut-être lié : avant ou après le blocage, à lui
-demander. À consigner dans `handoff.md`. Pas de contournement (masquage de l'automatisation, VPN ou
+connexion a ensuite répondu `CONNECTE` et les 7 visites sont passées. **Cause inconnue.**
+Accès revenu en 13 minutes au plus (blocage signalé à 10:10, `CONNECTE` à 10:23, heures locales),
+avant la première modification de code du jour (10:27) ; `browser_session.py` inchangé depuis le
+03/07 : le code est écarté. Clé Wi-Fi changée **avant** le lancement et conservée (réponse de
+l'utilisateur, 31/10) : même clé pour le blocage et le retour de l'accès, elle ne suffit donc pas à
+l'expliquer. Consigné dans `handoff.md`. Pas de contournement (masquage de l'automatisation, VPN ou
 changement d'IP pour repasser) : si le blocage revient, s'arrêter et en référer au client.
 
 ## État vérifié au 30/10/2026
@@ -105,25 +107,46 @@ changement d'IP pour repasser) : si le blocage revient, s'arrêter et en référ
 * Magasin **non modifié** : 131 profils, 131 commentaires, `user_version` 2, empreinte MD5
   `189e64e0f6c1aa234851422686103ff5`. 101 profils au seuil, 97 jamais visités.
 * `config/scoring_rules.json` intact.
-* **Pages enregistrées encore présentes** : `tests/temp/poc016_releve_{1,2,3,4}.html` (gitignoré,
-  **données personnelles**). Plus utiles, à supprimer par l'utilisateur, les règles du projet
-  l'interdisant à l'agent : `Remove-Item tests\temp\poc016_releve_*.html`
+* Pages du relevé `tests/temp/poc016_releve_*.html` : absentes au 31/10, rien à supprimer.
 
 ## Ce qui reste
 
 **Avant le call** :
-* envoi du mail par l'utilisateur (statut d'envoi inconnu : à lui demander). Il annonce la mesure
-  sur les 50 annotations pour le call ;
-* actualiser dans `plan_POC-016.md` les questions 1 (ajouter l'incident) et 4 (cas Patrick Sisco) ;
-* commit des modifications, à la demande de l'utilisateur.
+* envoi du mail par l'utilisateur (non parti au 31/10, brouillon à jour ; statut à lui demander).
+  Call du 05/11 après-midi **confirmé** ;
+* partage de la note de mesure avec le client, par l'utilisateur : page privée
+  https://claude.ai/artifact/EJA5ZEqaYND76Z95aHpdYz (chiffres recalculés le 31/10, sans nom de
+  profil) ;
+* objet du mail : il ne parle que du test de lecture ; proposition faite à l'utilisateur, sans
+  réponse : « Prospection LinkedIn - mesure des règles et test de lecture avant notre call du
+  5 novembre ».
+
+**Le mail propose au client, section « POUR CONTINUER »** (décision de l'utilisateur du 31/10, à
+faire valider au call ; rien de cela n'est implémenté) :
+* lire **les 131 profils**, en 8 lancements environ, et non plus les 97 au seuil ;
+* construire la note avec « Expérience » : 81 annotations pour régler, 50 pour contrôler ;
+* garder le texte brut dans la base locale, hors des fichiers envoyés au client, puis le supprimer
+  au plus tard 3 mois après la lecture ; ne garder ensuite que les indicateurs ;
+* confirmer la définition de « pratiquer le coaching » et la raison du verdict de Patrick Sisco.
+
+**Réserve signalée à l'utilisateur** : les 30 profils sous le seuil ajoutent 30 visites, alors que le
+client les a tous jugés mauvais ou « rien à voir » (27 et 3). Option plus prudente : les 101 au seuil.
+
+**RGPD, question de l'utilisateur** : l'intérêt légitime peut fonder le traitement, sans dispenser de
+la minimisation ni de la durée limitée. Recommandation : garder la suppression sous 3 mois. Conserver
+le texte plus longtemps relèverait du client et de son conseil. Lecture non juridique : aucune analyse
+juridique dans le projet.
 
 **Conditionné à la réponse du client** :
 * code de migration v3, écrit et testé sur base temporaire sans être appliqué : non commencé,
-  inutile si le client renonce aux visites. Colonnes selon sa réponse à la question 2.
+  inutile si le client renonce aux visites. Colonnes selon sa réponse sur les données conservées.
 
-**Après le call** : sauvegarde, migration, runs par paliers, évaluateur étendu, mesure de l'apport.
+**Après le call, si le client accepte** : actualiser le plan selon ses décisions (périmètre 131 ou
+101 ; `run_poc002` reste restreint au seuil tant que ce n'est pas décidé) ; sauvegarde, migration ;
+brancher la lecture des rubriques et l'écriture dans le run normal de `run_poc002` ; runs par
+paliers ; évaluateur étendu ; mesure ; proposition de note au client.
 
-**À la clôture** : les quatre fichiers de `CLAUDE.md`, le prompt de POC-017, commit final.
+**À la clôture du ticket** : les quatre fichiers de `CLAUDE.md`, le prompt de POC-017, commit final.
 
 ## Interdit avant l'accord du client
 
@@ -139,8 +162,9 @@ changement d'IP pour repasser) : si le blocage revient, s'arrêter et en référ
   la sortie collée. Plafonds validés : 5, puis 10, puis 20 par run.
 * Avant tout run qui écrit le magasin : sauvegarde datée du magasin et de `journal_collecte.csv`,
   puis contrôle des `commentaire_client` contre la sauvegarde.
-* Mesure de l'apport, après le call : signaux réglés sur les profils au seuil du lot 1 (60), mesurés
-  sur ceux du lot 2 (41) — ne pas régler et mesurer sur les mêmes profils.
+* Mesure de l'apport, après le call : si le client accepte les 131 profils, régler sur le lot 1 (81)
+  et mesurer sur le lot 2 (50) ; s'il s'en tient au seuil, 60 et 41. Ne jamais régler et mesurer sur
+  les mêmes profils.
 * `profil_dirigeant` : recommandation de garder la règle jusqu'à ce qu'un signal de parcours la
   remplace ; décision au call. Mesure en mémoire : à 80 et plus sur le lot 1, sa neutralisation fait
   tomber les excellents de 6/6 à 2/6 ; sur le lot 2, 0/3 dans les deux cas.
@@ -149,6 +173,6 @@ changement d'IP pour repasser) : si le blocage revient, s'arrêter et en référ
 
 ## Première réponse attendue
 
-Ne modifie aucun fichier. Vérifie la branche, l'état Git (7 fichiers modifiés, plus ce prompt), la
-suite de tests (306) et l'empreinte du magasin, résume en 5 lignes où en est la session, puis
-demande à l'utilisateur si le mail est parti, si le call du 05/11 est confirmé et s'il veut committer.
+Ne modifie aucun fichier. Vérifie la branche, l'état Git, la suite de tests (306) et l'empreinte du
+magasin, résume en 5 lignes où en est la session, puis demande à l'utilisateur si le mail est parti,
+si la note de mesure est partagée et quelle est la décision du client.

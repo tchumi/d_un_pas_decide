@@ -963,3 +963,51 @@ Suite de la section 17 (point d'étape du 06/10/2026). **POC-008 → DONE.**
 - **POC-016**, en session préparatoire avant le call du 05/11 (diagnostic et plan avec options) ;
   implémentation après la décision du client. Prompt dans `document/prompts_plans/prompt_POC-016.md`.
 
+## 20. POC-016 — Séance préparatoire, relevé de DOM et mesure (29-31/10/2026)
+
+**Ticket non terminé**, en attente de la décision du client au call du **05/11/2026 après-midi**
+(confirmé). Reprise : `document/prompts_plans/prompt_POC-016-reprise.md`.
+
+- **Fait et committé** : `run_poc002` restreint au seuil (`selectionner_reliquat`) ; signaux de parcours
+  (`core/parcours.py`, placement confirmé par l'utilisateur) ; lecture des rubriques ; mode `--releve`
+  sans écriture en base ; sélecteurs vérifiés sur DOM réel ; arrêt du relevé sur page de blocage.
+- **Relevé du 30/10** : 7 visites sur 5 profils annotés, postes comparés à la main. Signal le plus net :
+  pas de poste de coach en cours. Illustration sur des profils choisis, lecture ajustée en les
+  regardant : **pas une preuve**.
+- **Incident du 30/10** (heures locales) : page Cloudflare sur la page d'accueil, avant toute visite,
+  signalée à 10:10 ; `CONNECTE` à 10:23 ; première modification de code du jour à 10:27 ;
+  `browser_session.py` inchangé depuis le 03/07. **Le code est écarté.** Clé Wi-Fi changée avant le
+  lancement et conservée, donc présente au blocage comme au retour de l'accès. Ray ID non noté.
+  **Cause inconnue.** Pas de contournement : si le blocage revient, arrêt et décision du client.
+- **Mesure du 31/10**, recalculée en lecture seule, règles v2 : chiffres de la section 19 confirmés.
+  `profil_dirigeant` neutralisé en mémoire : excellents à 80 ou plus de 6/6 à 2/6 sur les 81, 0/3
+  inchangé sur les 50. Note pour le call, privée, à partager par l'utilisateur :
+  https://claude.ai/artifact/EJA5ZEqaYND76Z95aHpdYz
+- **Mail au client rédigé, non envoyé** (`document/compte_rendu/2026 10 30 - brouillon mail…`, hors
+  suivi Git). Il propose de lire les 131 profils et de construire la note avec « Expérience ».
+- **Correction** : 16 « multi fonction » sur le lot du 07/10, et non 13 (`Backlog.md`,
+  `prompt_POC-016.md`).
+- **Fichiers modifiés** : `core/parcours.py`, `run_poc002.py`, `profile_email.py`, `selectors.py`, leurs
+  tests, `plan_POC-016.md`, `prompt_POC-016.md`, `prompt_POC-016-reprise.md`, `Backlog.md`, `task_list.md`,
+  `CLAUDE.md`.
+- **État vérifié** : tests **306 passed** (277 au départ) ; magasin inchangé (131 profils, 131
+  commentaires, `user_version` 2, empreinte `189e64e0f6c1aa234851422686103ff5`) ; `config/` inchangé.
+- Lancement de l'app **non nécessaire** : `source/main.py` n'existe pas encore. **Aucun run réel à
+  lancer** avant la décision du client.
+
+### Points de vigilance
+
+- **Non commencé** : capture en production, migration v3, évaluateur étendu, mesure de l'apport. Le
+  scoring reste fondé sur le seul titre.
+- **La proposition du mail change le périmètre** si elle est acceptée : 131 visites et non 97, dont 30
+  sous le seuil, tous jugés mauvais ou « rien à voir ». Option plus prudente : 101 au seuil.
+- **Engagements nouveaux du mail** à respecter dans le code : texte brut absent des fichiers envoyés,
+  supprimé au plus tard 3 mois après la lecture. Aucune analyse juridique dans le projet.
+- Limites connues : intitulés des postes groupés mal lus ; « Afficher les N expériences » jamais observé.
+- Points antérieurs toujours ouverts : mots-clés du client à ajouter pour le prochain lot, question sur
+  les contacts déjà pris sans réponse.
+
+### Prochain ticket
+
+- **POC-016**, reprise après le call du 05/11. POC-017 ensuite.
+

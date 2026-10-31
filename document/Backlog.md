@@ -2155,8 +2155,8 @@ aux profils au seuil 60 ou plus, la visite n'aurait écarté **aucun** bon profi
 
 - **Constat du client** : *« de nombreux profils indiquent "coach certifié" dans leur en-tête mais
   ne pratiquent en fait pas. C'est la différence entre être formé et pratiquer le métier. On
-  détecte ça en balayant le champ expérience. »* Annoté « mauvais profil, multi fonction » (13 des
-  50 nouveaux profils).
+  détecte ça en balayant le champ expérience. »* Annoté « mauvais profil, multi fonction » (16 des
+  50 nouveaux profils, recompté le 31/10/2026).
 - **Mesure des règles v2 sur les 50 profils jamais vus** : rappel au seuil 60 de 100 % (19/19),
   précision 46 % pour un taux de base de 38 % ; tranche 80 et plus : 7 profils, 29 % de bons,
   0 excellent sur 3 — contre 76 % et 6/6 sur les 81 de réglage. **Le seuil tient, le classement ne
@@ -2177,6 +2177,31 @@ aux profils au seuil 60 ou plus, la visite n'aurait écarté **aucun** bon profi
   sur 81 profils sur-apprend. Le sort de `profil_dirigeant` se tranche dans le plan de ce ticket.
 - 29/10/2026 — Décision de faire le ticket au **call du 05/11/2026** ; session préparatoire
   (diagnostic, plan avec options, questions client) autorisée avant, sans migration ni stockage.
+
+### Séance préparatoire et relevé de DOM (29-31/10/2026)
+
+- **Relevé du 30/10** : 7 visites sur 5 profils annotés, rien d'écrit en base, postes comparés à la
+  main. Sélecteurs d'« Expérience » et « Infos » vérifiés. **Absence de poste de coach en cours** :
+  signal le plus net sur ces 5 profils, à titre d'illustration seulement.
+- **Incident du 30/10** : page Cloudflare sur la page d'accueil, accès revenu en 13 minutes au plus.
+  Cause inconnue ; code et clé Wi-Fi ne suffisent pas à l'expliquer (détail dans `handoff.md`).
+- **Le scoring reste fondé sur le seul titre** : les signaux de `core/parcours.py` ne sont ni stockés
+  ni lus par les règles.
+- **Fonction publique** : le verdict « mauvais » de Patrick Sisco n'est pas justifié dans son
+  commentaire. Grille du client et contrat « Fonctionnaire » donnent une explication probable, à
+  faire confirmer.
+
+**Décisions** :
+- 31/10/2026 — `core/parcours.py` reste dans `core/`, hors du périmètre initial, le scoring devant
+  le lire.
+- 31/10/2026 — **Proposition de l'utilisateur au client, à valider au call** : lire les 131 profils
+  et construire la note avec « Expérience » (81 annotations pour régler, 50 pour contrôler). Texte
+  brut conservé en base locale, hors des fichiers envoyés, supprimé au plus tard 3 mois après la
+  lecture ; seuls des indicateurs restent ensuite. **Si elle est acceptée, elle change le périmètre et
+  les critères de ce ticket** : visite hors seuil, note construite ici et non dans un ticket distinct.
+- 31/10/2026 — `profil_dirigeant` : recommandation de le garder jusqu'à son remplacement par un signal
+  de parcours (neutralisé, excellents à 80 ou plus de 6/6 à 2/6 sur les 81 ; 0/3 inchangé sur les 50).
+  Décision au call.
 
 ---
 
