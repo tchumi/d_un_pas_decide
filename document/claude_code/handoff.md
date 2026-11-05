@@ -1011,3 +1011,49 @@ Suite de la section 17 (point d'étape du 06/10/2026). **POC-008 → DONE.**
 
 - **POC-016**, reprise après le call du 05/11. POC-017 ensuite.
 
+---
+
+## 21. POC-016 — Accord du client, call du 05/11 et plan actualisé (05/11/2026)
+
+**Ticket non terminé.** Le client accepte le ticket ; session de documentation seulement, aucun code
+touché. Reprise : `document/prompts_plans/prompt_POC-016-reprise.md` (réécrit pour l'implémentation).
+
+- **Mail du 31/10 parti**, dans une version plus courte que le brouillon : la durée « au plus tard
+  3 mois » n'y figure pas. **Réponse de Christophe du 03/11** (`document/compte_rendu/2026 11 04 - mail
+  Christophe…pdf`) : accord sur « POUR CONTINUER », grille mise à jour, Patrick Sisco mauvais à cause
+  du statut de fonctionnaire.
+- **Call du 05/11**, préparé avec une note pour Geremy (`2026 11 05 - preparation call Geremy…txt`) ;
+  compte rendu Geremy : `2026_11_05_-_CR_Call_d_un_pas_decide_2026-11-05.pdf`. Définitions de la grille
+  précisées ; Edouard Pierre : erreur d'annotation reconnue par le client (« bon ») ; Cécile Belot :
+  direction associative, reste bonne ; demande de variables intermédiaires dans l'Excel.
+- **Décisions de l'utilisateur du 05/11** (D1 à D8 de `plan_POC-016.md`) : 131 profils, lot 1 d'abord ;
+  plus de fenêtre « Coordonnées » ; migration v3 texte + date ; indicateurs et verdict estimé calculés,
+  figés à la suppression du texte ; reprise après blocage décidée entre l'utilisateur et l'agent ;
+  2 lancements par jour au plus ; annotations non reclassées, verdict estimé en colonne distincte ;
+  Excel dans un ticket à part (**POC-018**, créé).
+- **Brouillon du mail de confirmation** au client (`2026 11 05 - brouillon mail Michel - suite du
+  call…txt`, hors suivi Git), **non envoyé** : durée de conservation (30 jours après la présentation
+  de la note), correction d'Edouard Pierre, annotations non reclassées.
+- **Fichiers modifiés** : `plan_POC-016.md`, `Backlog.md` (POC-016, POC-018), `task_list.md`,
+  `handoff.md`, `CLAUDE.md`, `prompt_POC-016-reprise.md`. Commits `fd386aa` et celui de clôture.
+- **État vérifié** : tests **306 passed** ; magasin inchangé (131 profils, 131 commentaires,
+  `user_version` 2, empreinte `189e64e0f6c1aa234851422686103ff5`).
+- Lancement de l'app **non nécessaire** : documentation seulement. **Aucun run réel à lancer** avant
+  la migration v3.
+
+### Points de vigilance
+
+- **Rythme** : le call du 04/09 jugeait jouables 25 à 30 profils par semaine ; 131 lectures en quelques
+  jours en sont 4 à 5 fois plus, juste après le blocage du 30/10. Volume à rediscuter.
+- **Durée de conservation non confirmée par écrit.** Ne bloque pas le stockage, accepté le 03/11 ; elle
+  fixe la date de suppression.
+- **Associatif et fonction publique par nom d'employeur** : listes à proposer à l'utilisateur, faux
+  positifs à compter sur le lot 1 (un EHPAD seul ne suffit pas).
+- **`commentaire_client` jamais modifié** : la correction d'Edouard Pierre revient par le fichier du
+  client.
+
+### Prochain ticket
+
+- **POC-016**, étape 6 : migration v3, écrite et testée sur base temporaire, puis appliquée après
+  sauvegarde datée et accord de l'utilisateur. POC-018 et POC-017 ensuite.
+

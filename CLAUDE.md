@@ -38,8 +38,8 @@ document/
 ## État actuel
 
 - Branche active : `master` (base `master`)
-- **Dernière session** : POC-016 — séance préparatoire, relevé de DOM, mesure et mail client (31/10/2026)
-- **Prochain ticket actif** : POC-016 — reprise après le call du 05/11, selon la décision du client (`document/prompts_plans/prompt_POC-016-reprise.md`)
+- **Dernière session** : POC-016 — accord du client, call du 05/11 et plan actualisé (05/11/2026)
+- **Prochain ticket actif** : POC-016 — étape 6, migration v3 puis lecture des 131 profils (`document/prompts_plans/prompt_POC-016-reprise.md`)
 
 Ces deux lignes sont les **seules** informations volatiles de ce fichier : elles se mettent à
 jour en fin de session (voir « Obligation de fin de session »). Tout le reste — statuts,
