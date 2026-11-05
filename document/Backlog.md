@@ -2203,6 +2203,37 @@ aux profils au seuil 60 ou plus, la visite n'aurait écarté **aucun** bon profi
   de parcours (neutralisé, excellents à 80 ou plus de 6/6 à 2/6 sur les 81 ; 0/3 inchangé sur les 50).
   Décision au call.
 
+### Accord du client (03/11/2026) et call du 05/11/2026
+
+- **Mail de Christophe du 03/11** : accord sur les propositions « POUR CONTINUER » (lecture des
+  131 profils, note réglée sur 81 et contrôlée sur 50, texte gardé localement puis supprimé) et
+  grille mise à jour. Excellent = ancien dirigeant dans le privé ET coach « business » en activité ;
+  bon = carrière privée ET coach business en activité ; mauvais = fonction publique, coach de vie
+  ou multicarte, autre métier proche ; rien à voir = pas coach, ou formé sans exercer. Patrick
+  Sisco : mauvais à cause du statut de fonctionnaire, confirmé.
+- **Call du 05/11** (compte rendu Geremy) : définitions précisées (détail dans
+  `plan_POC-016.md`, actualisation du 05/11). Edouard Pierre : le client reconnaît une erreur
+  d'annotation, verdict correct « bon ». Cécile Belot : direction associative, « pas vraiment le
+  privé », reste bonne. Le client demande des variables intermédiaires dans l'Excel (→ POC-018).
+- **Rythme** : le call du 04/09 jugeait jouables 25 à 30 profils par semaine ; 131 lectures en
+  quelques jours en sont 4 à 5 fois plus, à rediscuter entre l'utilisateur et l'agent.
+
+**Décisions** :
+- 03/11/2026 — Le client accepte le ticket et la lecture des 131 profils. **Périmètre et critères
+  changés** : lecture hors seuil, note construite dans ce ticket.
+- 05/11/2026 — La visite de lecture n'ouvre plus la fenêtre « Coordonnées » (0 email sur 30) ; une
+  seule visite par profil.
+- 05/11/2026 — Stockage : texte brut des deux rubriques et date de lecture (migration v3).
+  Indicateurs et verdict estimé calculés, figés en base à la suppression du texte. Suppression
+  proposée au plus tard 30 jours après la présentation de la nouvelle note, **à confirmer par écrit
+  par le client**.
+- 05/11/2026 — Grille : les critères négatifs l'emportent ; indépendant non requis ; moins de 2 ans
+  non éliminatoire (bon) ; activité en parallèle salariée ou non → mauvais ; fonction publique par
+  contrat et par employeur ; associatif ≠ privé pour « excellent ».
+- 05/11/2026 — Annotations du client non reclassées ; verdict estimé dans une colonne distincte.
+- 05/11/2026 — Blocage : arrêt immédiat, reprise décidée au cas par cas entre l'utilisateur et
+  l'agent. Rythme : 2 lancements par jour au plus.
+
 ---
 
 ## POC-017 — Recherche de coordonnées déclenchée par le verdict, pas par le seuil
@@ -2227,3 +2258,28 @@ de réconciliation).
 
 **Décisions** :
 - 16/09/2026 — Ticket ouvert, itération validée par l'utilisateur.
+
+---
+
+## POC-018 — Verdict estimé et variables intermédiaires dans le fichier Excel
+
+**Objectif** : Permettre au client de voir pourquoi l'outil classe un profil, et de signaler
+précisément où il se trompe.
+
+**Origine** : demande du client au call du 05/11/2026 — ajouter au fichier des variables non
+affichées, par exemple « ancien dirigeant dans le privé estimé : oui / non », « carrière dans le
+privé estimée : oui / non », pour répondre « tu as dit dirigeant dans le privé, nous voyons que non,
+tout le reste est bon ». Décision de l'utilisateur du 05/11 : le verdict estimé par le nouveau
+scoring (POC-016) va dans une colonne distincte de `commentaire_client`.
+
+**Contraintes** :
+- [Code] L'en-tête de l'export est strict et le ré-import bloque tout écart (POC-013), à l'exception
+  de l'ancien classeur à 16 colonnes (POC-015) : ajouter des colonnes touche les deux sens.
+- Colonnes dérivées à l'export, comme `departement`, tant que le texte existe ; lues sur les
+  indicateurs figés ensuite.
+- Le client ne doit jamais pouvoir écraser une colonne calculée par le ré-import.
+
+**Dépend de** : POC-016 (signaux et verdict estimé).
+
+**Décisions** :
+- 05/11/2026 — Ticket ouvert, distinct de POC-016 (décision de l'utilisateur).
