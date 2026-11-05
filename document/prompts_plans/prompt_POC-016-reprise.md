@@ -81,6 +81,6 @@ Puis le code :
 ## Première réponse attendue
 
 Ne modifie aucun fichier. Vérifie la branche, l'état Git, la suite de tests (306) et l'empreinte du
-magasin. Demande à l'utilisateur si le mail de confirmation est parti et si le client a répondu sur la
-durée de conservation. Puis propose le plan détaillé de l'étape 6 (colonnes, ordre de migration,
-tests prévus, contrôle), et attends la validation.
+magasin. Le mail de confirmation au client partira **après le ticket** (décision de l'utilisateur du
+05/11) : ne pas en demander le statut, le réactualiser à la présentation du résultat. Propose le plan
+détaillé de l'étape 6 (colonnes, ordre de migration, tests prévus, contrôle), et attends la validation.

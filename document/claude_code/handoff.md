@@ -1046,7 +1046,8 @@ touché. Reprise : `document/prompts_plans/prompt_POC-016-reprise.md` (réécrit
 - **Rythme** : le call du 04/09 jugeait jouables 25 à 30 profils par semaine ; 131 lectures en quelques
   jours en sont 4 à 5 fois plus, juste après le blocage du 30/10. Volume à rediscuter.
 - **Durée de conservation non confirmée par écrit.** Ne bloque pas le stockage, accepté le 03/11 ; elle
-  fixe la date de suppression.
+  fixe la date de suppression. Le mail de confirmation partira **après le ticket** (décision de
+  l'utilisateur du 05/11) : à réécrire alors au passé, avec le résultat de la mesure.
 - **Associatif et fonction publique par nom d'employeur** : listes à proposer à l'utilisateur, faux
   positifs à compter sur le lot 1 (un EHPAD seul ne suffit pas).
 - **`commentaire_client` jamais modifié** : la correction d'Edouard Pierre revient par le fichier du
