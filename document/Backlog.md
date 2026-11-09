@@ -2233,6 +2233,9 @@ aux profils au seuil 60 ou plus, la visite n'aurait écarté **aucun** bon profi
 - 05/11/2026 — Annotations du client non reclassées ; verdict estimé dans une colonne distincte.
 - 05/11/2026 — Blocage : arrêt immédiat, reprise décidée au cas par cas entre l'utilisateur et
   l'agent. Rythme : 2 lancements par jour au plus.
+- 09/11/2026 — Migration v3 appliquée. Les colonnes du parcours (`PARCOURS_COLUMNS`) sont **hors de
+  `PROFILE_COLUMNS`**, donc hors du CSV et du xlsx : critère garanti par test. Les sauvegardes prises
+  à partir de l'étape 7 contiendront le texte brut : **la suppression devra aussi les couvrir**.
 
 ---
 

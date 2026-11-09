@@ -1058,3 +1058,43 @@ touché. Reprise : `document/prompts_plans/prompt_POC-016-reprise.md` (réécrit
 - **POC-016**, étape 6 : migration v3, écrite et testée sur base temporaire, puis appliquée après
   sauvegarde datée et accord de l'utilisateur. POC-018 et POC-017 ensuite.
 
+## 22. POC-016 — Étape 6, migration v3 (09/11/2026)
+
+**Ticket non terminé.** Étape 6 faite ; reprise à l'étape 7 :
+`document/prompts_plans/prompt_POC-016-etape7.md`.
+
+- Plan détaillé de l'étape 6 validé et ajouté à `plan_POC-016.md` (commit `9b25340`).
+- **Code** (`profile_store.py`, commit `d7e3f11`) : `SCHEMA_VERSION = 3` ; `texte_experience`,
+  `texte_infos`, `date_lecture_parcours`, `TEXT NOT NULL DEFAULT ''`, dans le schéma et
+  `_MIGRATIONS[3]` ; `migrer_schema` inchangée. [Code] Les colonnes sont dans une liste distincte,
+  `PARCOURS_COLUMNS`, **hors `PROFILE_COLUMNS`** (qui alimente le CSV et le xlsx) et hors
+  `_CHAMPS_COMPLETABLES` : le texte ne peut pas partir chez le client ni être écrit par une collecte.
+- **Tests** : 6 ajoutés (v2 → v3 exact, colonnes v2 intactes, idempotence, migration partielle à la
+  main, absence des exports et de `lister_profils`, collecte sans écriture du texte) ; le test v1
+  attend désormais 6 colonnes. **312 passed, 0 failed** (306 avant).
+- **Sauvegarde** dans `D:\Documents\Dev\_backup_prospection\` :
+  `profils_v2_avant_migration_v3_2026-11-09.db` (MD5 `189e64e0f6c1aa234851422686103ff5`) et
+  `journal_collecte_avant_migration_v3_2026-11-09.csv` (MD5 `d3bf1938fafdc22ac82f7a6e6b0c969d`),
+  identiques aux originaux.
+- **Migration appliquée avec l'accord de l'utilisateur**, par `ouvrir_magasin` en commande ponctuelle.
+  Contrôle ligne à ligne contre la sauvegarde (lecture seule) : 131 URL, **2096 valeurs v2, 0 écart**,
+  **131 `commentaire_client` identiques**, colonnes v3 vides, `user_version` 3, `integrity_check` ok.
+  Nouvelle empreinte : `54179a0bd97e5f269b31e44fb5c79b1d`. `journal_collecte.csv` inchangé.
+- Fichiers modifiés : `profile_store.py`, `test_profile_store.py`, `plan_POC-016.md`, `Backlog.md`,
+  `task_list.md`, `handoff.md`, `CLAUDE.md` ; créé : `prompt_POC-016-etape7.md`.
+- Lancement de l'app **non nécessaire** (pas d'UI) ; aucun run réel lancé.
+
+### Points de vigilance
+
+- **`ouvrir_magasin` migre à l'ouverture** : sans objet désormais pour la vraie base, mais toute
+  copie v2 (sauvegardes) ouverte par un script serait migrée. Les ouvrir en `mode=ro`.
+- **Sauvegardes à venir** : celles de l'étape 7 contiendront le texte brut ; la suppression de
+  l'étape 11 devra les couvrir.
+- `lire_profils_lecture_seule` fait `SELECT *` : il renvoie maintenant le texte, ce que l'évaluateur
+  de l'étape 9 voudra ; à ne pas réutiliser pour un export.
+
+### Prochain ticket
+
+- **POC-016**, étape 7 : écriture du texte et de la date (`enregistrer_lecture_parcours`), sélection
+  « non lus, non opposés, lot 1 d'abord », `run_poc002` sans fenêtre « Coordonnées », arrêt sur
+  page de blocage ; puis premier run réel de 5 profils, lancé par l'utilisateur.
