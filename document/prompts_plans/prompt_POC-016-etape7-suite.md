@@ -7,11 +7,11 @@ pas tout le repository.
 
 Ticket : POC-016
 Titre : Extraction des rubriques « Expérience » et « Infos » — étape 7, runs suivants
-Objectif : poursuivre la lecture des profils non lus (5/131 lus le 09/11), palier 10 puis 20, lot 1
+Objectif : poursuivre la lecture des profils non lus (15/131 lus le 09/11), palier 20, lot 1
 (81) d'abord puis les 50 du 07/10, avec sauvegarde et contrôle à chaque run.
 
 Critères (étape 7) : inchangés, voir `plan_POC-016.md`, « Étape 7 ». Le code est fait et a tourné en
-réel une fois (5 lus, 0 vide).
+réel deux fois (5 puis 10 lus, 0 vide).
 
 La branche attendue est `master` (329 tests).
 
@@ -28,14 +28,14 @@ exports, toute écriture de `commentaire_client`.
 
 1. `CLAUDE.md`
 2. `document/prompts_plans/plan_POC-016.md` — « Étape 7 »
-3. `document/claude_code/handoff.md` — section 23
+3. `document/claude_code/handoff.md` — section 23 (dont « Run 2 »)
 
 ## État vérifié au 09/11/2026
 
 * Tests : **329 passed**.
-* Magasin : 131 profils, 5 lus, 131 commentaires, `user_version` 3, empreinte
-  `0c7d96bbcd130f9c01d83d33b81b504c`.
-* Lancements du 09/11 : 2 sur 2.
+* Magasin : 131 profils, 15 lus, 131 commentaires, `user_version` 3, empreinte
+  `46644c96b91abcc0cd7099645f3afe63`.
+* Lancements du 09/11 : 3 (dont 1 bloqué), au-delà de la limite de 2, par décision de l'utilisateur.
 
 ## Interdit
 
@@ -56,5 +56,5 @@ exports, toute écriture de `commentaire_client`.
 ## Première réponse attendue
 
 Ne modifie aucun fichier. Vérifie la branche, l'état Git, la suite de tests (329) et l'empreinte du
-magasin. Propose le passage au palier 10 (commit), la sauvegarde et le lot nominatif, et attends la
+magasin. Propose le passage au palier 20 (commit), la sauvegarde et le lot nominatif, et attends la
 validation.

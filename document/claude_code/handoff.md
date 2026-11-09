@@ -1130,7 +1130,7 @@ touché. Reprise : `document/prompts_plans/prompt_POC-016-reprise.md` (réécrit
 - **Contrôle** (lecture seule, contre la sauvegarde) : 131 URL, 0 écart hors colonnes du parcours,
   **131 `commentaire_client` identiques**, 5 profils lus datés, `user_version` 3, `integrity_check`
   ok. Empreinte : `0c7d96bbcd130f9c01d83d33b81b504c`. `journal_collecte.csv` inchangé.
-- Lancements du 09/11 : **2 sur 2** (le bloqué compte).
+- Lancements du 09/11 : **3** (le bloqué compte ; le 3e, run 2, au-delà de D6 par décision de l'utilisateur).
 - Fichiers modifiés : `profile_store.py`, `run_poc002.py`, `test_profile_store.py`,
   `test_run_poc002.py`, `plan_POC-016.md`, `Backlog.md`, `task_list.md`, `handoff.md`, `CLAUDE.md` ;
   créé : `prompt_POC-016-etape7-suite.md`.
@@ -1141,9 +1141,8 @@ touché. Reprise : `document/prompts_plans/prompt_POC-016-reprise.md` (réécrit
 - **Deux blocages Cloudflare à l'accueil** (30/10, 09/11), tous deux avant toute visite : [Inférence]
   réputation IP ou empreinte du navigateur automatisé plutôt que volume. Au prochain : noter le Ray
   ID et l'heure, tester l'accès depuis le Chrome habituel, **ne pas relancer** dans la foulée.
-- **Sauvegardes contenant du texte brut** (à couvrir par la suppression de l'étape 11) : aucune
-  encore — la sauvegarde du run 1 est antérieure à l'écriture. La prochaine (avant run 2) sera la
-  première.
+- **Sauvegardes contenant du texte brut** (à couvrir par la suppression de l'étape 11) :
+  `profils_avant_lecture_run2_2026-11-09.db`.
 - Script de contrôle : à recréer depuis la procédure (comparaison ligne à ligne en `mode=ro`).
 - **Aperçu des signaux sur les 5 profils lus** (en mémoire, `deriver_signaux`, rien écrit ; grille
   appliquée à la main, [Inférence]) : 4 sur 5 dans le sens du client. Christian Boucheny (bon),
@@ -1158,7 +1157,22 @@ touché. Reprise : `document/prompts_plans/prompt_POC-016-reprise.md` (réécrit
   3. « **Chef d'entreprise** » non reconnu comme direction (sans effet pour Alain MASSON, « Fondateur »
      l'étant).
 
+### Run 2, palier 10 (09/11/2026, même session)
+
+- `MAX_PROFILES = 10` (commit `70c1d12`), 329 passed. Sauvegarde avant run :
+  `profils_avant_lecture_run2_2026-11-09.db` (MD5 `0c7d96bb…4c`, **1re sauvegarde contenant du texte
+  brut** : 5 profils) et `journal_collecte_avant_lecture_run2_2026-11-09.csv` (`d3bf1938…6d`).
+- **3e lancement du jour, au-delà de D6 (2/jour), par décision de l'utilisateur** contre la
+  recommandation d'attendre le 10/11. Pas de blocage.
+- 10 lus (lot 1, collecte 07-03), 0 vide, 0 échec. Contrôle contre la sauvegarde : 131 URL, 0 écart
+  hors parcours, **131 `commentaire_client` identiques**, les 5 déjà lus inchangés, 10 nouveaux datés,
+  `integrity_check` ok. Empreinte : `46644c96b91abcc0cd7099645f3afe63`. **Lus : 15/131.**
+- Textes : tous commencent par « Expérience » ; les mots « Compétences » relevés sont les lignes de
+  compétences propres à chaque poste, pas un débordement sur d'autres rubriques. Cécile Pollin
+  (11 105 car.) et Elsa Dogliotti finissent par « Tout afficher » : **liste de postes tronquée**
+  par LinkedIn, à traiter à l'étape 8 (`total_annonce`), la page de détail n'étant pas visitée.
+
 ### Prochain ticket
 
-- **POC-016**, étape 7 suite : run 2 au **palier 10** (commit `MAX_PROFILES = 10`), au plus tôt le
-  10/11, après sauvegarde datée ; puis 20 ; jusqu'aux 81 du lot 1, puis les 50.
+- **POC-016**, étape 7 suite : run 3 au **palier 20** (commit `MAX_PROFILES = 20`), au plus tôt le
+  10/11, après sauvegarde datée ; jusqu'aux 81 du lot 1, puis les 50.

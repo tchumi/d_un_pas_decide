@@ -38,8 +38,8 @@ document/
 ## État actuel
 
 - Branche active : `master` (base `master`)
-- **Dernière session** : POC-016 — étape 7, code de lecture et premier run de 5 profils (09/11/2026)
-- **Prochain ticket actif** : POC-016 — étape 7, runs de lecture suivants, palier 10 (`document/prompts_plans/prompt_POC-016-etape7-suite.md`)
+- **Dernière session** : POC-016 — étape 7, code de lecture et runs de 5 puis 10 profils (09/11/2026)
+- **Prochain ticket actif** : POC-016 — étape 7, runs de lecture suivants, palier 20 (`document/prompts_plans/prompt_POC-016-etape7-suite.md`)
 
 Ces deux lignes sont les **seules** informations volatiles de ce fichier : elles se mettent à
 jour en fin de session (voir « Obligation de fin de session »). Tout le reste — statuts,
