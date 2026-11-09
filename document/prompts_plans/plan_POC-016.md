@@ -178,3 +178,34 @@ de plus, assumées).
 - Migration v3 (si décidée) : additive, idempotente, aucune donnée existante touchée,
   `commentaire_client` intact.
 - Point de départ : 277 passed.
+
+## Étape 6 — Migration v3, plan détaillé (validé le 09/11/2026)
+
+État vérifié avant : 306 passed ; magasin 131 profils, 131 commentaires, 0 opposé,
+`user_version` 2, empreinte `189e64e0f6c1aa234851422686103ff5`.
+
+Deux constats de lecture :
+
+- [Code] `PROFILE_COLUMNS` est aligné par test sur les colonnes stockées de `PROFILE_CSV_FIELDS`,
+  qui alimente le CSV et le xlsx : y mettre le texte l'enverrait au client (contraire à D3). Les
+  colonnes v3 vont dans une liste distincte, `PARCOURS_COLUMNS`, hors export, hors
+  `_CHAMPS_COMPLETABLES`.
+- [Code] `ouvrir_magasin` migre à l'ouverture, et cinq scripts l'appellent : code, tests,
+  sauvegarde et application s'enchaînent sans lancer de script entre eux.
+
+1. **Code** (`profile_store.py`) : `SCHEMA_VERSION = 3` ; `texte_experience`, `texte_infos`,
+   `date_lecture_parcours`, toutes `TEXT NOT NULL DEFAULT ''`, dans le schéma et `_MIGRATIONS[3]` ;
+   `migrer_schema` inchangée. Écriture du texte et sélection « non lus » : étape 7.
+2. **Tests** (base temporaire, schéma v2 écrit en entier) : v2 → v3 ajoute exactement les 3
+   colonnes ; les 16 colonnes v2 intactes, les 3 nouvelles vides ; idempotence ; v1 → v3 en un
+   appel (6 colonnes, ordre v2 puis v3) ; migration partielle à la main ; aucune colonne v3 dans
+   `PROFILE_CSV_FIELDS` ni dans `lister_profils`. Test v1 existant ajusté (3 → 6 colonnes).
+3. **Sauvegarde datée** de `profils.db` et `journal_collecte.csv` dans
+   `D:\Documents\Dev\_backup_prospection\`, MD5 de la copie = MD5 de l'original.
+4. **Application** par une commande ponctuelle, avec l'accord explicite de l'utilisateur.
+5. **Contrôle ligne à ligne** contre la sauvegarde, en lecture seule : 131 URL, 131 × 16 valeurs
+   v2 identiques, `commentaire_client` identiques, colonnes v3 vides, `user_version` 3,
+   `integrity_check` ok, nouvelle empreinte notée.
+
+Vigilance : les sauvegardes prises à partir de l'étape 7 contiendront le texte brut ; la
+suppression de l'étape 11 devra aussi les couvrir.
