@@ -209,3 +209,36 @@ Deux constats de lecture :
 
 Vigilance : les sauvegardes prises à partir de l'étape 7 contiendront le texte brut ; la
 suppression de l'étape 11 devra aussi les couvrir.
+
+## Étape 7 — Run de lecture, plan détaillé (validé le 09/11/2026)
+
+État vérifié avant : 312 passed ; magasin v3, empreinte `54179a0bd97e5f269b31e44fb5c79b1d` ;
+lot 1 = 81 profils (07-03 : 25, 07-07 : 6, 08-26 : 50), lot 2 = 50 (10-07) ; 0 opposé, 0 lu.
+
+Constats de lecture :
+
+- [Code] `lister_profils` ne renvoie pas les colonnes v3 (testé) : sélection par une requête dédiée.
+- [Code] `main` écrivait après la boucle du navigateur : un plantage perdait tout. Écriture
+  **profil par profil**, un commit chacun.
+- [Code] `selectionner_reliquat` (seuil, email) n'a plus d'appelant : gardé avec ses tests, comme le
+  code de l'email. Export CSV de fin de run retiré du mode lecture (aucune colonne exportée ne change).
+
+1. **`profile_store.py`** :
+   - `profils_a_lire(conn)` : `ne_plus_traiter = 0 AND date_lecture_parcours = ''`,
+     `ORDER BY date_collecte, nom` (lot 1 d'abord, sans seuil).
+   - `enregistrer_lecture_parcours(conn, url, experience, infos, date_lecture=None)` : un profil,
+     un commit ; écrit seulement les 3 colonnes v3 ; date posée même si tout est vide ; garde
+     `ne_plus_traiter = 0 AND date_lecture_parcours = ''` (jamais de réécriture d'un profil lu) ;
+     renvoie `ecrit` / `inconnu` / `oppose` / `deja_lu`.
+2. **`run_poc002.py`** : boucle testable `lire_lot(lot, lire_profil, ecrire)` ; blocage → arrêt
+   immédiat ; échec de chargement → non marqué, on continue ; **2 profils consécutifs vides des
+   deux rubriques → arrêt** (garde-fou contre des sélecteurs cassés ; les 2 restent datés et sont
+   signalés). Plus de fenêtre « Coordonnées » ; `--releve` inchangé. Bilan : longueurs, jamais le texte.
+3. **Paliers** : `MAX_PROFILES` 5 → 10 → 20, un commit par palier après un run validé ;
+   2 lancements par jour : règle de procédure, non codée.
+4. **Tests** : sélection (opposés, déjà lus, ordre), écriture (date sur vide, aucune autre colonne,
+   refus déjà lu / opposé / inconnu, URL normalisée), boucle (blocage, échec, vide, garde-fou, plafond).
+5. **Premier run de 5** : sauvegarde datée (base + journal, MD5), lot nominatif, commande lancée par
+   l'utilisateur, contrôle en lecture seule contre la sauvegarde (v2 et `commentaire_client`
+   identiques, v3 remplies seulement pour les URL lues, `integrity_check`), liste des sauvegardes
+   contenant du texte brut tenue pour l'étape 11.
