@@ -73,7 +73,7 @@ from source.backend.core.profile_scoring import (
 # a run has been validated with no account restriction.
 # POC-016 reading run: steps of 5, 10, then 20, one commit per step, and at
 # most 2 launches a day (decision D6, 05/11/2026 - a procedure rule, not coded).
-MAX_PROFILES = 5
+MAX_PROFILES = 10
 
 # Reading run guard: this many profiles in a row with both sections empty
 # stops the run. One empty profile is plausible (no About section); several in
