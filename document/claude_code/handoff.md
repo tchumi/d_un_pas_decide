@@ -1098,3 +1098,55 @@ touché. Reprise : `document/prompts_plans/prompt_POC-016-reprise.md` (réécrit
 - **POC-016**, étape 7 : écriture du texte et de la date (`enregistrer_lecture_parcours`), sélection
   « non lus, non opposés, lot 1 d'abord », `run_poc002` sans fenêtre « Coordonnées », arrêt sur
   page de blocage ; puis premier run réel de 5 profils, lancé par l'utilisateur.
+
+## 23. POC-016 — Étape 7, lecture du parcours et premier run (09/11/2026)
+
+**Ticket non terminé.** Étape 7 en cours : code fait, run 1 passé. Reprise :
+`document/prompts_plans/prompt_POC-016-etape7-suite.md`.
+
+- Plan détaillé validé, ajouté à `plan_POC-016.md` (commit `35d25cb`).
+- **Code** (commit `0ef1287`) :
+  - `profile_store.py` : `profils_a_lire` (non opposés, `date_lecture_parcours` vide,
+    `ORDER BY date_collecte, nom` → lot 1 d'abord, sans seuil) ; `enregistrer_lecture_parcours`
+    (un profil, un commit ; seules les 3 colonnes v3 ; date posée même sur vide ; refuse
+    `deja_lu`, `oppose`, `inconnu` ; URL normalisée).
+  - `run_poc002.py` : mode normal = lecture. Boucle testable `lire_lot(lot, lire_profil, ecrire)` ;
+    blocage → arrêt immédiat ; page non chargée → non marquée ; **2 profils vides consécutifs →
+    arrêt** (`MAX_VIDES_CONSECUTIFS`). Plus de fenêtre « Coordonnées » ; export CSV de fin de run
+    retiré ; bilan en longueurs, jamais le texte. `selectionner_reliquat` gardé sans appelant ;
+    `--releve` inchangé. `profile_email.py` non modifié.
+- **Tests** : +17 (10 magasin, 7 boucle). **329 passed, 0 failed** (312 avant).
+- **Sauvegarde avant run 1** (`D:\Documents\Dev\_backup_prospection\`) :
+  `profils_avant_lecture_run1_2026-11-09.db` (MD5 `54179a0b…1d`) et
+  `journal_collecte_avant_lecture_run1_2026-11-09.csv` (MD5 `d3bf1938…6d`), identiques aux originaux.
+- **1er lancement** : page Cloudflare « Sorry, you have been blocked » **sur l'accueil, avant toute
+  visite** (2e fois après le 30/10). Magasin vérifié intact. Ray ID non noté. **Relance le même jour
+  par décision de l'utilisateur** (contre la recommandation d'attendre) : passée sans blocage.
+- **Run 1** (5 profils du lot 1, collecte 07-03) : 5 lus, 0 vide, 0 échec. Alain MASSON
+  1916/2037 car., Anne-Laure F 164/0, Arnaud Helard 1882/1326, Carole FLEURY 1173/586, Christian
+  Boucheny 1945/2200. Extraits relus : texte conforme aux rubriques (Anne-Laure F : « Education
+  nationale · Fonctionnaire » bien capté). Accents illisibles **à l'affichage console seulement**
+  (cp1252), stockage UTF-8.
+- **Contrôle** (lecture seule, contre la sauvegarde) : 131 URL, 0 écart hors colonnes du parcours,
+  **131 `commentaire_client` identiques**, 5 profils lus datés, `user_version` 3, `integrity_check`
+  ok. Empreinte : `0c7d96bbcd130f9c01d83d33b81b504c`. `journal_collecte.csv` inchangé.
+- Lancements du 09/11 : **2 sur 2** (le bloqué compte).
+- Fichiers modifiés : `profile_store.py`, `run_poc002.py`, `test_profile_store.py`,
+  `test_run_poc002.py`, `plan_POC-016.md`, `Backlog.md`, `task_list.md`, `handoff.md`, `CLAUDE.md` ;
+  créé : `prompt_POC-016-etape7-suite.md`.
+- Lancement de l'app **non nécessaire** (pas d'UI) ; `run_poc002` modifié et déjà exercé en réel.
+
+### Points de vigilance
+
+- **Deux blocages Cloudflare à l'accueil** (30/10, 09/11), tous deux avant toute visite : [Inférence]
+  réputation IP ou empreinte du navigateur automatisé plutôt que volume. Au prochain : noter le Ray
+  ID et l'heure, tester l'accès depuis le Chrome habituel, **ne pas relancer** dans la foulée.
+- **Sauvegardes contenant du texte brut** (à couvrir par la suppression de l'étape 11) : aucune
+  encore — la sauvegarde du run 1 est antérieure à l'écriture. La prochaine (avant run 2) sera la
+  première.
+- Script de contrôle : à recréer depuis la procédure (comparaison ligne à ligne en `mode=ro`).
+
+### Prochain ticket
+
+- **POC-016**, étape 7 suite : run 2 au **palier 10** (commit `MAX_PROFILES = 10`), au plus tôt le
+  10/11, après sauvegarde datée ; puis 20 ; jusqu'aux 81 du lot 1, puis les 50.

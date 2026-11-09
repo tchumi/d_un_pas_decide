@@ -2236,6 +2236,12 @@ aux profils au seuil 60 ou plus, la visite n'aurait écarté **aucun** bon profi
 - 09/11/2026 — Migration v3 appliquée. Les colonnes du parcours (`PARCOURS_COLUMNS`) sont **hors de
   `PROFILE_COLUMNS`**, donc hors du CSV et du xlsx : critère garanti par test. Les sauvegardes prises
   à partir de l'étape 7 contiendront le texte brut : **la suppression devra aussi les couvrir**.
+- 09/11/2026 — Étape 7 : écriture **profil par profil** (un commit chacun), date posée même sur
+  rubriques vides, **un profil déjà lu n'est jamais réécrit** (relecture = décision explicite).
+  Garde-fou ajouté : **arrêt après 2 profils consécutifs vides des deux rubriques** (sélecteurs
+  présumés cassés). Une page non chargée n'est pas marquée.
+- 09/11/2026 — Nouveau blocage Cloudflare sur la page d'accueil, avant toute visite (2e, après le
+  30/10) ; relance le même jour **par décision de l'utilisateur**, passée sans blocage.
 
 ---
 
