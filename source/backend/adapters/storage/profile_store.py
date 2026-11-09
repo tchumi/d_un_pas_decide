@@ -24,7 +24,7 @@ from source.backend.adapters.scraping.profile_search import clean_profile_url
 
 DEFAULT_DB_PATH = Path("./profils.db")
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # Columns carried by a profile dict, in CSV order. Must stay aligned with
 # PROFILE_CSV_FIELDS (csv_export.py) - a unit test guards the alignment.
@@ -45,6 +45,19 @@ PROFILE_COLUMNS = [
     "date_visite_email",
     "date_enrichissement_web",
     "statut_coordonnees",
+]
+
+# Career-path columns (POC-016, schema v3): raw text of the profile page's
+# "Experience" and "About" sections, and the date they were read. Deliberately
+# kept out of PROFILE_COLUMNS: that list feeds the CSV and xlsx sent to the
+# client, and the raw text must stay in the local store only (client decision,
+# 03/11/2026). Out of _CHAMPS_COMPLETABLES too: no collection run writes them.
+# date_lecture_parcours is stamped even when both sections read empty -
+# "read, nothing found" is not "not read yet".
+PARCOURS_COLUMNS = [
+    "texte_experience",
+    "texte_infos",
+    "date_lecture_parcours",
 ]
 
 # Fields a collection run may complete on an already-known profile. Neither
@@ -122,7 +135,10 @@ CREATE TABLE IF NOT EXISTS profils (
     ne_plus_traiter         INTEGER NOT NULL DEFAULT 0,
     date_visite_email       TEXT NOT NULL DEFAULT '',
     date_enrichissement_web TEXT NOT NULL DEFAULT '',
-    statut_coordonnees      TEXT NOT NULL DEFAULT ''
+    statut_coordonnees      TEXT NOT NULL DEFAULT '',
+    texte_experience        TEXT NOT NULL DEFAULT '',
+    texte_infos             TEXT NOT NULL DEFAULT '',
+    date_lecture_parcours   TEXT NOT NULL DEFAULT ''
 );
 """
 
@@ -134,6 +150,11 @@ _MIGRATIONS: dict[int, list[str]] = {
         "date_visite_email       TEXT NOT NULL DEFAULT ''",
         "date_enrichissement_web TEXT NOT NULL DEFAULT ''",
         "statut_coordonnees      TEXT NOT NULL DEFAULT ''",
+    ],
+    3: [
+        "texte_experience        TEXT NOT NULL DEFAULT ''",
+        "texte_infos             TEXT NOT NULL DEFAULT ''",
+        "date_lecture_parcours   TEXT NOT NULL DEFAULT ''",
     ],
 }
 

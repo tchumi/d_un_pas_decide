@@ -9,6 +9,7 @@ from source.backend.adapters.storage.csv_export import (
     export_profiles_to_csv,
 )
 from source.backend.adapters.storage.profile_store import (
+    PARCOURS_COLUMNS,
     PROFILE_COLUMNS,
     SCHEMA_VERSION,
     STATUT_CANDIDAT,
@@ -377,10 +378,12 @@ def test_migration_signale_les_colonnes_ajoutees_puis_est_idempotente(tmp_path):
     connexion.row_factory = sqlite3.Row
 
     try:
+        # A v1 store goes through v2 then v3 in one call, in that order.
         assert migrer_schema(connexion) == [
             "date_visite_email",
             "date_enrichissement_web",
             "statut_coordonnees",
+            *PARCOURS_COLUMNS,
         ]
         # Re-running must be a no-op, not a duplicate-column error.
         assert migrer_schema(connexion) == []
@@ -391,6 +394,146 @@ def test_migration_signale_les_colonnes_ajoutees_puis_est_idempotente(tmp_path):
 def test_magasin_neuf_est_deja_en_derniere_version(conn):
     assert conn.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
     assert migrer_schema(conn) == []
+
+
+# --- POC-016 : migration v3, texte du parcours hors export ---
+
+# The store exactly as POC-009 left it: 16 columns, PRAGMA user_version = 2.
+# Written out in full, same reason as _SCHEMA_V1.
+_SCHEMA_V2 = """
+CREATE TABLE profils (
+    url                     TEXT PRIMARY KEY,
+    nom                     TEXT NOT NULL DEFAULT '',
+    localisation            TEXT NOT NULL DEFAULT '',
+    titre                   TEXT NOT NULL DEFAULT '',
+    email                   TEXT NOT NULL DEFAULT '',
+    email_web               TEXT NOT NULL DEFAULT '',
+    site_web                TEXT NOT NULL DEFAULT '',
+    categorie               TEXT NOT NULL DEFAULT '',
+    score                   TEXT NOT NULL DEFAULT '',
+    justification           TEXT NOT NULL DEFAULT '',
+    commentaire_client      TEXT NOT NULL DEFAULT '',
+    date_collecte           TEXT NOT NULL,
+    ne_plus_traiter         INTEGER NOT NULL DEFAULT 0,
+    date_visite_email       TEXT NOT NULL DEFAULT '',
+    date_enrichissement_web TEXT NOT NULL DEFAULT '',
+    statut_coordonnees      TEXT NOT NULL DEFAULT ''
+);
+"""
+
+_LIGNE_V2 = {
+    "url": URL_MARIE,
+    "nom": "Marie Dupont",
+    "localisation": "Lyon",
+    "titre": "Coach business",
+    "email": "marie@exemple.fr",
+    "email_web": "contact@exemple.fr",
+    "site_web": "https://exemple.fr",
+    "categorie": "coach_business",
+    "score": "75",
+    "justification": "base_coach +20",
+    "commentaire_client": "Excellent profil, ancien DG",
+    "date_collecte": "2026-08-26",
+    "ne_plus_traiter": 0,
+    "date_visite_email": "2026-08-28",
+    "date_enrichissement_web": "2026-08-28",
+    "statut_coordonnees": "valide",
+}
+
+
+def creer_magasin_v2(chemin, colonnes_en_plus=()):
+    """Build a POC-009 store holding one profile with every v2 column filled."""
+    connexion = sqlite3.connect(chemin)
+    connexion.executescript(_SCHEMA_V2)
+    for declaration in colonnes_en_plus:
+        connexion.execute(f"ALTER TABLE profils ADD COLUMN {declaration}")
+    connexion.execute("PRAGMA user_version = 2")
+    colonnes = list(_LIGNE_V2)
+    connexion.execute(
+        f"INSERT INTO profils ({', '.join(colonnes)}) "
+        f"VALUES ({', '.join(':' + c for c in colonnes)})",
+        _LIGNE_V2,
+    )
+    connexion.commit()
+    connexion.close()
+    return chemin
+
+
+def _connexion(chemin):
+    connexion = sqlite3.connect(chemin)
+    connexion.row_factory = sqlite3.Row
+    return connexion
+
+
+def test_migration_v3_ajoute_exactement_les_colonnes_du_parcours(tmp_path):
+    connexion = _connexion(creer_magasin_v2(tmp_path / "profils.db"))
+    try:
+        assert migrer_schema(connexion) == PARCOURS_COLUMNS
+        assert connexion.execute("PRAGMA user_version").fetchone()[0] == 3
+        colonnes = [row["name"] for row in connexion.execute("PRAGMA table_info(profils)")]
+        assert colonnes == list(_LIGNE_V2) + PARCOURS_COLUMNS
+    finally:
+        connexion.close()
+
+
+def test_migration_v3_ne_touche_a_aucune_colonne_v2(tmp_path):
+    chemin = creer_magasin_v2(tmp_path / "profils.db")
+
+    connexion = ouvrir_magasin(chemin)
+    try:
+        ligne = dict(connexion.execute("SELECT * FROM profils").fetchone())
+    finally:
+        connexion.close()
+
+    assert {c: ligne[c] for c in _LIGNE_V2} == _LIGNE_V2
+    # On the rows already there, "empty" reads as "not read yet": exactly true.
+    assert {c: ligne[c] for c in PARCOURS_COLUMNS} == dict.fromkeys(PARCOURS_COLUMNS, "")
+
+
+def test_migration_v3_est_idempotente(tmp_path):
+    connexion = _connexion(creer_magasin_v2(tmp_path / "profils.db"))
+    try:
+        assert migrer_schema(connexion) == PARCOURS_COLUMNS
+        assert migrer_schema(connexion) == []
+        assert connexion.execute("PRAGMA user_version").fetchone()[0] == 3
+    finally:
+        connexion.close()
+
+
+def test_migration_v3_complete_un_magasin_migre_en_partie_a_la_main(tmp_path):
+    chemin = creer_magasin_v2(
+        tmp_path / "profils.db",
+        colonnes_en_plus=["texte_experience TEXT NOT NULL DEFAULT ''"],
+    )
+    connexion = _connexion(chemin)
+    try:
+        assert migrer_schema(connexion) == ["texte_infos", "date_lecture_parcours"]
+    finally:
+        connexion.close()
+
+
+def test_texte_du_parcours_absent_des_exports(conn):
+    # The raw text stays in the local store: it must never reach the CSV or
+    # the xlsx sent to the client (client decision, 03/11/2026).
+    assert not set(PARCOURS_COLUMNS) & set(PROFILE_CSV_FIELDS)
+    assert not set(PARCOURS_COLUMNS) & set(PROFILE_COLUMNS)
+
+    enregistrer_profils(conn, [profil()])
+    conn.execute(
+        "UPDATE profils SET texte_experience = 'Coach depuis 2015', "
+        "date_lecture_parcours = '2026-11-09'"
+    )
+    assert not set(PARCOURS_COLUMNS) & set(lister_profils(conn)[0])
+
+
+def test_collecte_n_ecrit_jamais_le_texte_du_parcours(conn):
+    enregistrer_profils(conn, [profil()])
+    conn.execute("UPDATE profils SET texte_experience = 'Coach depuis 2015'")
+
+    enregistrer_profils(conn, [profil(texte_experience="", texte_infos="injecte")])
+
+    ligne = conn.execute("SELECT texte_experience, texte_infos FROM profils").fetchone()
+    assert (ligne["texte_experience"], ligne["texte_infos"]) == ("Coach depuis 2015", "")
 
 
 def test_visite_sans_email_marque_quand_meme_le_profil(conn):
