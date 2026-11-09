@@ -1145,6 +1145,18 @@ touché. Reprise : `document/prompts_plans/prompt_POC-016-reprise.md` (réécrit
   encore — la sauvegarde du run 1 est antérieure à l'écriture. La prochaine (avant run 2) sera la
   première.
 - Script de contrôle : à recréer depuis la procédure (comparaison ligne à ligne en `mode=ro`).
+- **Aperçu des signaux sur les 5 profils lus** (en mémoire, `deriver_signaux`, rien écrit ; grille
+  appliquée à la main, [Inférence]) : 4 sur 5 dans le sens du client. Christian Boucheny (bon),
+  Carole FLEURY (mauvais) et Arnaud Helard (rien à voir), tous trois à 65 sur le même titre, sont
+  départagés par le parcours. **Indication, pas une mesure.** Trois défauts du lecteur de postes
+  (`lire_postes`, `core/parcours.py`) **à corriger à l'étape 8** :
+  1. **poste sans dates ignoré** : Anne-Laure F, « Enseignante, Education nationale · Fonctionnaire »
+     sans dates, est perdu → lue « bon » au lieu de « mauvais » (fonction publique, activité en
+     parallèle). Garder le poste ; repérer « Fonctionnaire » dans tout le texte ;
+  2. **postes regroupés sous un employeur** mal découpés (Christian Boucheny, EDF) : « 16 ans 11 mois »,
+     « … plus », « Project Management » pris pour des intitulés ;
+  3. « **Chef d'entreprise** » non reconnu comme direction (sans effet pour Alain MASSON, « Fondateur »
+     l'étant).
 
 ### Prochain ticket
 
