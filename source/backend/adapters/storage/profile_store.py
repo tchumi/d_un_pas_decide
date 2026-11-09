@@ -460,6 +460,85 @@ def profils_a_visiter(profils: list[dict[str, str]]) -> list[dict[str, str]]:
     return [p for p in profils if not str(p.get("date_visite_email", "") or "").strip()]
 
 
+LECTURE_ECRITE = "ecrit"
+LECTURE_URL_INCONNUE = "inconnu"
+LECTURE_OPPOSE = "oppose"
+LECTURE_DEJA_LUE = "deja_lu"
+
+# Columns profils_a_lire returns: what the reading run prints and visits.
+_COLONNES_A_LIRE = ["url", "nom", "titre", "score", "date_collecte"]
+
+
+def profils_a_lire(conn: sqlite3.Connection) -> list[dict[str, str]]:
+    """Profiles whose career path (Experience, About) has never been read - POC-016.
+
+    No score threshold: the client asked for every non-objecting profile
+    (decision D1, 03/11/2026). Ordered by date_collecte, so batch 1 (collected
+    before 07/10/2026) comes first and any later collection comes after.
+    A query of its own rather than lister_profils(): that one feeds the
+    exports and deliberately carries no career-path column.
+    """
+    requete = (
+        f"SELECT {', '.join(_COLONNES_A_LIRE)} FROM profils "
+        "WHERE ne_plus_traiter = 0 AND date_lecture_parcours = '' "
+        "ORDER BY date_collecte, nom"
+    )
+    return [
+        {colonne: str(row[colonne]) for colonne in _COLONNES_A_LIRE}
+        for row in conn.execute(requete)
+    ]
+
+
+def enregistrer_lecture_parcours(
+    conn: sqlite3.Connection,
+    url: str,
+    experience: str,
+    infos: str,
+    date_lecture: str | None = None,
+) -> str:
+    """Write one profile's career-path text and reading date, then commit - POC-016.
+
+    One profile per call and one commit each, so that a run stopped midway
+    (block page, crash, Ctrl-C) keeps every profile already read.
+
+    Only the three PARCOURS_COLUMNS are written. date_lecture_parcours is
+    stamped even when both texts are empty: "read, nothing found" is not
+    "not read yet", and the profile must leave the backlog. A profile already
+    read is never rewritten - re-reading must be a deliberate decision, not a
+    side effect - and an objecting profile is never written.
+
+    Returns one of LECTURE_ECRITE, LECTURE_URL_INCONNUE, LECTURE_OPPOSE,
+    LECTURE_DEJA_LUE.
+    """
+    url_propre = clean_profile_url(url)
+    row = conn.execute(
+        "SELECT ne_plus_traiter, date_lecture_parcours FROM profils WHERE url = :url",
+        {"url": url_propre},
+    ).fetchone()
+    if row is None:
+        return LECTURE_URL_INCONNUE
+    if row["ne_plus_traiter"]:
+        return LECTURE_OPPOSE
+    if str(row["date_lecture_parcours"] or "").strip():
+        return LECTURE_DEJA_LUE
+
+    # The WHERE clause repeats the guards, so the write stays safe even if
+    # the row changed between the check above and the update.
+    curseur = conn.execute(
+        "UPDATE profils SET texte_experience = :experience, texte_infos = :infos, "
+        "date_lecture_parcours = :jour "
+        "WHERE url = :url AND ne_plus_traiter = 0 AND date_lecture_parcours = ''",
+        {
+            "experience": (experience or "").strip(),
+            "infos": (infos or "").strip(),
+            "jour": date_lecture or date.today().isoformat(),
+            "url": url_propre,
+        },
+    )
+    conn.commit()
+    return LECTURE_ECRITE if curseur.rowcount == 1 else LECTURE_DEJA_LUE
+
+
 def profils_a_enrichir(profils: list[dict[str, str]]) -> list[dict[str, str]]:
     """Profiles the web enrichment has never been attempted on.
 

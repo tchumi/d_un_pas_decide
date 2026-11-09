@@ -1,5 +1,5 @@
-"""POC-002 entry script: visit the stored profiles' pages to extract their
-public email, and write the result back to the store.
+"""POC-002 entry script, POC-016 reading run: visit the stored profiles' pages,
+read their "Experience" and "About" sections, and write the text back to the store.
 
 Read-only, manual login, no invitation/message sent (out of scope for this
 ticket - see document/Backlog.md POC-002).
@@ -13,6 +13,14 @@ ones never visited yet (date_visite_email empty) are processed.
 
 The marker is stamped even when a profile shows no public email: that is what
 makes the backlog shrink instead of the run redoing the same work every time.
+
+POC-016 reading run (default mode since 09/11/2026): every non-objecting
+profile never read yet (date_lecture_parcours empty) is visited once, batch 1
+first, with no score threshold (client decision D1, 03/11/2026). The
+"Contact info" overlay is no longer opened (0 email out of 30 - decision D2,
+05/11/2026): the email code stays in profile_email.py, uncalled. Each profile
+is written as soon as it is read, so a run stopped on a block page keeps
+every profile already read and leaves the rest unmarked.
 
 POC-016 survey mode (--releve URL...): visits a few chosen profiles, reads
 their Experience and About sections and prints the derived career signals next
@@ -29,6 +37,8 @@ Run standalone (never via `streamlit run`, see CLAUDE.md rule 6).
 """
 
 import sys
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from source.backend.adapters.scraping.browser_session import (
@@ -36,19 +46,17 @@ from source.backend.adapters.scraping.browser_session import (
     open_browser_session,
 )
 from source.backend.adapters.scraping.profile_email import (
-    enrich_profiles_with_email,
     extract_rubriques_from_profile_page,
     scroll_profile_page,
 )
 from source.backend.adapters.scraping.profile_search import clean_profile_url, pause_humaine
 from source.backend.adapters.scraping.selectors import LinkedInProfileSelectors
-from source.backend.adapters.storage.csv_export import EXPORT_CSV, export_profiles_to_csv
 from source.backend.adapters.storage.profile_store import (
     DEFAULT_DB_PATH,
-    RapportCoordonnees,
-    enregistrer_email_linkedin,
-    lister_profils,
+    LECTURE_ECRITE,
+    enregistrer_lecture_parcours,
     ouvrir_magasin,
+    profils_a_lire,
     profils_a_visiter,
 )
 from source.backend.adapters.storage.run_poc014_evaluation import lire_profils_lecture_seule
@@ -63,7 +71,24 @@ from source.backend.core.profile_scoring import (
 # whole store, and one profile page visit is one extra LinkedIn request. Same
 # prudence as POC-001/POC-002 took on their own first runs; raise it only once
 # a run has been validated with no account restriction.
+# POC-016 reading run: steps of 5, 10, then 20, one commit per step, and at
+# most 2 launches a day (decision D6, 05/11/2026 - a procedure rule, not coded).
 MAX_PROFILES = 5
+
+# Reading run guard: this many profiles in a row with both sections empty
+# stops the run. One empty profile is plausible (no About section); several in
+# a row more likely mean a LinkedIn markup change breaking the selectors, and
+# going on would stamp the whole backlog "read, nothing found". The profiles
+# already stamped are reported so they can be reset deliberately.
+MAX_VIDES_CONSECUTIFS = 2
+
+# Outcomes of one profile visit, as returned by a lire_profil callable.
+VISITE_LUE = "lu"
+VISITE_ECHEC = "echec"
+VISITE_BLOQUEE = "bloque"
+
+ARRET_BLOCAGE = "blocage"
+ARRET_VIDES = "vides_consecutifs"
 
 PROFILE_DIR = Path("./browser_profile")
 
@@ -88,6 +113,103 @@ def selectionner_reliquat(
     return profils_a_visiter(selectionner_profils_interessants(profils, regles=regles))
 
 
+@dataclass
+class BilanLecture:
+    """Outcome of a reading run - POC-016.
+
+    lus lists (url, length of Experience, length of About) for every profile
+    written; vides is the subset with both sections empty. echecs were not
+    loaded and stay unmarked; refus were read but not written (the store's
+    answer is given). arret says why the run stopped early, if it did.
+    """
+
+    lus: list[tuple[str, int, int]] = field(default_factory=list)
+    vides: list[str] = field(default_factory=list)
+    echecs: list[str] = field(default_factory=list)
+    refus: list[tuple[str, str]] = field(default_factory=list)
+    arret: str = ""
+    detail_arret: str = ""
+    non_traites: int = 0
+
+
+def lire_lot(
+    lot: list[dict[str, str]],
+    lire_profil: Callable[[dict[str, str]], tuple[str, object]],
+    ecrire: Callable[[str, str, str], str],
+) -> BilanLecture:
+    """Visit each profile, writing it as soon as it is read - POC-016.
+
+    lire_profil returns (VISITE_LUE, {"experience", "infos"}),
+    (VISITE_ECHEC, None) or (VISITE_BLOQUEE, page title). Kept free of
+    Playwright so the stopping rules are unit-tested:
+    - block page: immediate stop, nothing written for it nor after it
+      (decision D5 - never work around a block page);
+    - page not loaded: not marked - stamping it would claim "read, nothing
+      found" - and the run goes on;
+    - read: written at once, date stamped even when both sections are empty;
+      MAX_VIDES_CONSECUTIFS empty ones in a row stop the run.
+    """
+    bilan = BilanLecture()
+    vides_consecutifs = 0
+    for rang, profil in enumerate(lot):
+        url = profil["url"]
+        etat, contenu = lire_profil(profil)
+        if etat == VISITE_BLOQUEE:
+            bilan.arret = ARRET_BLOCAGE
+            bilan.detail_arret = str(contenu or "")
+            bilan.non_traites = len(lot) - rang
+            return bilan
+        if etat != VISITE_LUE or not isinstance(contenu, dict):
+            bilan.echecs.append(url)
+            continue
+
+        experience = str(contenu.get("experience", "") or "").strip()
+        infos = str(contenu.get("infos", "") or "").strip()
+        statut = ecrire(url, experience, infos)
+        if statut != LECTURE_ECRITE:
+            bilan.refus.append((url, statut))
+            continue
+        bilan.lus.append((url, len(experience), len(infos)))
+
+        if experience or infos:
+            vides_consecutifs = 0
+            continue
+        bilan.vides.append(url)
+        vides_consecutifs += 1
+        if vides_consecutifs >= MAX_VIDES_CONSECUTIFS:
+            bilan.arret = ARRET_VIDES
+            bilan.non_traites = len(lot) - rang - 1
+            return bilan
+    return bilan
+
+
+def _lot_du_profil(profil: dict[str, str]) -> str:
+    # Batch 2 is the 07/10/2026 collection; everything before is batch 1.
+    return "lot 1" if profil.get("date_collecte", "") < "2026-10-07" else "lot 2"
+
+
+def _lecteur_playwright(page) -> Callable[[dict[str, str]], tuple[str, object]]:
+    """lire_profil over a live page: one visit, no "Contact info" overlay."""
+
+    def lire_profil(profil: dict[str, str]) -> tuple[str, object]:
+        print(f"  -> {profil['nom']}")
+        try:
+            page.goto(profil["url"], timeout=60000)
+        except Exception as erreur:
+            print(f"     page non chargee ({type(erreur).__name__})")
+            return VISITE_ECHEC, None
+        titre = page.title()
+        if page_bloquee(page.url, titre):
+            return VISITE_BLOQUEE, titre
+        pause_humaine(2, 4)
+        scroll_profile_page(page)
+        rubriques = extract_rubriques_from_profile_page(page)
+        pause_humaine(2, 5)
+        return VISITE_LUE, rubriques
+
+    return lire_profil
+
+
 def main() -> None:
     # LinkedIn names carry emoji (observed 28/08/2026: two real profiles in
     # the store). Printing one raw on a cp1252 Windows console raises
@@ -99,35 +221,55 @@ def main() -> None:
         main_releve(arguments[1:])
         return
 
-    regles = charger_regles()
     conn = ouvrir_magasin(DEFAULT_DB_PATH)
     try:
-        reliquat = selectionner_reliquat(lister_profils(conn), regles)
-        print(
-            f"{len(reliquat)} profils interessants "
-            f"(score >= {regles.seuil_profil_interessant}) jamais visites"
-        )
-        if not reliquat:
-            print("Rien a traiter : tous les profils interessants ont deja ete visites.")
+        a_lire = profils_a_lire(conn)
+        print(f"{len(a_lire)} profils non opposes dont le parcours n'a jamais ete lu")
+        if not a_lire:
+            print("Rien a traiter : tous les parcours ont deja ete lus.")
             return
 
-        lot = reliquat[:MAX_PROFILES]
+        lot = a_lire[:MAX_PROFILES]
         print(f"Lot traite : {len(lot)} profils (plafond MAX_PROFILES={MAX_PROFILES})")
         for profil in lot:
-            print(f"  - {profil['nom']} — {profil['url']}")
+            print(
+                f"  - {profil['nom']} — {_lot_du_profil(profil)}, collecte "
+                f"{profil['date_collecte']}, score {profil['score']} — {profil['url']}"
+            )
+
+        def ecrire(url: str, experience: str, infos: str) -> str:
+            return enregistrer_lecture_parcours(conn, url, experience, infos)
 
         with open_browser_session(PROFILE_DIR) as (context, page):
             ensure_logged_in(page, context)
-            visites = enrich_profiles_with_email(page, lot)
+            bilan = lire_lot(lot, _lecteur_playwright(page), ecrire)
 
-        rapport = enregistrer_email_linkedin(conn, visites)
-        _afficher_rapport(rapport)
-
-        profils_magasin = lister_profils(conn)
-        export_profiles_to_csv(profils_magasin, EXPORT_CSV)
-        print(f"{len(profils_magasin)} profils exportes -> {EXPORT_CSV.resolve()}")
+        _afficher_bilan(bilan)
     finally:
         conn.close()
+
+
+def _afficher_bilan(bilan: BilanLecture) -> None:
+    """Print what the reading run wrote - lengths only, never the text itself."""
+    print(f"\n{len(bilan.lus)} profil(s) lu(s) et ecrit(s), dont {len(bilan.vides)} vide(s)")
+    for url, longueur_experience, longueur_infos in bilan.lus:
+        marque = "  VIDE" if url in bilan.vides else ""
+        print(f"  {url} : Experience {longueur_experience} car., Infos {longueur_infos} car.{marque}")
+    for url in bilan.echecs:
+        print(f"  NON CHARGE (non marque) : {url}")
+    for url, statut in bilan.refus:
+        print(f"  NON ECRIT ({statut}) : {url}")
+    if bilan.arret == ARRET_BLOCAGE:
+        print(
+            f"PAGE DE BLOCAGE ({bilan.detail_arret}) : run arrete, "
+            f"{bilan.non_traites} profil(s) non traite(s). Ne pas relancer sans en decider."
+        )
+    elif bilan.arret == ARRET_VIDES:
+        print(
+            f"ARRET : {MAX_VIDES_CONSECUTIFS} profils consecutifs sans aucune rubrique lue "
+            f"(selecteurs a verifier), {bilan.non_traites} profil(s) non traite(s). "
+            "Les profils VIDE ci-dessus sont dates."
+        )
 
 
 def profils_du_releve(
@@ -229,21 +371,6 @@ def main_releve(urls: list[str]) -> None:
             _diagnostiquer_page(page, rang)
             _afficher_signaux(deriver_signaux(rubriques["experience"], rubriques["infos"]))
             pause_humaine(2, 5)
-
-
-def _afficher_rapport(rapport: RapportCoordonnees) -> None:
-    """Print what the run wrote, contradictions included.
-
-    A stored value replaced by a fresh one is never silent (AGENTS.md).
-    """
-    print(
-        f"{len(rapport.profils_traites)} profils marques comme visites, "
-        f"{len(rapport.coordonnees_trouvees)} email(s) trouve(s)"
-    )
-    for url, colonne, ancienne, nouvelle in rapport.valeurs_remplacees:
-        print(f"  ATTENTION valeur remplacee — {url} : {colonne} '{ancienne}' -> '{nouvelle}'")
-    if rapport.urls_inconnues:
-        print(f"  {len(rapport.urls_inconnues)} URL(s) absente(s) du magasin, ignoree(s)")
 
 
 if __name__ == "__main__":

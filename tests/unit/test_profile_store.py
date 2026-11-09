@@ -9,6 +9,10 @@ from source.backend.adapters.storage.csv_export import (
     export_profiles_to_csv,
 )
 from source.backend.adapters.storage.profile_store import (
+    LECTURE_DEJA_LUE,
+    LECTURE_ECRITE,
+    LECTURE_OPPOSE,
+    LECTURE_URL_INCONNUE,
     PARCOURS_COLUMNS,
     PROFILE_COLUMNS,
     SCHEMA_VERSION,
@@ -17,6 +21,7 @@ from source.backend.adapters.storage.profile_store import (
     STATUT_VALIDE,
     enregistrer_coordonnees_web,
     enregistrer_email_linkedin,
+    enregistrer_lecture_parcours,
     enregistrer_profils,
     importer_commentaires_csv,
     lister_profils,
@@ -25,6 +30,7 @@ from source.backend.adapters.storage.profile_store import (
     migrer_schema,
     ouvrir_magasin,
     profils_a_enrichir,
+    profils_a_lire,
     profils_a_visiter,
     urls_connues,
 )
@@ -724,3 +730,134 @@ def test_un_statut_vide_dans_le_csv_ne_leve_pas_une_decision_existante(conn, tmp
 
     assert lister_profils(conn)[0]["statut_coordonnees"] == STATUT_VALIDE
     assert rapport.statuts_tranches == []
+
+
+# --- POC-016 step 7: career-path reading -------------------------------------
+
+URL_PAUL = "https://www.linkedin.com/in/paul-durand"
+
+
+def _colonnes_hors_parcours(conn, url):
+    ligne = conn.execute("SELECT * FROM profils WHERE url = :url", {"url": url}).fetchone()
+    return {k: ligne[k] for k in ligne.keys() if k not in PARCOURS_COLUMNS}
+
+
+def test_profils_a_lire_ecarte_les_opposes_et_les_deja_lus(conn):
+    enregistrer_profils(conn, [profil(), profil(nom="Jean Martin", url=URL_JEAN)])
+    enregistrer_profils(conn, [profil(nom="Paul Durand", url=URL_PAUL)])
+    marquer_ne_plus_traiter(conn, URL_JEAN)
+    enregistrer_lecture_parcours(conn, URL_PAUL, "Coach", "", date_lecture="2026-11-10")
+
+    assert [p["url"] for p in profils_a_lire(conn)] == [URL_MARIE]
+
+
+def test_profils_a_lire_sans_seuil_et_lot_1_d_abord(conn):
+    # No score threshold (decision D1): a profile scored 0 is read too.
+    enregistrer_profils(conn, [profil(score="0")], date_collecte="2026-10-07")
+    enregistrer_profils(
+        conn, [profil(nom="Zoe Petit", url=URL_JEAN, score="100")], date_collecte="2026-07-03"
+    )
+
+    a_lire = profils_a_lire(conn)
+
+    assert [p["url"] for p in a_lire] == [URL_JEAN, URL_MARIE]
+    assert set(a_lire[0]) == {"url", "nom", "titre", "score", "date_collecte"}
+
+
+def test_lecture_ecrit_le_texte_et_la_date(conn):
+    enregistrer_profils(conn, [profil()])
+
+    statut = enregistrer_lecture_parcours(
+        conn, URL_MARIE, " Coach depuis 2015 ", "J'accompagne", date_lecture="2026-11-10"
+    )
+
+    ligne = conn.execute(
+        "SELECT texte_experience, texte_infos, date_lecture_parcours FROM profils"
+    ).fetchone()
+    assert statut == LECTURE_ECRITE
+    assert tuple(ligne) == ("Coach depuis 2015", "J'accompagne", "2026-11-10")
+
+
+def test_lecture_vide_pose_quand_meme_la_date(conn):
+    # "Read, nothing found" is not "not read yet": the profile leaves the backlog.
+    enregistrer_profils(conn, [profil()])
+
+    statut = enregistrer_lecture_parcours(conn, URL_MARIE, "", "", date_lecture="2026-11-10")
+
+    assert statut == LECTURE_ECRITE
+    assert conn.execute("SELECT date_lecture_parcours FROM profils").fetchone()[0] == "2026-11-10"
+    assert profils_a_lire(conn) == []
+
+
+def test_lecture_ne_touche_aucune_autre_colonne(conn, tmp_path):
+    enregistrer_profils(conn, [profil(score="65", categorie="coach_business_indifferencie")])
+    chemin = tmp_path / "retour.csv"
+    ecrire_csv_annote(chemin, [{"url": URL_MARIE, "commentaire_client": "bon"}])
+    importer_commentaires_csv(conn, chemin)
+    enregistrer_email_linkedin(conn, [{"url": URL_MARIE, "email": ""}], date_visite="2026-08-28")
+    avant = _colonnes_hors_parcours(conn, URL_MARIE)
+
+    enregistrer_lecture_parcours(conn, URL_MARIE, "Coach", "Infos", date_lecture="2026-11-10")
+
+    apres = _colonnes_hors_parcours(conn, URL_MARIE)
+    assert apres == avant
+    assert apres["commentaire_client"] == "bon"
+
+
+def test_lecture_ne_reecrit_jamais_un_profil_deja_lu(conn):
+    enregistrer_profils(conn, [profil()])
+    enregistrer_lecture_parcours(conn, URL_MARIE, "Premier", "", date_lecture="2026-11-10")
+
+    statut = enregistrer_lecture_parcours(conn, URL_MARIE, "Second", "x", date_lecture="2026-11-11")
+
+    ligne = conn.execute(
+        "SELECT texte_experience, texte_infos, date_lecture_parcours FROM profils"
+    ).fetchone()
+    assert statut == LECTURE_DEJA_LUE
+    assert tuple(ligne) == ("Premier", "", "2026-11-10")
+
+
+def test_lecture_n_ecrit_jamais_un_profil_oppose(conn):
+    enregistrer_profils(conn, [profil()])
+    marquer_ne_plus_traiter(conn, URL_MARIE)
+
+    statut = enregistrer_lecture_parcours(conn, URL_MARIE, "Coach", "", date_lecture="2026-11-10")
+
+    ligne = conn.execute("SELECT texte_experience, date_lecture_parcours FROM profils").fetchone()
+    assert statut == LECTURE_OPPOSE
+    assert tuple(ligne) == ("", "")
+
+
+def test_lecture_d_une_url_inconnue_ne_cree_rien(conn):
+    statut = enregistrer_lecture_parcours(conn, URL_MARIE, "Coach", "")
+
+    assert statut == LECTURE_URL_INCONNUE
+    assert conn.execute("SELECT COUNT(*) FROM profils").fetchone()[0] == 0
+
+
+def test_lecture_normalise_l_url(conn):
+    enregistrer_profils(conn, [profil()])
+
+    statut = enregistrer_lecture_parcours(
+        conn, URL_MARIE + "?miniProfileUrn=x#top", "Coach", "", date_lecture="2026-11-10"
+    )
+
+    assert statut == LECTURE_ECRITE
+    assert profils_a_lire(conn) == []
+
+
+def test_lecture_est_commitee_profil_par_profil(tmp_path):
+    # A run stopped midway must keep what it already read: every write commits.
+    chemin = tmp_path / "profils.db"
+    conn = ouvrir_magasin(chemin)
+    enregistrer_profils(conn, [profil()])
+    enregistrer_lecture_parcours(conn, URL_MARIE, "Coach", "", date_lecture="2026-11-10")
+
+    autre = sqlite3.connect(chemin)
+    try:
+        assert autre.execute("SELECT date_lecture_parcours FROM profils").fetchone()[0] == (
+            "2026-11-10"
+        )
+    finally:
+        autre.close()
+        conn.close()
