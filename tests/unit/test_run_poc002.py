@@ -170,3 +170,32 @@ def test_un_refus_du_magasin_est_signale_et_non_compte_comme_lu():
 
     assert bilan.lus == []
     assert bilan.refus == [("a", LECTURE_DEJA_LUE)]
+
+
+class _PageFactice:
+    url = "https://www.linkedin.com/in/x/"
+
+    def goto(self, url, timeout=0):
+        self.url = url
+
+    def title(self):
+        return "Prénom Nom | LinkedIn"
+
+
+def test_pause_entre_profils_mais_pas_avant_le_premier(monkeypatch):
+    from source.backend.adapters.scraping import run_poc002
+
+    pauses = []
+    monkeypatch.setattr(run_poc002, "pause_humaine", lambda a, b: pauses.append((a, b)))
+    monkeypatch.setattr(run_poc002, "scroll_profile_page", lambda page: None)
+    monkeypatch.setattr(
+        run_poc002, "extract_rubriques_from_profile_page", lambda page: {"experience": "x"}
+    )
+    lire = run_poc002._lecteur_playwright(_PageFactice())
+
+    lire({"url": "a", "nom": "A"})
+    assert run_poc002.PAUSE_ENTRE_PROFILS not in pauses
+    lire({"url": "b", "nom": "B"})
+    assert pauses.count(run_poc002.PAUSE_ENTRE_PROFILS) == 1
+    bas, haut = run_poc002.PAUSE_ENTRE_PROFILS
+    assert 10 <= bas < haut <= 60

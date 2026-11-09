@@ -73,7 +73,14 @@ from source.backend.core.profile_scoring import (
 # a run has been validated with no account restriction.
 # POC-016 reading run: steps of 5, 10, then 20, one commit per step, and at
 # most 2 launches a day (decision D6, 05/11/2026 - a procedure rule, not coded).
-MAX_PROFILES = 10
+# Raised to 30 on 09/11/2026 by the user's decision, with a longer pause below.
+MAX_PROFILES = 30
+
+# Random pause before each profile visit but the first, in seconds (09/11/2026).
+# Was 2-5 s; a slower, less regular rhythm puts less load on LinkedIn. It does
+# not prevent a Cloudflare block: both observed ones hit the home page, before
+# any profile visit. 30 profiles take about 15 to 30 minutes.
+PAUSE_ENTRE_PROFILS = (15.0, 45.0)
 
 # Reading run guard: this many profiles in a row with both sections empty
 # stops the run. One empty profile is plausible (no About section); several in
@@ -190,8 +197,13 @@ def _lot_du_profil(profil: dict[str, str]) -> str:
 
 def _lecteur_playwright(page) -> Callable[[dict[str, str]], tuple[str, object]]:
     """lire_profil over a live page: one visit, no "Contact info" overlay."""
+    visites = 0
 
     def lire_profil(profil: dict[str, str]) -> tuple[str, object]:
+        nonlocal visites
+        if visites:
+            pause_humaine(*PAUSE_ENTRE_PROFILS)
+        visites += 1
         print(f"  -> {profil['nom']}")
         try:
             page.goto(profil["url"], timeout=60000)
@@ -204,7 +216,6 @@ def _lecteur_playwright(page) -> Callable[[dict[str, str]], tuple[str, object]]:
         pause_humaine(2, 4)
         scroll_profile_page(page)
         rubriques = extract_rubriques_from_profile_page(page)
-        pause_humaine(2, 5)
         return VISITE_LUE, rubriques
 
     return lire_profil
